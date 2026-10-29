@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f3f4ee">
-  <meta name="description" content="Loom OS，让 Mosaico 这样的小设备拥有自己的应用。了解它能做什么、目前的试用进展，也可以逛逛首页的 3D 廊亭。">
+  <meta name="description" content="Loom OS，让 Mosaico 这样的小设备拥有自己的应用。了解它能做什么、目前的试用进展，也可以逛逛首页的织界空间。">
   <meta property="og:title" content="Loom OS — 让小设备，有自己的应用。">
   <meta property="og:description" content="给小设备准备的一套应用系统。点图标打开小工具，看看 Loom OS 能为小屏幕带来什么。">
   <meta property="og:type" content="website">
@@ -14,7 +14,7 @@
 <body>
 <a class="skip-link" href="#main">跳到正文</a>
 <header class="site-header wrap">
-  <a class="brand" href="./" aria-label="Loom OS 首页"><svg class="loom-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 4h6v24H4zM13 4h6v24h-6zM22 4h6v24h-6z"/><path class="weft" d="M0 10h32v4H0zM0 19h32v4H0z"/></svg><span>loom<span class="brand-os">os</span></span></a>
+  <a class="brand" href="./" aria-label="织界 · Loom OS 首页"><img class="brand-logo" src="./assets/zhi-jie-logo.svg" alt="织界 · Loom OS" width="270" height="100"></a>
   <nav class="desktop-nav" aria-label="主导航"><a href="#possibilities">能做什么</a><a href="#runtime">怎么使用</a><a href="#start">如何试用</a></nav>
   <div class="header-actions"><a class="github-link" href="https://github.com/zalsay/loom-os" target="_blank" rel="noopener noreferrer">项目代码 <span>↗</span></a><button class="menu-button" aria-label="展开导航" aria-expanded="false" aria-controls="mobile-nav">☰</button></div>
 </header>
@@ -30,11 +30,11 @@
       <div class="hero-footnote"><span class="woven-lines" aria-hidden="true"></span><p>读一页文字，调一下设置。<br><span>从身边用得上的小工具开始。</span></p></div>
     </div>
     <div class="world-stage" id="world-stage">
-      <div class="world-topline"><span><i></i>廊亭小世界</span><span>拖动看看，拉近看看</span></div>
-      <iframe id="world-frame" src="./world.html?embedded=1" title="可以转动和拉近看的 3D 廊亭" loading="eager" allow="fullscreen"></iframe>
-      <div class="world-loading" id="world-loading"><span class="loader-ring"></span><span>廊亭正在打开，请稍等…</span></div>
-      <div class="world-bottom"><div><span class="world-coordinate">逛逛这座白色廊亭。</span><small>点进去，可以转动、拉近看</small></div><button class="world-enter" id="world-enter" aria-label="逛逛 3D 廊亭"><span>逛逛 3D 廊亭</span><b>↗</b></button></div>
-      <div class="world-overlay-controls" hidden><div><strong>廊亭小世界</strong><span>拖动转一转 · 滚轮拉近拉远 · 按 Esc 返回</span></div><button id="world-close" class="button light">返回官网 <span>✕</span></button></div>
+      <div class="world-topline"><span><i></i>织界空间</span><span>拖动看看，拉近看看</span></div>
+      <iframe id="world-frame" src="./world.html?embedded=1" title="织界空间，可以转动和拉近看" loading="eager" allow="fullscreen"></iframe>
+      <div class="world-loading" id="world-loading"><span class="loader-ring"></span><span>织界空间正在打开，请稍等…</span></div>
+      <div class="world-bottom"><div><span class="world-coordinate">来织界空间逛一逛。</span><small>点进去，可以转动、拉近看</small></div><button class="world-enter" id="world-enter" aria-label="进入织界空间"><span>进入织界空间</span><b>↗</b></button></div>
+      <div class="world-overlay-controls" hidden><div><strong>织界空间</strong><span>拖动转一转 · 滚轮拉近拉远 · 按 Esc 返回</span></div><button id="world-close" class="button light">返回官网 <span>✕</span></button></div>
       <span class="world-corner" aria-hidden="true">+<br>+</span>
     </div>
   </section>
@@ -72,7 +72,7 @@
     <details class="developer-details"><summary>想自己写应用？展开看看 <span aria-hidden="true">+</span></summary><div class="developer-content"><div class="code-window"><div class="code-toolbar"><div role="tablist" aria-label="开发示例"><button id="code-lua" class="active" role="tab" aria-selected="true" aria-controls="code-panel" data-code="lua">应用代码</button><button id="code-manifest" role="tab" aria-selected="false" tabindex="-1" aria-controls="code-panel" data-code="manifest">应用信息</button></div><button id="copy-example" class="copy-button" aria-label="复制示例代码">复制 <span>▣</span></button></div><div class="code-panel" id="code-panel" role="tabpanel" aria-labelledby="code-lua"><pre><code id="example-code"></code></pre></div><div class="code-footer"><span><i></i>一个简单的 Lua 应用示例</span><a href="https://github.com/zalsay/loom-os/tree/main/examples/org.loom-os.web-reader" target="_blank" rel="noopener noreferrer">查看完整示例 ↗</a></div></div><div class="developer-help"><h3>从一个小示例开始</h3><p>如果你会写代码，可以用 Lua 编写应用，用 LVGL 显示界面。下面的命令可以把项目代码下载到电脑。</p><div class="clone-command"><code>git clone https://github.com/zalsay/loom-os.git</code><button id="copy-clone" aria-label="复制下载命令">▣</button></div><p>应用代码对应 main.lua；应用信息对应 manifest.json，用来填写名称、版本和需要的权限。</p><a class="text-link" href="https://github.com/zalsay/loom-os#readme" target="_blank" rel="noopener noreferrer">阅读开发文档 <span>↗</span></a></div></div></details>
   </section>
 </main>
-<footer class="site-footer wrap"><div class="footer-top"><a class="brand" href="./"><svg class="loom-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 4h6v24H4zM13 4h6v24h-6zM22 4h6v24h-6z"/><path class="weft" d="M0 10h32v4H0zM0 19h32v4H0z"/></svg><span>loom<span class="brand-os">os</span></span></a><p>让小设备，有自己的应用。</p><div><a href="https://github.com/zalsay/loom-os" target="_blank" rel="noopener noreferrer">项目主页 ↗</a><a href="https://github.com/zalsay/loom-web" target="_blank" rel="noopener noreferrer">网站代码 ↗</a><a href="https://github.com/zalsay/loom-os/issues" target="_blank" rel="noopener noreferrer">提建议 ↗</a></div></div><div class="footer-bottom"><span>Loom OS · 欢迎一起尝试</span><span>从一个用得上的小工具开始。</span><a href="#main">回到顶部 ↑</a></div></footer>
+<footer class="site-footer wrap"><div class="footer-top"><a class="brand" href="./"><img class="brand-logo" src="./assets/zhi-jie-logo.svg" alt="织界 · Loom OS" width="270" height="100"></a><p>让小设备，有自己的应用。</p><div><a href="https://github.com/zalsay/loom-os" target="_blank" rel="noopener noreferrer">项目主页 ↗</a><a href="https://github.com/zalsay/loom-web" target="_blank" rel="noopener noreferrer">网站代码 ↗</a><a href="https://github.com/zalsay/loom-os/issues" target="_blank" rel="noopener noreferrer">提建议 ↗</a></div></div><div class="footer-bottom"><span>Loom OS · 欢迎一起尝试</span><span>从一个用得上的小工具开始。</span><a href="#main">回到顶部 ↑</a></div></footer>
 <div id="toast" role="status" aria-live="polite"></div>
 <script type="module" src="./js/home.js"></script>
 </body></html>

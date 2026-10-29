@@ -1,1 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#255d49"/><path d="M13 12h9v40h-9zm15 0h9v40h-9zm15 0h9v40h-9z" fill="#e6eddd"/><path d="M8 23h48v6H8zm0 14h48v6H8z" fill="#8fac83"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 108 108" width="64" height="64" role="img"><title>织界</title><rect x="-6" y="-6" width="108" height="108" rx="21" fill="#182e30" /><defs><filter id="glow" filterUnits="userSpaceOnUse" x="-12" y="-12" width="300" height="124" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.3" /><feComponentTransfer><feFuncA type="linear" slope="0.35" /></feComponentTransfer><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+</defs><g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M20 29 H76 L87 40 V56 L76 67 H20 L9 56 V40 Z" stroke="#ffc866" stroke-width="8" filter="url(#glow)" />
+<path d="M29 20 L40 9 H56 L67 20 V76 L56 87 H40 L29 76 Z" stroke="#4ee5e0" stroke-width="8" filter="url(#glow)" />
+<path d="M23 29 H35" stroke="#ffc866" stroke-width="8" />
+<path d="M61 67 H73" stroke="#ffc866" stroke-width="8" />
+<path d="M42 37 V34 M54 37 V34 M42 59 V62 M54 59 V62 M37 42 H34 M37 54 H34 M59 42 H62 M59 54 H62" stroke="#a3fff7" stroke-width="1.2" />
+<path d="M40 37 H56 L59 40 V56 L56 59 H40 L37 56 V40 Z" stroke="#a3fff7" stroke-width="1.4" />
+</g>
+<rect x="41" y="41" width="6" height="6" fill="#4ee5e0" />
+<rect x="49" y="41" width="6" height="6" fill="#ffc866" />
+<rect x="41" y="49" width="6" height="6" fill="#ffc866" />
+<rect x="49" y="49" width="6" height="6" fill="#4ee5e0" />
+<circle cx="9" cy="48" r="3" fill="#e9ffff" />
+<circle cx="48" cy="9" r="3" fill="#e9ffff" />
+<circle cx="87" cy="48" r="3" fill="#e9ffff" />
+<circle cx="48" cy="87" r="3" fill="#e9ffff" />
+</svg>
