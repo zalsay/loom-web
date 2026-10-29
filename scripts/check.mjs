@@ -1,4 +1,5 @@
 import { readdir, readFile, access } from 'node:fs/promises';
+import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -14,4 +15,15 @@ for(const file of await files(web)){
   for(const expression of expressions)for(const match of content.matchAll(expression))await access(path.resolve(path.dirname(file),match[1]));
 }
 for(const module of ['three.module.js','three.core.js','addons/controls/OrbitControls.js','addons/renderers/SVGRenderer.js','addons/renderers/Projector.js','addons/modifiers/TessellateModifier.js','THREE-LICENSE.txt'])await access(path.join(web,'vendor',module));
+const stylesheet=await readFile(path.join(web,'styles.css'),'utf8');
+const homepage=await readFile(path.join(web,'index.html'),'utf8');
+const favicon=await readFile(path.join(web,'favicon.svg'),'utf8');
+const accent=stylesheet.match(/--accent:(#[a-f0-9]{6})/i)?.[1];
+assert.ok(accent,'The website must define its emphasis accent');
+assert.match(stylesheet,/\.serif-accent\{[^}]*color:var\(--accent\)/,'Emphasized text must share its accent with the logo background');
+assert.match(stylesheet,/\.brand\{[^}]*background:var\(--accent\)/,'Logo backgrounds must reuse the website accent');
+const logoBackgrounds=[...stylesheet.matchAll(/(?:^|})\s*\.brand\{([^}]*)\}/g)].flatMap(rule=>[...rule[1].matchAll(/(?:^|;)background:([^;}]*)/g)].map(match=>match[1]));
+assert.deepEqual(logoBackgrounds,['var(--accent)'],'Logo accent must not be overridden by a later background rule');
+assert.equal((homepage.match(/<img class="brand-logo" src="\.\/assets\/zhi-jie-logo\.svg"/g)||[]).length,2,'Header and footer must use the same Zhi Jie logo');
+assert.equal(favicon.match(/<rect\b[^>]*fill="([^"]+)"/)?.[1],accent,'Favicon background must match the website accent');
 console.log(`Validated ${all.length} source files and local resource references.`);
