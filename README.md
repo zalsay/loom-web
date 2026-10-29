@@ -20,6 +20,13 @@ npm run build   # 生成 dist/
 npm run preview # 预览 dist/，默认端口 5173
 ```
 
+源码统一用 Prettier 排版（配置见 `.prettierrc.json`，`web/vendor/` 不参与）。修改代码前先运行一次 `npm install`：
+
+```sh
+npm run format        # 格式化全部源码
+npm run format:check  # 只检查，不改文件
+```
+
 可通过 `PORT=8080 npm run dev` 指定端口。将 `dist/` 部署到任意静态托管服务即可；构建命令 `npm run build`，输出目录 `dist`。资源使用相对地址，支持子目录托管。仓库不自动修改 GitHub Pages 或绑定域名。
 
 ## 结构

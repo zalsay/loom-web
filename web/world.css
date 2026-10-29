@@ -1,1 +1,235 @@
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dbe3d2;color:#2f4a35;font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}button,a,input{touch-action:manipulation}button{cursor:pointer;font:inherit}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #729260;outline-offset:3px}#viewport{position:absolute;inset:0}#viewport>canvas,#viewport>svg{display:block;width:100%;height:100%}.standalone-back{position:absolute;top:27px;left:30px;text-decoration:none;color:inherit;background:#f3f6ecdf;padding:12px 18px;border-radius:5px;font-size:12px;z-index:5}.world-tools{position:absolute;bottom:35px;left:50%;transform:translateX(-50%);width:min(550px,calc(100% - 40px));background:#f3f6eced;backdrop-filter:blur(14px);border:1px solid #fff9;box-shadow:0 12px 30px #3b503419;border-radius:10px;padding:19px 23px;z-index:5}.tools-label{font-size:11px;color:#7c8e6e;letter-spacing:.7px;display:block;margin-bottom:14px}.views{display:flex;gap:5px}.views button{flex:1;background:transparent;border:1px solid #d6dfcb;border-radius:4px;font-size:10px;padding:11px 7px;color:#708366;white-space:nowrap}.views button.active{background:#2c5e43;color:#edf3e6;border-color:#2c5e43}.world-options{display:flex;align-items:center;justify-content:space-between;gap:9px;font-size:9px;color:#819171;margin-top:17px}.world-options label{display:flex;align-items:center;gap:5px;cursor:pointer}.world-options input{margin:0;accent-color:#426e43;width:12px;height:12px}.world-options button{font-size:9px;background:none;border:0;color:#647e51;padding:2px}.world-info{position:absolute;left:30px;top:94px;pointer-events:none}.world-info>span{font-family:ui-monospace,monospace;font-size:8px;letter-spacing:1.6px;color:#718b5c}.world-info p{font-size:10px;color:#7f9270;margin-top:9px}.world-hint{position:absolute;bottom:12px;left:0;width:100%;text-align:center;font-size:8px;letter-spacing:1px;color:#829578;pointer-events:none}.embedded .standalone-back{display:none}.embedded:not(.interactive) .world-tools,.embedded:not(.interactive) .world-info,.embedded:not(.interactive) .world-hint{display:none}.embedded.interactive .world-info{top:107px}#loading{position:absolute;inset:0;background:#dbe3d2;display:flex;align-items:center;justify-content:center;gap:13px;font-size:11px;letter-spacing:1px;z-index:8;transition:opacity .4s}#loading span{display:inline-block;border:1px solid #b2c3a4;border-top-color:#547747;border-radius:50%;height:19px;width:19px;animation:spin 1s linear infinite}#loading.hidden{opacity:0;pointer-events:none}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:600px){.world-tools{bottom:30px;padding:15px 14px}.tools-label{font-size:10px}.views{gap:4px}.views button{font-size:9px;padding:10px 4px}.world-options{font-size:8px;gap:5px;margin-top:15px}.world-options input{width:11px;height:11px}.world-info{left:21px;top:89px}.world-info p{font-size:8px}.standalone-back{left:20px;top:20px;font-size:10px}.world-hint{font-size:7px;bottom:10px}}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #dbe3d2;
+  color: #2f4a35;
+  font-family: Inter, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+button,
+a,
+input {
+  touch-action: manipulation;
+}
+button {
+  cursor: pointer;
+  font: inherit;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid #729260;
+  outline-offset: 3px;
+}
+#viewport {
+  position: absolute;
+  inset: 0;
+}
+#viewport > canvas,
+#viewport > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.standalone-back {
+  position: absolute;
+  top: 27px;
+  left: 30px;
+  text-decoration: none;
+  color: inherit;
+  background: #f3f6ecdf;
+  padding: 12px 18px;
+  border-radius: 5px;
+  font-size: 12px;
+  z-index: 5;
+}
+.world-tools {
+  position: absolute;
+  bottom: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(550px, calc(100% - 40px));
+  background: #f3f6eced;
+  backdrop-filter: blur(14px);
+  border: 1px solid #fff9;
+  box-shadow: 0 12px 30px #3b503419;
+  border-radius: 10px;
+  padding: 19px 23px;
+  z-index: 5;
+}
+.tools-label {
+  font-size: 11px;
+  color: #7c8e6e;
+  letter-spacing: 0.7px;
+  display: block;
+  margin-bottom: 14px;
+}
+.views {
+  display: flex;
+  gap: 5px;
+}
+.views button {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #d6dfcb;
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 11px 7px;
+  color: #708366;
+  white-space: nowrap;
+}
+.views button.active {
+  background: #2c5e43;
+  color: #edf3e6;
+  border-color: #2c5e43;
+}
+.world-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  font-size: 9px;
+  color: #819171;
+  margin-top: 17px;
+}
+.world-options label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.world-options input {
+  margin: 0;
+  accent-color: #426e43;
+  width: 12px;
+  height: 12px;
+}
+.world-options button {
+  font-size: 9px;
+  background: none;
+  border: 0;
+  color: #647e51;
+  padding: 2px;
+}
+.world-info {
+  position: absolute;
+  left: 30px;
+  top: 94px;
+  pointer-events: none;
+}
+.world-info > span {
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+  letter-spacing: 1.6px;
+  color: #718b5c;
+}
+.world-info p {
+  font-size: 10px;
+  color: #7f9270;
+  margin-top: 9px;
+}
+.world-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #829578;
+  pointer-events: none;
+}
+.embedded .standalone-back {
+  display: none;
+}
+.embedded:not(.interactive) .world-tools,
+.embedded:not(.interactive) .world-info,
+.embedded:not(.interactive) .world-hint {
+  display: none;
+}
+.embedded.interactive .world-info {
+  top: 107px;
+}
+#loading {
+  position: absolute;
+  inset: 0;
+  background: #dbe3d2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  z-index: 8;
+  transition: opacity 0.4s;
+}
+#loading span {
+  display: inline-block;
+  border: 1px solid #b2c3a4;
+  border-top-color: #547747;
+  border-radius: 50%;
+  height: 19px;
+  width: 19px;
+  animation: spin 1s linear infinite;
+}
+#loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 600px) {
+  .world-tools {
+    bottom: 30px;
+    padding: 15px 14px;
+  }
+  .tools-label {
+    font-size: 10px;
+  }
+  .views {
+    gap: 4px;
+  }
+  .views button {
+    font-size: 9px;
+    padding: 10px 4px;
+  }
+  .world-options {
+    font-size: 8px;
+    gap: 5px;
+    margin-top: 15px;
+  }
+  .world-options input {
+    width: 11px;
+    height: 11px;
+  }
+  .world-info {
+    left: 21px;
+    top: 89px;
+  }
+  .world-info p {
+    font-size: 8px;
+  }
+  .standalone-back {
+    left: 20px;
+    top: 20px;
+    font-size: 10px;
+  }
+  .world-hint {
+    font-size: 7px;
+    bottom: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

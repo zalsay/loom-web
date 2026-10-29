@@ -1,0 +1,3 @@
+web/vendor/
+dist/
+package-lock.json

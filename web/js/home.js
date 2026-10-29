@@ -1,31 +1,204 @@
-const $ = selector => document.querySelector(selector);
+const $ = (selector) => document.querySelector(selector);
 const features = {
-  launcher: {caption:'常用的应用，都在这里。', html:`<p class="device-greeting">想用哪个小工具？</p><p class="device-subtitle">打开首页，就能找到。</p><div class="app-grid"><div><span class="app-icon reader">▤</span>网页阅读器</div><div><span class="app-icon diagnostics">⌘</span>检查设备</div><div><span class="app-icon farm">♧</span>种植助手</div><div><span class="app-icon settings">⚙</span>系统设置</div></div><p class="device-bottom-note">应用首页示意</p>`},
-  apis: {caption:'保存自己的内容，用上设备支持的功能。', html:`<p class="device-greeting">小应用能做什么？</p><p class="device-subtitle">按需要，使用设备功能。</p><div class="api-rows"><div><span>▣ &nbsp; 保存内容</span><small>各自存放</small></div><div><span>◷ &nbsp; 定时任务</span><small>到时间再执行</small></div><div><span>⌘ &nbsp; 读取传感器</span><small>需要设备支持</small></div><div><span>↗ &nbsp; 联网与智能功能</span><small>还在完善中</small></div></div><p class="device-bottom-note">功能示意</p>`},
-  updates: {caption:'新版本启动失败时，可以回到旧版本。', html:`<p class="device-greeting">试试新版本</p><p class="device-subtitle">先试运行，再决定是否使用。</p><div class="update-flow"><div><i>01</i><span>先检查<small>检查更新文件</small></span><b>✓</b></div><div><i>02</i><span>试着启动<small>先运行新版本</small></span><b>↓</b></div><div><i>03</i><span>继续用，或退回<small>启动失败时恢复旧版本</small></span><b>↗</b></div></div><p class="device-bottom-note">更新过程示意</p>`}
+  launcher: {
+    caption: '常用的应用，都在这里。',
+    html: `<p class="device-greeting">想用哪个小工具？</p><p class="device-subtitle">打开首页，就能找到。</p><div class="app-grid"><div><span class="app-icon reader">▤</span>网页阅读器</div><div><span class="app-icon diagnostics">⌘</span>检查设备</div><div><span class="app-icon farm">♧</span>种植助手</div><div><span class="app-icon settings">⚙</span>系统设置</div></div><p class="device-bottom-note">应用首页示意</p>`,
+  },
+  apis: {
+    caption: '保存自己的内容，用上设备支持的功能。',
+    html: `<p class="device-greeting">小应用能做什么？</p><p class="device-subtitle">按需要，使用设备功能。</p><div class="api-rows"><div><span>▣ &nbsp; 保存内容</span><small>各自存放</small></div><div><span>◷ &nbsp; 定时任务</span><small>到时间再执行</small></div><div><span>⌘ &nbsp; 读取传感器</span><small>需要设备支持</small></div><div><span>↗ &nbsp; 联网与智能功能</span><small>还在完善中</small></div></div><p class="device-bottom-note">功能示意</p>`,
+  },
+  updates: {
+    caption: '新版本启动失败时，可以回到旧版本。',
+    html: `<p class="device-greeting">试试新版本</p><p class="device-subtitle">先试运行，再决定是否使用。</p><div class="update-flow"><div><i>01</i><span>先检查<small>检查更新文件</small></span><b>✓</b></div><div><i>02</i><span>试着启动<small>先运行新版本</small></span><b>↓</b></div><div><i>03</i><span>继续用，或退回<small>启动失败时恢复旧版本</small></span><b>↗</b></div></div><p class="device-bottom-note">更新过程示意</p>`,
+  },
 };
-function activateFeature(key){
-  document.querySelectorAll('[data-feature]').forEach(button=>{const selected=button.dataset.feature===key;button.classList.toggle('active',selected);button.setAttribute('aria-selected',selected);button.tabIndex=selected?0:-1;});
-  $('#device-content').innerHTML=features[key].html;$('#feature-caption').textContent=features[key].caption;$('#feature-display').setAttribute('aria-labelledby',`tab-${key}`);
+function activateFeature(key) {
+  document.querySelectorAll('[data-feature]').forEach((button) => {
+    const selected = button.dataset.feature === key;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-selected', selected);
+    button.tabIndex = selected ? 0 : -1;
+  });
+  $('#device-content').innerHTML = features[key].html;
+  $('#feature-caption').textContent = features[key].caption;
+  $('#feature-display').setAttribute('aria-labelledby', `tab-${key}`);
 }
-document.querySelectorAll('[data-feature]').forEach(button=>button.addEventListener('click',()=>activateFeature(button.dataset.feature)));
+document
+  .querySelectorAll('[data-feature]')
+  .forEach((button) =>
+    button.addEventListener('click', () => activateFeature(button.dataset.feature)),
+  );
 activateFeature('launcher');
-const examples={lua:`return {\n  on_create = function(ctx, args)\n    local lv, root = ctx.ui.lv, ctx.ui.root\n\n    root:set_style({\n      bg_color = "#101820",\n      bg_opa = 255, pad = 18\n    })\n\n    lv.label(root, {\n      text = "你好，Loom OS",\n      w = 420, text_color = "#ffffff"\n    })\n  end\n}`,manifest:JSON.stringify({schema:1,api:'0.1',id:'org.loom-os.hello',name:'Hello Loom',version:'0.1.0',entry:'main.lua',min_loom_os:'0.1.0',permissions:{}},null,2)};
-let currentCode='lua';
-function activateCode(key){currentCode=key;document.querySelectorAll('[data-code]').forEach(button=>{const selected=button.dataset.code===key;button.classList.toggle('active',selected);button.setAttribute('aria-selected',selected);button.tabIndex=selected?0:-1;});$('#example-code').textContent=examples[key];$('#code-panel').setAttribute('aria-labelledby',`code-${key}`);}
-document.querySelectorAll('[data-code]').forEach(button=>button.addEventListener('click',()=>activateCode(button.dataset.code)));activateCode('lua');
+const examples = {
+  lua: `return {\n  on_create = function(ctx, args)\n    local lv, root = ctx.ui.lv, ctx.ui.root\n\n    root:set_style({\n      bg_color = "#101820",\n      bg_opa = 255, pad = 18\n    })\n\n    lv.label(root, {\n      text = "你好，Loom OS",\n      w = 420, text_color = "#ffffff"\n    })\n  end\n}`,
+  manifest: JSON.stringify(
+    {
+      schema: 1,
+      api: '0.1',
+      id: 'org.loom-os.hello',
+      name: 'Hello Loom',
+      version: '0.1.0',
+      entry: 'main.lua',
+      min_loom_os: '0.1.0',
+      permissions: {},
+    },
+    null,
+    2,
+  ),
+};
+let currentCode = 'lua';
+function activateCode(key) {
+  currentCode = key;
+  document.querySelectorAll('[data-code]').forEach((button) => {
+    const selected = button.dataset.code === key;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-selected', selected);
+    button.tabIndex = selected ? 0 : -1;
+  });
+  $('#example-code').textContent = examples[key];
+  $('#code-panel').setAttribute('aria-labelledby', `code-${key}`);
+}
+document
+  .querySelectorAll('[data-code]')
+  .forEach((button) => button.addEventListener('click', () => activateCode(button.dataset.code)));
+activateCode('lua');
 // Standard roving tab focus for both tab sets.
-document.querySelectorAll('[role="tablist"]').forEach(list=>list.addEventListener('keydown',event=>{const tabs=[...list.querySelectorAll('[role="tab"]')];const index=tabs.indexOf(document.activeElement);if(index<0)return;let next=index;if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%tabs.length;else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index-1+tabs.length)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();tabs[next].focus();tabs[next].click();}));
-function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').classList.remove('show'),2700);}
-async function copy(text){try{await navigator.clipboard.writeText(text);}catch{const area=document.createElement('textarea');area.value=text;area.style.position='fixed';area.style.opacity='0';document.body.append(area);area.select();const success=document.execCommand('copy');area.remove();if(!success){toast('请选中文本后复制');return;}}toast('复制好了');}
-$('#copy-example').addEventListener('click',()=>copy(examples[currentCode]));$('#copy-clone').addEventListener('click',()=>copy('git clone https://github.com/zalsay/loom-os.git'));
-const menu=$('.menu-button'),mobileNav=$('#mobile-nav');menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',open);menu.setAttribute('aria-label',open?'收起导航':'展开导航');mobileNav.hidden=!open;menu.textContent=open?'✕':'☰';});mobileNav.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>{mobileNav.hidden=true;menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','展开导航');menu.textContent='☰';}));
-const stage=$('#world-stage'),frame=$('#world-frame'),enter=$('#world-enter'),close=$('#world-close');let isWorldOpen=false,previousFocus;
-const backgroundElements=[...document.querySelectorAll('body > :not(main):not(script):not(#toast), main > :not(.hero), .hero > :not(#world-stage)')];
-function setWorld(open){isWorldOpen=open;stage.classList.toggle('is-open',open);document.body.classList.toggle('world-open',open);$('.world-overlay-controls').hidden=!open;frame.tabIndex=open?0:-1;backgroundElements.forEach(element=>{element.inert=open;});frame.contentWindow?.postMessage({type:'loom-world-mode',interactive:open},location.origin);if(open){previousFocus=document.activeElement;stage.setAttribute('role','dialog');stage.setAttribute('aria-modal','true');stage.setAttribute('aria-label','织界空间');close.focus();}else{stage.removeAttribute('role');stage.removeAttribute('aria-modal');stage.removeAttribute('aria-label');previousFocus?.focus();}}
-enter.addEventListener('click',()=>setWorld(true));close.addEventListener('click',()=>setWorld(false));frame.tabIndex=-1;
-window.addEventListener('message',event=>{if(event.source!==frame.contentWindow||event.origin!==location.origin)return;if(event.data?.type==='loom-world-ready')$('#world-loading').classList.add('loaded');if(event.data?.type==='loom-world-close')setWorld(false);});
-document.addEventListener('keydown',event=>{if(!isWorldOpen)return;if(event.key==='Escape')setWorld(false);if(event.key==='Tab'&&!event.shiftKey&&document.activeElement===close){event.preventDefault();frame.focus();}});
-frame.addEventListener('load',()=>frame.contentWindow?.postMessage({type:'loom-world-mode',interactive:isWorldOpen},location.origin));
-new IntersectionObserver(entries=>{frame.contentWindow?.postMessage({type:'loom-world-visibility',visible:isWorldOpen||entries[0].isIntersecting},location.origin);},{rootMargin:'200px'}).observe(stage);
-window.addEventListener('message',event=>{if(event.source===frame.contentWindow&&event.origin===location.origin&&event.data?.type==='loom-world-error'){$('#world-loading').innerHTML='<span>暂时没打开，请再试一次。</span><a class="text-link" href="./world.html">重新打开看看 ↗</a>';}});
+document.querySelectorAll('[role="tablist"]').forEach((list) =>
+  list.addEventListener('keydown', (event) => {
+    const tabs = [...list.querySelectorAll('[role="tab"]')];
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0) return;
+    let next = index;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
+      next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    tabs[next].focus();
+    tabs[next].click();
+  }),
+);
+function toast(message) {
+  $('#toast').textContent = message;
+  $('#toast').classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => $('#toast').classList.remove('show'), 2700);
+}
+async function copy(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.append(area);
+    area.select();
+    const success = document.execCommand('copy');
+    area.remove();
+    if (!success) {
+      toast('请选中文本后复制');
+      return;
+    }
+  }
+  toast('复制好了');
+}
+$('#copy-example').addEventListener('click', () => copy(examples[currentCode]));
+$('#copy-clone').addEventListener('click', () =>
+  copy('git clone https://github.com/zalsay/loom-os.git'),
+);
+const menu = $('.menu-button'),
+  mobileNav = $('#mobile-nav');
+menu.addEventListener('click', () => {
+  const open = menu.getAttribute('aria-expanded') !== 'true';
+  menu.setAttribute('aria-expanded', open);
+  menu.setAttribute('aria-label', open ? '收起导航' : '展开导航');
+  mobileNav.hidden = !open;
+  menu.textContent = open ? '✕' : '☰';
+});
+mobileNav.querySelectorAll('a').forEach((link) =>
+  link.addEventListener('click', () => {
+    mobileNav.hidden = true;
+    menu.setAttribute('aria-expanded', 'false');
+    menu.setAttribute('aria-label', '展开导航');
+    menu.textContent = '☰';
+  }),
+);
+const stage = $('#world-stage'),
+  frame = $('#world-frame'),
+  enter = $('#world-enter'),
+  close = $('#world-close');
+let isWorldOpen = false,
+  previousFocus;
+const backgroundElements = [
+  ...document.querySelectorAll(
+    'body > :not(main):not(script):not(#toast), main > :not(.hero), .hero > :not(#world-stage)',
+  ),
+];
+function setWorld(open) {
+  isWorldOpen = open;
+  stage.classList.toggle('is-open', open);
+  document.body.classList.toggle('world-open', open);
+  $('.world-overlay-controls').hidden = !open;
+  frame.tabIndex = open ? 0 : -1;
+  backgroundElements.forEach((element) => {
+    element.inert = open;
+  });
+  frame.contentWindow?.postMessage({ type: 'loom-world-mode', interactive: open }, location.origin);
+  if (open) {
+    previousFocus = document.activeElement;
+    stage.setAttribute('role', 'dialog');
+    stage.setAttribute('aria-modal', 'true');
+    stage.setAttribute('aria-label', '织界空间');
+    close.focus();
+  } else {
+    stage.removeAttribute('role');
+    stage.removeAttribute('aria-modal');
+    stage.removeAttribute('aria-label');
+    previousFocus?.focus();
+  }
+}
+enter.addEventListener('click', () => setWorld(true));
+close.addEventListener('click', () => setWorld(false));
+frame.tabIndex = -1;
+window.addEventListener('message', (event) => {
+  if (event.source !== frame.contentWindow || event.origin !== location.origin) return;
+  if (event.data?.type === 'loom-world-ready') $('#world-loading').classList.add('loaded');
+  if (event.data?.type === 'loom-world-close') setWorld(false);
+});
+document.addEventListener('keydown', (event) => {
+  if (!isWorldOpen) return;
+  if (event.key === 'Escape') setWorld(false);
+  if (event.key === 'Tab' && !event.shiftKey && document.activeElement === close) {
+    event.preventDefault();
+    frame.focus();
+  }
+});
+frame.addEventListener('load', () =>
+  frame.contentWindow?.postMessage(
+    { type: 'loom-world-mode', interactive: isWorldOpen },
+    location.origin,
+  ),
+);
+new IntersectionObserver(
+  (entries) => {
+    frame.contentWindow?.postMessage(
+      { type: 'loom-world-visibility', visible: isWorldOpen || entries[0].isIntersecting },
+      location.origin,
+    );
+  },
+  { rootMargin: '200px' },
+).observe(stage);
+window.addEventListener('message', (event) => {
+  if (
+    event.source === frame.contentWindow &&
+    event.origin === location.origin &&
+    event.data?.type === 'loom-world-error'
+  ) {
+    $('#world-loading').innerHTML =
+      '<span>暂时没打开，请再试一次。</span><a class="text-link" href="./world.html">重新打开看看 ↗</a>';
+  }
+});
