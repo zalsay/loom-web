@@ -16,7 +16,7 @@ npm run dev
 
 ```sh
 npm run check   # JavaScript 语法与静态资源引用检查
-npm run build   # 生成 dist/
+npm run build   # 生成 dist/，并压缩其中的 JS 和 CSS（需先 npm install）
 npm run preview # 预览 dist/，默认端口 5173
 ```
 
