@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPavilion } from '../scene/model.js';
+import { fallbackPlan } from '../scene/fallback-rules.js';
 import { SITE, mapPoint, bendPoint } from '../scene/site-layout.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -87,34 +88,31 @@ async function init() {
       landscape: root.getObjectByName('草坪与园林'),
     };
     root.traverse((o) => {
-      if (o.isInstancedMesh || o.name === '疏朗树叶') o.visible = false;
-      if (o.isMesh) {
-        o.material = o.material.clone();
-        if (o.name === '草坪地面') {
-          o.renderOrder = -5;
-          o.geometry = new THREE.PlaneGeometry(180, 170, 30, 28);
-          o.material = new THREE.MeshBasicMaterial({ color: 0xa6af7d });
-        }
-        if (/栅格区封闭内体|封闭侧墙/.test(o.name)) {
-          const g = o.geometry.clone();
-          g.scale(o.scale.x, o.scale.y, o.scale.z);
-          o.scale.set(1, 1, 1);
-          o.geometry = tessellate.modify(g);
-        }
-        if (/路缘|园路收边/.test(o.name)) o.renderOrder = -4;
-        if (/沥青|园路$/.test(o.name)) o.renderOrder = -3;
-        if (/道路|园路|铺装前场/.test(o.name)) o.renderOrder = -3;
-        if (/人行道|路缘/.test(o.name)) o.renderOrder = -4;
-        if (o.material.name === '市政道路沥青')
-          o.material = new THREE.MeshBasicMaterial({ color: 0x7b847d, side: THREE.DoubleSide });
-        if (/标线|分隔线|沿路缘白线|道路虚线|铺装分缝/.test(o.name)) o.renderOrder = -2;
-        if (/沥青|园路$/.test(o.name))
-          o.material = new THREE.MeshBasicMaterial({ color: 0x8a918b, side: THREE.DoubleSide });
-        if (/屋面|顶板|吊顶底板|沥青路面|弧形路缘/.test(o.name))
-          o.geometry = tessellate.modify(o.geometry);
+      const plan = fallbackPlan(o.name, o.material?.name);
+      if (o.isInstancedMesh || plan.hidden) {
+        o.visible = false;
+        return;
       }
-      if (/吊顶格栅|吊顶底板|屋面板接缝/.test(o.name)) o.visible = false;
-      if (o.isMesh && /屋面与白色檐口|屋面顶板与金属压边/.test(o.name)) {
+      if (!o.isMesh) return;
+      o.material = o.material.clone();
+      if (plan.renderOrder !== null) o.renderOrder = plan.renderOrder;
+      if (plan.flatLawn) o.geometry = new THREE.PlaneGeometry(180, 170, 30, 28);
+      if (plan.flatColor) {
+        const { color, doubleSide } = plan.flatColor;
+        o.material = new THREE.MeshBasicMaterial({
+          color,
+          side: doubleSide ? THREE.DoubleSide : THREE.FrontSide,
+        });
+      }
+      if (plan.tessellate === 'scaled') {
+        const g = o.geometry.clone();
+        g.scale(o.scale.x, o.scale.y, o.scale.z);
+        o.scale.set(1, 1, 1);
+        o.geometry = tessellate.modify(g);
+      } else if (plan.tessellate === 'plain') {
+        o.geometry = tessellate.modify(o.geometry);
+      }
+      if (plan.dropFaces) {
         const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
         const p = g.attributes.position,
           n = g.attributes.normal,
@@ -124,7 +122,7 @@ async function init() {
           us = [];
         for (let i = 0; i < p.count; i += 3) {
           const ny = n.getY(i);
-          if (o.name === '屋面顶板与金属压边' ? ny < -0.5 : ny > 0.5) continue;
+          if (plan.dropFaces === 'down' ? ny < -0.5 : ny > 0.5) continue;
           for (let j = 0; j < 3; j++) {
             ps.push(p.getX(i + j), p.getY(i + j), p.getZ(i + j));
             ns.push(n.getX(i + j), n.getY(i + j), n.getZ(i + j));
