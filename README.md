@@ -4,7 +4,7 @@
 
 ## 本地运行
 
-需要 Node.js 20 或更新版本。所有浏览器依赖已随源码提供，无需安装 npm 包，也不依赖 CDN。
+需要 Node.js 20 或更新版本。所有浏览器依赖已随源码提供，不依赖 CDN；`npm run dev` 无需安装 npm 包，构建和格式化前需先运行一次 `npm install`。
 
 ```sh
 git clone https://github.com/zalsay/loom-web.git
