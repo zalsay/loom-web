@@ -27,7 +27,7 @@ npm run format        # 格式化全部源码
 npm run format:check  # 只检查，不改文件
 ```
 
-可通过 `PORT=8080 npm run dev` 指定端口。将 `dist/` 部署到任意静态托管服务即可；构建命令 `npm run build`，输出目录 `dist`。资源使用相对地址，支持子目录托管。仓库不自动修改 GitHub Pages 或绑定域名。
+可通过 `PORT=8080 npm run dev` 指定端口。开发服务器默认只允许本机访问；要用同一局域网的手机测试，运行 `HOST=0.0.0.0 npm run dev`。将 `dist/` 部署到任意静态托管服务即可；构建命令 `npm run build`，输出目录 `dist`。资源使用相对地址，支持子目录托管。仓库不自动修改 GitHub Pages 或绑定域名。
 
 ## 结构
 
@@ -41,6 +41,7 @@ web/
   js/world.js          渲染、视角、玻璃门与景观交互
   scene/model.js       白色弧形廊亭与园林构件
   scene/site-layout.js 场地平面、道路与弧线映射
+  scene/fallback-rules.js 简化画面（无 WebGL2 时）的构件处理规则
   vendor/              Three.js 0.180.0 及所用官方插件
 scripts/               Node 内置 HTTP 开发服务器与静态构建
 ```

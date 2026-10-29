@@ -7,6 +7,8 @@ const root = path.join(project, process.argv.includes('--dist') ? 'dist' : 'web'
 const portFlag = process.argv.indexOf('--port');
 const port = Number(portFlag >= 0 ? process.argv[portFlag + 1] : process.env.PORT || 5173);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid HTTP port');
+// Local only by default; set HOST=0.0.0.0 to test from a phone on the same network.
+const host = process.env.HOST || '127.0.0.1';
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -40,4 +42,4 @@ http
       response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('页面不存在');
     }
   })
-  .listen(port, '0.0.0.0', () => console.log(`Loom OS website: http://localhost:${port}`));
+  .listen(port, host, () => console.log(`Loom OS website: http://localhost:${port}`));
