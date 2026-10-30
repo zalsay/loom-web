@@ -18,36 +18,7 @@ function randomGenerator(seed = 4917) {
     return seed / 4294967296;
   };
 }
-const rand = randomGenerator();
-const materials = {};
-const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-function mat(name, options) {
-  const m = new THREE.MeshStandardMaterial(options);
-  m.name = name;
-  materials[name] = m;
-  return m;
-}
-function box(parent, name, x, y, z, sx, sy, sz, m) {
-  const o = new THREE.Mesh(boxGeo, m);
-  o.name = name;
-  o.position.set(x, y, z);
-  o.scale.set(sx, sy, sz);
-  o.castShadow = true;
-  o.receiveShadow = true;
-  parent.add(o);
-  return o;
-}
-function rod(parent, a, b, r, m, name = '构件') {
-  const d = new THREE.Vector3().subVectors(b, a);
-  const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 6), m);
-  o.position.copy(a).add(b).multiplyScalar(0.5);
-  o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
-  o.name = name;
-  o.castShadow = true;
-  parent.add(o);
-  return o;
-}
-function canvasTexture(kind) {
+function canvasTexture(kind, rand) {
   const size = kind === 'grass' ? 1024 : 512,
     c = document.createElement('canvas');
   c.width = c.height = size;
@@ -170,7 +141,7 @@ function ribbonColumn(parent, cx, side, m) {
   o.receiveShadow = true;
   parent.add(o);
 }
-function leafTexture() {
+function leafTexture(rand) {
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const q = c.getContext('2d');
@@ -190,7 +161,42 @@ function leafTexture() {
   return t;
 }
 
-export function createPavilion() {
+export function createPavilion({ seed = 4917 } = {}) {
+  if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) {
+    throw new TypeError('seed must be an unsigned 32-bit integer');
+  }
+  const rand = randomGenerator(seed);
+  const materials = {};
+  const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+  const mat = (name, options) => {
+    const material = new THREE.MeshStandardMaterial(options);
+    material.name = name;
+    materials[name] = material;
+    return material;
+  };
+  const box = (parent, name, x, y, z, sx, sy, sz, material) => {
+    const object = new THREE.Mesh(boxGeo, material);
+    object.name = name;
+    object.position.set(x, y, z);
+    object.scale.set(sx, sy, sz);
+    object.castShadow = true;
+    object.receiveShadow = true;
+    parent.add(object);
+    return object;
+  };
+  const rod = (parent, a, b, radius, material, name = '构件') => {
+    const direction = new THREE.Vector3().subVectors(b, a);
+    const object = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius, radius, direction.length(), 6),
+      material,
+    );
+    object.position.copy(a).add(b).multiplyScalar(0.5);
+    object.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    object.name = name;
+    object.castShadow = true;
+    parent.add(object);
+    return object;
+  };
   const root = new THREE.Group();
   root.name = '视频还原 · 白色折柱廊亭';
   let building = new THREE.Group();
@@ -203,6 +209,7 @@ export function createPavilion() {
   landscape.name = '草坪与园林';
   root.add(landscape);
   const white = mat('白色哑光铝板', { color: 0xe8e9e4, roughness: 0.72, metalness: 0.12 });
+  const roofSurface = mat('白色屋面', { color: 0xe8e9e4, roughness: 0.72, metalness: 0.12 });
   const roofTop = mat('浅灰屋面', { color: 0xd4d8d3, roughness: 0.82, metalness: 0.12 });
   const trim = mat('金属收边', { color: 0xb6bfba, roughness: 0.55, metalness: 0.45 });
   const dark = mat('深灰网格吊顶', { color: 0x333d3b, roughness: 0.9 });
@@ -220,11 +227,11 @@ export function createPavilion() {
   const louver = mat('白色烤漆栅格', { color: 0xe8ebe6, metalness: 0.22, roughness: 0.63 });
   const louverRecess = mat('栅格内侧遮挡层', { color: 0x727b74, metalness: 0.05, roughness: 0.94 });
   const asphalt = mat('沥青铺地', {
-    map: canvasTexture('asphalt'),
+    map: canvasTexture('asphalt', rand),
     roughness: 0.96,
     side: THREE.DoubleSide,
   });
-  const grassMap = canvasTexture('grass');
+  const grassMap = canvasTexture('grass', rand);
   const grass = mat('自然草坪', { map: grassMap, roughness: 1 });
   const line = mat('白色地面标线', { color: 0xe7e4d5, roughness: 0.95, side: THREE.DoubleSide });
   const curb = mat('浅灰混凝土路缘', { color: 0xbfc3b3, roughness: 0.95, side: THREE.DoubleSide });
@@ -266,7 +273,7 @@ export function createPavilion() {
   }
 
   // Continuous curved roof, a thin cap, and the dark recessed soffit.
-  slab(building, roofShape(), 4.57, 0.38, white, '弧形屋面与白色檐口');
+  slab(building, roofShape(), 4.57, 0.38, roofSurface, '弧形屋面与白色檐口');
   slab(building, roofShape(-0.025), 4.615, 0.055, roofTop, '屋面顶板与金属压边');
   slab(building, roofShape(0.22), 4.205, 0.06, dark, '内凹网格吊顶底板');
   // Dense open grid beneath the canopy: individual strips cast natural fine shadows.
@@ -596,13 +603,14 @@ export function createPavilion() {
   const bark = mat('树干', { color: 0x716b57, roughness: 1 });
   const support = mat('绿色树木支架', { color: 0x3e684d, roughness: 0.82 });
   const leafMat = new THREE.MeshStandardMaterial({
-    map: leafTexture(),
+    map: leafTexture(rand),
     alphaTest: 0.4,
     side: THREE.DoubleSide,
     roughness: 1,
     color: 0xaebc91,
   });
   leafMat.name = '疏朗树叶';
+  materials[leafMat.name] = leafMat;
   const distantFoliage = mat('树带绿色树冠', { color: 0x6e8456, roughness: 1 });
   function tree(x, z, h = 6.7, seedAngle = 0, detailed = true) {
     const group = new THREE.Group();
@@ -733,6 +741,7 @@ export function createPavilion() {
     roughness: 1,
   });
   bladeMat.name = '草叶';
+  materials[bladeMat.name] = bladeMat;
   const count = 24000,
     blades = new THREE.InstancedMesh(bladeGeo, bladeMat, count),
     dummy = new THREE.Object3D();
@@ -759,6 +768,19 @@ export function createPavilion() {
   panda.rotation.y = 0.85;
   panda.scale.setScalar(0.42);
   root.add(panda);
+  const editableTargets = {
+    'pavilion.frame': { materialSlot: 'surface', materials: [white] },
+    'pavilion.roof': { materialSlot: 'surface', materials: [roofSurface, roofTop] },
+    'pavilion.glass': { materialSlot: 'surface', materials: [glass] },
+  };
+  for (const [targetId, target] of Object.entries(editableTargets)) {
+    const targetMaterials = new Set(target.materials);
+    root.traverse((object) => {
+      if (object.isMesh && targetMaterials.has(object.material)) {
+        object.userData.templateTargetId = targetId;
+      }
+    });
+  }
   return {
     root,
     building,
@@ -766,6 +788,8 @@ export function createPavilion() {
     landscape,
     panda,
     materials,
+    editableTargets,
+    seed,
     parameters: PARAMETERS,
     layout: SITE,
   };

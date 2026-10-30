@@ -11,11 +11,17 @@
     "build": "node scripts/build.mjs",
     "preview": "node scripts/dev.mjs --dist",
     "check": "node scripts/check.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "esbuild": "0.25.10",
     "prettier": "3.6.2"
+  },
+  "dependencies": {
+    "@edgeone/pages-blob": "0.0.18"
   }
 }

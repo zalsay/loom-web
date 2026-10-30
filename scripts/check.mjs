@@ -21,6 +21,8 @@ const all = [
   ...(await files(path.join(web, 'js'))),
   ...(await files(path.join(web, 'scene'))),
   ...(await files(path.join(root, 'scripts'))),
+  ...(await files(path.join(root, 'server'))),
+  ...(await files(path.join(root, 'cloud-functions'))),
 ];
 for (const file of all)
   if (/\.(m?js)$/.test(file)) execFileSync(process.execPath, ['--check', file]);

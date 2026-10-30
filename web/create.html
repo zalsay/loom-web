@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#f3f4ee" />
+    <meta name="referrer" content="same-origin" />
+    <title>我的织界空间 — Loom OS</title>
+    <link rel="icon" href="./favicon.svg" />
+    <link rel="stylesheet" href="./editor.css" />
+    <script type="importmap">
+      { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">跳到空间编辑器</a>
+    <header class="editor-header">
+      <a class="editor-brand" href="./" aria-label="返回织界首页">
+        <img src="./assets/zhi-jie-logo.svg" width="108" height="40" alt="织界 · Loom OS" />
+      </a>
+      <div class="document-heading">
+        <label class="sr-only" for="scene-title">空间名称</label>
+        <input id="scene-title" maxlength="80" value="我的织界空间" autocomplete="off" />
+        <span id="save-status" role="status">本地草稿</span>
+      </div>
+      <div class="header-buttons">
+        <button id="open-library">我的空间</button>
+        <button id="save-scene" class="primary" disabled>保存到云端</button>
+      </div>
+    </header>
+    <main id="workspace" class="workspace">
+      <aside class="properties panel" aria-label="空间设置">
+        <div class="panel-heading">
+          <h1>布置你的空间</h1>
+          <button id="new-scene">新建</button>
+        </div>
+        <p class="panel-description">从一座园林开始，把喜欢的生活放进来。</p>
+        <div class="history-controls" aria-label="编辑历史">
+          <button id="undo" disabled>↶ 撤销</button><button id="redo" disabled>重做 ↷</button>
+        </div>
+        <details open>
+          <summary>光线与氛围</summary>
+          <label class="field"
+            >天空<select id="sky-preset">
+              <option value="soft-afternoon">柔和午后</option>
+              <option value="clear-day">晴朗白昼</option>
+              <option value="dusk">日暮时分</option>
+            </select></label
+          >
+          <label class="field"
+            >时间 <output id="time-label">15:30</output
+            ><input id="time-of-day" type="range" min="0" max="24" step="0.25"
+          /></label>
+          <div class="field-pair">
+            <label class="field"
+              >日光<input id="sun-intensity" type="number" min="0" max="5" step="0.1"
+            /></label>
+            <label class="field"
+              >环境光<input id="ambient-intensity" type="number" min="0" max="5" step="0.1"
+            /></label>
+          </div>
+          <label class="check"><input id="doors-open" type="checkbox" />打开玻璃门</label>
+          <label class="check"
+            ><input id="landscape-visible" type="checkbox" checked />显示原有园林</label
+          >
+        </details>
+        <details>
+          <summary>廊亭材质</summary>
+          <label class="field"
+            >建筑框架<select id="frame-material">
+              <option value="">母版原色</option>
+              <option value="plaster.ivory">象牙白</option>
+              <option value="metal.graphite">石墨金属</option>
+              <option value="stone.warm-grey">暖灰石材</option>
+            </select></label
+          >
+          <label class="field"
+            >屋顶<select id="roof-material">
+              <option value="">母版原色</option>
+              <option value="plaster.ivory">象牙白</option>
+              <option value="metal.graphite">石墨金属</option>
+              <option value="stone.warm-grey">暖灰石材</option>
+            </select></label
+          >
+          <label class="field"
+            >玻璃<select id="glass-material">
+              <option value="">母版原色</option>
+              <option value="glass.clear">清透玻璃</option>
+              <option value="glass.frosted">磨砂玻璃</option>
+            </select></label
+          >
+        </details>
+        <details open>
+          <summary>添加喜欢的物件</summary>
+          <div class="asset-palette">
+            <button data-add="garden.bamboo-cluster"><span aria-hidden="true">竹</span>竹丛</button>
+            <button data-add="garden.tree"><span aria-hidden="true">树</span>园林树</button>
+            <button data-add="garden.bench.wood"><span aria-hidden="true">椅</span>木长椅</button>
+            <button data-add="garden.lamp"><span aria-hidden="true">灯</span>园灯</button>
+          </div>
+          <label class="field"
+            >已添加的物件<select id="object-list" size="4" aria-label="选择物件"></select
+          ></label>
+          <p id="objects-empty" class="hint">点上面的组件，放下第一个物件。</p>
+        </details>
+        <section id="object-inspector" hidden aria-label="选中物件属性">
+          <div class="inspector-heading">
+            <h2>物件属性</h2>
+            <button id="remove-object" class="danger">移除</button>
+          </div>
+          <label class="field">名称<input id="object-name" maxlength="64" /></label>
+          <label class="field">材质<select id="object-material"></select></label>
+          <fieldset class="vector">
+            <legend>位置 · 米</legend>
+            <label
+              >X<input
+                data-vector="position"
+                data-axis="0"
+                type="number"
+                min="-200"
+                max="200"
+                step="0.25" /></label
+            ><label
+              >Y<input
+                data-vector="position"
+                data-axis="1"
+                type="number"
+                min="-5"
+                max="100"
+                step="0.25" /></label
+            ><label
+              >Z<input
+                data-vector="position"
+                data-axis="2"
+                type="number"
+                min="-200"
+                max="200"
+                step="0.25"
+            /></label>
+          </fieldset>
+          <fieldset class="vector">
+            <legend>旋转 · 度</legend>
+            <label
+              >X<input
+                data-vector="rotation"
+                data-axis="0"
+                type="number"
+                min="-360"
+                max="360"
+                step="5" /></label
+            ><label
+              >Y<input
+                data-vector="rotation"
+                data-axis="1"
+                type="number"
+                min="-360"
+                max="360"
+                step="5" /></label
+            ><label
+              >Z<input
+                data-vector="rotation"
+                data-axis="2"
+                type="number"
+                min="-360"
+                max="360"
+                step="5"
+            /></label>
+          </fieldset>
+          <fieldset class="vector">
+            <legend>缩放</legend>
+            <label
+              >X<input
+                data-vector="scale"
+                data-axis="0"
+                type="number"
+                min="0.1"
+                max="5"
+                step="0.1" /></label
+            ><label
+              >Y<input
+                data-vector="scale"
+                data-axis="1"
+                type="number"
+                min="0.1"
+                max="5"
+                step="0.1" /></label
+            ><label
+              >Z<input data-vector="scale" data-axis="2" type="number" min="0.1" max="5" step="0.1"
+            /></label>
+          </fieldset>
+        </section>
+        <div class="file-actions">
+          <button id="import-scene">导入 JSON</button><button id="export-scene">导出备份</button>
+          <input id="import-file" type="file" accept=".json,application/json" hidden />
+        </div>
+      </aside>
+      <section class="canvas-area" aria-label="3D 空间预览">
+        <div id="viewport"></div>
+        <div id="renderer-loading" class="canvas-loading">正在打开你的园林…</div>
+        <div class="canvas-topline">
+          <span class="canvas-label">你的织界空间</span
+          ><span id="render-status" role="status"></span>
+        </div>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <div class="canvas-bottom">
+          <div class="canvas-tools">
+            <button id="orbit-mode" aria-pressed="true">转动视角</button
+            ><button id="move-mode" aria-pressed="false">移动物件</button
+            ><button id="capture-camera">保存此视角</button>
+          </div>
+          <p>拖动转动 · 滚轮缩放 · 点击物件选中</p>
+        </div>
+        <div class="mobile-switch" aria-label="切换编辑面板">
+          <button data-panel="properties">布置</button
+          ><button data-panel="canvas" aria-pressed="true">空间</button
+          ><button data-panel="assistant">对话</button>
+        </div>
+      </section>
+      <aside class="assistant panel" aria-label="空间设计助手">
+        <div class="assistant-heading">
+          <span class="assistant-mark" aria-hidden="true">织</span>
+          <div>
+            <h2>一起布置</h2>
+            <p>把想法说出来，让空间有你的样子。</p>
+          </div>
+        </div>
+        <div id="agent-status" class="agent-status">正在检查助手连接…</div>
+        <div
+          id="conversation"
+          class="conversation"
+          role="log"
+          aria-live="polite"
+          aria-label="设计对话"
+        >
+          <div class="message assistant-message">
+            这里从一座廊亭和一片园林开始。你可以自己布置，也可以在助手启用后，说说想要的氛围。所有修改都能撤销，保存与分享由你决定。
+          </div>
+        </div>
+        <div class="prompt-suggestions">
+          <button data-prompt="把空间变成日暮时分，光线柔和一点。">换成日暮氛围</button
+          ><button data-prompt="在廊亭旁放一张木长椅，再加一盏园灯。">留一处休息的地方</button>
+        </div>
+        <form id="agent-form">
+          <label class="sr-only" for="agent-prompt">描述想要的空间</label
+          ><textarea
+            id="agent-prompt"
+            rows="3"
+            maxlength="4000"
+            placeholder="例如：在竹影下放一张长椅…"
+            disabled
+          ></textarea>
+          <div class="composer-actions">
+            <span>只修改草稿，不自动发布</span
+            ><button id="agent-stop" type="button" hidden>停止</button
+            ><button id="agent-send" type="submit" class="primary" disabled>发送 ↗</button>
+          </div>
+        </form>
+        <button id="share-scene" class="share-button" disabled>公开只读分享</button>
+        <p class="privacy-note">
+          无需注册，当前浏览器就是你的身份。清除 Cookie 后无法找回原云端空间，请定期导出备份。<a
+            href="#"
+            id="privacy-details"
+            >了解保存方式</a
+          >
+        </p>
+      </aside>
+    </main>
+    <dialog id="library-dialog">
+      <div class="dialog-heading">
+        <h2>我的空间与版本</h2>
+        <button data-close="library-dialog" aria-label="关闭空间列表">关闭</button>
+      </div>
+      <p class="hint">本地草稿与云端版本分别保留；多个分支不会自动合并。</p>
+      <div id="library-content"></div>
+    </dialog>
+    <dialog id="share-dialog">
+      <div class="dialog-heading">
+        <h2>公开只读分享</h2>
+        <button data-close="share-dialog">关闭</button>
+      </div>
+      <p>
+        任何获得链接的人都能查看和复制快照。只发布你选中的已保存版本，不包含聊天、身份或编辑权限。后续草稿不会改变这份分享。
+      </p>
+      <button id="confirm-share" class="primary">发布已保存版本</button
+      ><label class="field" id="share-result" hidden
+        >分享链接<input id="share-url" readonly /></label
+      ><button id="copy-share" hidden>复制链接</button
+      ><button id="revoke-share" class="danger" hidden>撤销这份分享</button>
+      <p id="share-message" role="status"></p>
+    </dialog>
+    <dialog id="privacy-dialog">
+      <div class="dialog-heading">
+        <h2>关于匿名保存</h2>
+        <button data-close="privacy-dialog">关闭</button>
+      </div>
+      <p>
+        本地草稿保存在 IndexedDB；云端版本使用当前浏览器的安全 Cookie
+        确认归属。不采集浏览器指纹，不用 IP 识别你。
+      </p>
+      <p>
+        不同设备或浏览器不会自动同步。清理
+        Cookie、使用无痕窗口、身份过期或更换域名，都可能使原云端空间无法找回。本地存储也可能被浏览器清理。
+      </p>
+      <p>
+        JSON
+        导出是内容备份，不是身份恢复凭证。导入后会创建当前浏览器下的新副本。分享是公开快照，撤销不能收回他人已经下载的内容。
+      </p>
+      <p>
+        当前版本尚未提供云端内容删除或账号找回；Cookie
+        到期不会自动删除云端版本。请勿在名称、场景或对话中填写密码、密钥等敏感信息。
+      </p>
+      <p>
+        启用助手后，当前草稿和描述会发送给配置的模型服务商处理，服务商可能按其政策留存内容。停止只请求取消，不保证服务商停止处理或计费。具体服务商、保留期限和删除渠道须由站点在上线前明确公布。
+      </p>
+    </dialog>
+    <script type="module" src="./js/editor/app.js"></script>
+  </body>
+</html>

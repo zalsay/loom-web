@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "outputDirectory": "dist",
+  "nodeVersion": "20.18.0",
+  "agents": {
+    "dir": "agents",
+    "timeout": 300
+  }
+}
