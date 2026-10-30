@@ -1,3 +1,5 @@
 web/vendor/
 dist/
 package-lock.json
+# Copied unchanged from loom-os/logo/panda-3d/src so it can be re-synced by file.
+web/scene/panda/

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SITE, mapPoint, bendGroup, addSiteGround, nearCanopy } from './site-layout.js';
+import { createPanda } from './panda/model.js';
 
 // Video-based proportions, in estimated metres. No survey dimensions are available.
 export const PARAMETERS = {
@@ -750,5 +751,22 @@ export function createPavilion() {
   blades.name = '细草叶';
   blades.receiveShadow = true;
   landscape.add(blades);
-  return { root, building, ground, landscape, materials, parameters: PARAMETERS, layout: SITE };
+
+  // The Loom OS panda stands in front of the glass-room entrance, facing the default views.
+  // Its model is about 4.3 units tall; 0.42 makes it a 1.8 m statue.
+  const panda = createPanda();
+  panda.position.set(-1.5, 0, 9.5);
+  panda.rotation.y = 0.85;
+  panda.scale.setScalar(0.42);
+  root.add(panda);
+  return {
+    root,
+    building,
+    ground,
+    landscape,
+    panda,
+    materials,
+    parameters: PARAMETERS,
+    layout: SITE,
+  };
 }

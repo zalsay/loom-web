@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPavilion } from '../scene/model.js';
-import { fallbackPlan } from '../scene/fallback-rules.js';
+import { fallbackPlan, pandaDrawOrder } from '../scene/fallback-rules.js';
 import { SITE, mapPoint, bendPoint } from '../scene/site-layout.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -74,6 +74,15 @@ async function init() {
   const fill = new THREE.DirectionalLight(0xe2f0f3, 0.6);
   fill.position.set(15, 10, -20);
   scene.add(fill);
+  let beforeRender = () => {};
+  const isInside = (o, ancestor) => {
+    for (let p = o; p; p = p.parent) if (p === ancestor) return true;
+    return false;
+  };
+  const shown = (o) => {
+    for (let p = o; p; p = p.parent) if (!p.visible) return false;
+    return true;
+  };
   const exportModel = createPavilion();
   let model = exportModel;
   if (compatibilityMode) {
@@ -86,6 +95,7 @@ async function init() {
       building: root.getObjectByName('建筑'),
       ground: root.getObjectByName('地面与铺装'),
       landscape: root.getObjectByName('草坪与园林'),
+      panda: root.getObjectByName(exportModel.panda.name),
     };
     root.traverse((o) => {
       const plan = fallbackPlan(o.name, o.material?.name);
@@ -136,6 +146,45 @@ async function init() {
         o.geometry = ng;
       }
     });
+    // The panda's small parts share a 4,992-triangle sphere. The SVG renderer paints every
+    // triangle as a path, so they get a low-poly sphere here; the head keeps its own mesh.
+    const lowSphere = new THREE.SphereGeometry(1, 24, 16);
+    const layered = [];
+    model.panda.traverse((o) => {
+      if (!o.isMesh) return;
+      const order = pandaDrawOrder(o.name, o.userData.paintOrder);
+      if (order !== null) layered.push([o, order]);
+      if (o.geometry.type === 'SphereGeometry' && o.geometry.parameters.widthSegments === 64)
+        o.geometry = lowSphere;
+    });
+    // A raised draw order would also paint the face over the head from behind, or over
+    // a tree or column in front of the panda, so it only applies while the face is in clear view.
+    const ray = new THREE.Raycaster(),
+      head = new THREE.Vector3(),
+      facing = new THREE.Vector3(),
+      toCamera = new THREE.Vector3();
+    let layersOn = null;
+    beforeRender = () => {
+      model.panda.getWorldPosition(head);
+      head.y += 1.25;
+      facing.set(Math.sin(model.panda.rotation.y), 0, Math.cos(model.panda.rotation.y));
+      toCamera.subVectors(camera.position, head);
+      let clear = toCamera.dot(facing) > 0;
+      if (clear) {
+        const distance = toCamera.length();
+        ray.set(camera.position, toCamera.negate().normalize());
+        ray.far = distance - 1;
+        const blockers = [];
+        model.root.traverse((o) => {
+          if (o.isMesh && !o.isInstancedMesh && !isInside(o, model.panda) && shown(o))
+            blockers.push(o);
+        });
+        clear = ray.intersectObjects(blockers, false).length === 0;
+      }
+      if (clear === layersOn) return;
+      layersOn = clear;
+      for (const [o, order] of layered) o.renderOrder = clear ? order : 0;
+    };
     for (const g of model.landscape.children.filter(
       (o) => o.name === '园林乔木' && o.userData.detailed,
     )) {
@@ -284,6 +333,7 @@ async function init() {
       camera.near = near;
       camera.updateProjectionMatrix();
     }
+    beforeRender();
     renderer.render(scene, camera);
     if (!readySent) {
       readySent = true;

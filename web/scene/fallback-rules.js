@@ -35,6 +35,24 @@ function flatColor(name, materialName) {
   return null;
 }
 
+// Panda details sit a few millimetres above the surface beneath them, closer than the
+// painter's sort can separate, so they are layered explicitly. Applied to the panda only,
+// because its part names (head, belly, tail) are generic.
+const PANDA_LAYERS = [
+  [/^emblem-svg-/, 2],
+  [/^eye-patch-|^belly$|^ear-inner-/, 1],
+  [/^catchlight-/, 4],
+  [/^pupil-/, 3],
+  [/^eye-|^nose-soft-highlight$/, 2],
+  [/^nose$|^philtrum$|^smile-|^muzzle-pore-/, 1],
+];
+
+export function pandaDrawOrder(name, paintOrder = 0) {
+  const layer = match(PANDA_LAYERS, name);
+  // Emblem paths keep the overlap order of the source SVG.
+  return layer === null ? null : layer + paintOrder / 1000;
+}
+
 export function fallbackPlan(name, materialName) {
   if (HIDDEN.test(name)) return { hidden: true };
   return {
