@@ -43,6 +43,7 @@ web/
   scene/site-layout.js 场地平面、道路与弧线映射
   scene/fallback-rules.js 简化画面（无 WebGL2 时）的构件处理规则
   scene/panda/         Loom OS 熊猫模型，原样复制自 loom-os/logo/panda-3d/src，不参与格式化
+  scene/panda-faceted.js 页面使用的熊猫版本：身体为低面数大块面片，哑光材质
   vendor/              Three.js 0.180.0 及所用官方插件
 scripts/               Node 内置 HTTP 开发服务器与静态构建
 ```

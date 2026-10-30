@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SITE, mapPoint, bendGroup, addSiteGround, nearCanopy } from './site-layout.js';
-import { createPanda } from './panda/model.js';
+import { createFacetedPanda } from './panda-faceted.js';
 
 // Video-based proportions, in estimated metres. No survey dimensions are available.
 export const PARAMETERS = {
@@ -754,7 +754,7 @@ export function createPavilion() {
 
   // The Loom OS panda stands in front of the glass-room entrance, facing the default views.
   // Its model is about 4.3 units tall; 0.42 makes it a 1.8 m statue.
-  const panda = createPanda();
+  const panda = createFacetedPanda();
   panda.position.set(-1.5, 0, 9.5);
   panda.rotation.y = 0.85;
   panda.scale.setScalar(0.42);
