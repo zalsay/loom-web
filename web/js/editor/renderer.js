@@ -185,7 +185,7 @@ function applySvgSimplification(root, TessellateModifier) {
     }
   }
 
-  const panda = root.getObjectByName('LoomOS Panda');
+  const panda = root.getObjectByName('LoomOS Rooftop Panda');
   const layers = [];
   if (panda) {
     const lowSphere = new THREE.SphereGeometry(1, 8, 6);
@@ -221,32 +221,50 @@ function applySvgSimplification(root, TessellateModifier) {
   for (const material of originalMaterials) if (!liveMaterials.has(material)) material.dispose();
   if (!panda) return () => {};
   const raycaster = new THREE.Raycaster();
-  const head = new THREE.Vector3();
+  const anchor = new THREE.Vector3();
   const facing = new THREE.Vector3();
   const toCamera = new THREE.Vector3();
-  let layersOn = null;
+  // The rooftop head can be in view while the roof still hides the belly.
+  const groups = ['head', 'belly'].map((name) => {
+    const mesh = panda.getObjectByName(name);
+    mesh.geometry.computeBoundingBox();
+    return {
+      mesh,
+      center: mesh.geometry.boundingBox.getCenter(new THREE.Vector3()),
+      layers: layers.filter(
+        ([object]) => /^(belly$|emblem-svg-)/.test(object.name) === (name === 'belly'),
+      ),
+      layersOn: null,
+    };
+  });
   return (camera) => {
-    panda.getWorldPosition(head);
-    head.y += 1.25;
-    facing.set(Math.sin(panda.rotation.y), 0, Math.cos(panda.rotation.y));
-    toCamera.subVectors(camera.position, head);
-    let clear = toCamera.dot(facing) > 0;
-    if (clear) {
-      const distance = toCamera.length();
-      raycaster.set(camera.position, toCamera.negate().normalize());
-      raycaster.far = distance - 1;
-      const blockers = [];
-      root.traverse((object) => {
-        if (!object.isMesh || object.isInstancedMesh || !object.visible) return;
-        let parent = object;
-        while (parent && parent !== panda) parent = parent.parent;
-        if (parent !== panda) blockers.push(object);
-      });
-      clear = raycaster.intersectObjects(blockers, false).length === 0;
+    root.updateMatrixWorld(true);
+    facing.set(0, 0, 1).transformDirection(panda.matrixWorld);
+    let blockers;
+    for (const group of groups) {
+      anchor.copy(group.center).applyMatrix4(group.mesh.matrixWorld);
+      toCamera.subVectors(camera.position, anchor);
+      let clear = toCamera.dot(facing) > 0;
+      if (clear) {
+        const distance = toCamera.length();
+        raycaster.set(camera.position, toCamera.negate().normalize());
+        raycaster.far = distance - 1;
+        if (!blockers) {
+          blockers = [];
+          root.traverse((object) => {
+            if (!object.isMesh || object.isInstancedMesh) return;
+            for (let parent = object; parent; parent = parent.parent) {
+              if (!parent.visible || parent === panda) return;
+            }
+            blockers.push(object);
+          });
+        }
+        clear = raycaster.intersectObjects(blockers, false).length === 0;
+      }
+      if (clear === group.layersOn) continue;
+      group.layersOn = clear;
+      for (const [object, order] of group.layers) object.renderOrder = clear ? order : 0;
     }
-    if (clear === layersOn) return;
-    layersOn = clear;
-    for (const [object, order] of layers) object.renderOrder = clear ? order : 0;
   };
 }
 
@@ -458,6 +476,10 @@ export async function createSpaceRenderer({
   let transformMode = 'orbit';
   let moving = null;
   let pointerDown = null;
+  const activePointers = new Set();
+  const pointerUpsInProgress = new Set();
+  let suppressPointerGesture = false;
+  let resettingPointers = false;
   let frame = 0;
   let needsDraw = true;
   let disposed = false;
@@ -555,9 +577,17 @@ export async function createSpaceRenderer({
   };
 
   const onPointerDown = (event) => {
-    if (disposed || event.button !== 0) return;
+    if (disposed) return;
+    activePointers.add(event.pointerId);
+    if (activePointers.size > 1) {
+      suppressPointerGesture = true;
+      pointerDown = null;
+      if (moving) cancelMove();
+      return;
+    }
+    if (event.button !== 0) return;
     const object = raycastObject(event);
-    pointerDown = { x: event.clientX, y: event.clientY };
+    pointerDown = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
     if (transformMode !== 'move' || readOnly || !object) return;
     const point = intersectGround(event);
     if (!point) return;
@@ -576,7 +606,7 @@ export async function createSpaceRenderer({
   };
 
   const onPointerMove = (event) => {
-    if (!moving) return;
+    if (!moving || moving.pointerId !== event.pointerId || suppressPointerGesture) return;
     const point = intersectGround(event);
     if (!point) return;
     const previous = moving.group.position.clone();
@@ -592,40 +622,111 @@ export async function createSpaceRenderer({
   };
 
   const onPointerUp = (event) => {
+    const wasOwner = moving?.pointerId === event.pointerId;
     if (moving) {
-      const ended = moving;
-      moving = null;
-      renderer.domElement.releasePointerCapture?.(ended.pointerId ?? event.pointerId);
-      if (ended.moved) onTransform({ id: ended.id, transform: transformOf(ended.group) });
-      pointerDown = null;
-      return;
+      if (wasOwner) {
+        const ended = moving;
+        moving = null;
+        releaseCapture(ended.pointerId);
+        if (ended.moved && !suppressPointerGesture)
+          onTransform({ id: ended.id, transform: transformOf(ended.group) });
+        pointerDown = null;
+      }
     }
-    if (!pointerDown) return;
-    const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
-    if (distance <= 6) {
-      const object = raycastObject(event);
-      const id = object?.userData.sceneObjectId || null;
-      setSelection(id);
-      onSelect(id);
+    if (!suppressPointerGesture && pointerDown?.pointerId === event.pointerId) {
+      const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
+      if (distance <= 6) {
+        const object = raycastObject(event);
+        const id = object?.userData.sceneObjectId || null;
+        setSelection(id);
+        onSelect(id);
+      }
     }
-    pointerDown = null;
+    if (pointerDown?.pointerId === event.pointerId) pointerDown = null;
+    activePointers.delete(event.pointerId);
+    pointerUpsInProgress.delete(event.pointerId);
+    if (!activePointers.size) suppressPointerGesture = false;
   };
 
-  const onPointerCancel = (event) => {
-    if (moving) {
-      renderer.domElement.releasePointerCapture?.(moving.pointerId ?? event.pointerId);
-      setTransform(moving.group, moving.startingTransform);
-      requestDraw();
+  const onPointerUpCapture = (event) => {
+    pointerUpsInProgress.add(event.pointerId);
+    queueMicrotask(() => pointerUpsInProgress.delete(event.pointerId));
+  };
+
+  function releaseCapture(pointerId) {
+    try {
+      if (renderer.domElement.hasPointerCapture?.(pointerId))
+        renderer.domElement.releasePointerCapture(pointerId);
+    } catch {
+      // Capture may already be released by the browser while cancelling input.
     }
+  }
+
+  function cancelMove() {
+    if (!moving) return;
+    const cancelled = moving;
     moving = null;
+    releaseCapture(cancelled.pointerId);
+    setTransform(cancelled.group, cancelled.startingTransform);
+    updateSelectionHelper();
+    requestDraw();
+  }
+
+  const onPointerCancel = (event) => {
+    if (!resettingPointers && moving?.pointerId === event.pointerId) cancelMove();
+    if (pointerDown?.pointerId === event.pointerId) pointerDown = null;
+    activePointers.delete(event.pointerId);
+    suppressPointerGesture = suppressPointerGesture || activePointers.size > 0;
+    if (!activePointers.size) suppressPointerGesture = false;
+  };
+
+  const onLostPointerCapture = (event) => {
+    if (
+      resettingPointers ||
+      pointerUpsInProgress.has(event.pointerId) ||
+      !activePointers.has(event.pointerId)
+    )
+      return;
+    renderer.domElement.dispatchEvent(
+      new PointerEvent('pointercancel', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: event.pointerId,
+      }),
+    );
+  };
+
+  const cancelActivePointers = () => {
     pointerDown = null;
+    suppressPointerGesture = true;
+    resettingPointers = true;
+    try {
+      cancelMove();
+      if (typeof PointerEvent === 'function') {
+        for (const pointerId of [...activePointers])
+          renderer.domElement.dispatchEvent(new PointerEvent('pointercancel', { pointerId }));
+      }
+    } finally {
+      resettingPointers = false;
+    }
+    activePointers.clear();
+    pointerUpsInProgress.clear();
+    suppressPointerGesture = false;
+    finishCancelledCameraInteraction();
   };
 
   let cameraAtInteractionStart = null;
+  let suppressCameraCommitForCancel = false;
   const onStart = () => {
+    if (cameraAtInteractionStart) return;
+    suppressCameraCommitForCancel = false;
     cameraAtInteractionStart = readCamera();
   };
   const onEnd = () => {
+    if (suppressCameraCommitForCancel) {
+      finishCancelledCameraInteraction();
+      return;
+    }
     if (!cameraAtInteractionStart) return;
     const previous = cameraAtInteractionStart;
     const current = readCamera();
@@ -636,14 +737,37 @@ export async function createSpaceRenderer({
       Math.abs(previous.fovDegrees - current.fovDegrees) > 1e-4;
     if (changed) onCameraChange(current);
   };
+  function finishCancelledCameraInteraction() {
+    if (!suppressCameraCommitForCancel || !cameraAtInteractionStart) return;
+    const startingCamera = cameraAtInteractionStart;
+    cameraAtInteractionStart = null;
+    suppressCameraCommitForCancel = false;
+    const enableDamping = controls.enableDamping;
+    controls.enableDamping = false;
+    controls.update();
+    setCamera(startingCamera);
+    controls.enableDamping = enableDamping;
+  }
+  const onPointerCancelCapture = () => {
+    if (!cameraAtInteractionStart) return;
+    suppressCameraCommitForCancel = true;
+  };
   controls.addEventListener('start', onStart);
   controls.addEventListener('end', onEnd);
   controls.addEventListener('change', requestDraw);
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
   renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerup', onPointerUpCapture, true);
   renderer.domElement.addEventListener('pointerup', onPointerUp);
+  renderer.domElement.addEventListener('pointercancel', onPointerCancelCapture, true);
   renderer.domElement.addEventListener('pointercancel', onPointerCancel);
+  renderer.domElement.addEventListener('lostpointercapture', onLostPointerCapture);
   renderer.domElement.style.touchAction = 'none';
+  window.addEventListener('blur', cancelActivePointers);
+  const onInputVisibilityChange = () => {
+    if (document.hidden) cancelActivePointers();
+  };
+  document.addEventListener('visibilitychange', onInputVisibilityChange);
 
   const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
   resizeObserver?.observe(container);
@@ -786,6 +910,7 @@ export async function createSpaceRenderer({
   };
 
   return {
+    refreshSize: resize,
     setScene(sceneValue, { preserveCamera = false } = {}) {
       if (disposed) throw new Error('renderer is disposed');
       if (
@@ -818,8 +943,8 @@ export async function createSpaceRenderer({
     getCamera: readCamera,
     dispose() {
       if (disposed) return;
+      cancelActivePointers();
       disposed = true;
-      if (moving) renderer.domElement.releasePointerCapture?.(moving.pointerId);
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
       resizeObserver?.disconnect();
@@ -833,8 +958,13 @@ export async function createSpaceRenderer({
       controls.dispose();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('pointermove', onPointerMove);
+      renderer.domElement.removeEventListener('pointerup', onPointerUpCapture, true);
       renderer.domElement.removeEventListener('pointerup', onPointerUp);
+      renderer.domElement.removeEventListener('pointercancel', onPointerCancelCapture, true);
       renderer.domElement.removeEventListener('pointercancel', onPointerCancel);
+      renderer.domElement.removeEventListener('lostpointercapture', onLostPointerCapture);
+      window.removeEventListener('blur', cancelActivePointers);
+      document.removeEventListener('visibilitychange', onInputVisibilityChange);
       const retainedMaterials = new Set(overrideMaterials.values());
       for (const entries of targetDefaults.values()) {
         for (const [, material] of entries) retainedMaterials.add(material);

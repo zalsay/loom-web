@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { SITE, mapPoint, bendGroup, addSiteGround, nearCanopy } from './site-layout.js';
-import { createFacetedPanda } from './panda-faceted.js';
+import { SITE, mapPoint, bendPoint, bendGroup, addSiteGround, nearCanopy } from './site-layout.js';
+import { createRooftopPanda } from './panda-rooftop.js';
 
 // Video-based proportions, in estimated metres. No survey dimensions are available.
 export const PARAMETERS = {
@@ -355,20 +355,30 @@ export function createPavilion({ seed = 4917 } = {}) {
     roomD = 6.68;
   box(building, '玻璃房室内地坪', roomX, 0.045, roomZ, roomW, 0.08, roomD, curb);
   for (let side of [-1, 1]) {
-    if (side > 0) continue; // The front long side is rebuilt below around a real side doorway.
     let z = roomZ + (side * roomD) / 2;
-    box(building, '玻璃房侧面玻璃', roomX, 2.01, z, roomW, 3.92, 0.035, glass);
-    for (let x = -16.72; x <= -10.12; x += 1.32)
-      box(building, '玻璃竖向接缝', x, 2.02, z, 0.022, 3.96, 0.042, steel);
-    box(building, '玻璃底部轨道', roomX, 0.12, z, roomW, 0.055, 0.065, steel);
-    box(building, '玻璃顶部轨道', roomX, 4.0, z, roomW, 0.06, 0.055, steel);
+    if (side > 0) {
+      const facade = new THREE.Group();
+      facade.name = '玻璃房正面固定玻璃立面';
+      facade.position.set(roomX, 0, z);
+      building.add(facade);
+      box(facade, '正面固定玻璃', 0, 2.01, 0, roomW, 3.92, 0.035, glass);
+      for (let x = -roomW / 2; x <= roomW / 2; x += 1.32)
+        box(facade, '正面固定玻璃竖向接缝', x, 2.02, 0, 0.022, 3.96, 0.042, steel);
+      box(facade, '正面固定玻璃底部轨道', 0, 0.12, 0, roomW, 0.055, 0.065, steel);
+      box(facade, '正面固定玻璃顶部轨道', 0, 4.0, 0, roomW, 0.06, 0.055, steel);
+    } else {
+      box(building, '玻璃房侧面玻璃', roomX, 2.01, z, roomW, 3.92, 0.035, glass);
+      for (let x = -16.72; x <= -10.12; x += 1.32)
+        box(building, '玻璃竖向接缝', x, 2.02, z, 0.022, 3.96, 0.042, steel);
+      box(building, '玻璃底部轨道', roomX, 0.12, z, roomW, 0.055, 0.065, steel);
+      box(building, '玻璃顶部轨道', roomX, 4.0, z, roomW, 0.06, 0.055, steel);
+    }
   }
   box(building, '端面玻璃', -16.73, 2.03, roomZ, 0.035, 3.94, roomD, glass);
   for (let z = roomZ - roomD / 2; z <= roomZ + roomD / 2; z += 1.34)
     box(building, '端面玻璃接缝', -16.75, 2.03, z, 0.04, 3.95, 0.024, steel);
-  // The user identifies the video start as the building's back: the rear third
-  // is the outer-arc side facing that camera, not the inner-arc side. Keep the
-  // remaining two thirds available for the double-door entrance opposite it.
+  // The video-facing rear third is the outer-arc side. Keep the remaining two
+  // thirds available for the double-door entrance opposite it.
   const enclosure = new THREE.Group();
   enclosure.name = '白色栅格围合区';
   building.add(enclosure);
@@ -570,9 +580,7 @@ export function createPavilion({ seed = 4917 } = {}) {
     }
   }
   // The louver occupies the video-facing rear side; the doors use the other side.
-  // The separate side door is in the long glass facade, clear of the W-column foot.
   glazedEntrance('栅格区前方双开玻璃门', screenEnd, entryZ, entryDepth, Math.PI / 2, 2);
-  glazedEntrance('玻璃房侧面独立入口', roomX, roomFront, roomW, 0, 1);
   box(entry, '入口内弧侧固定玻璃', screenMid, 2.07, roomRear, screenW, 3.95, 0.032, glass);
   for (const x of [screenStart, screenEnd])
     box(entry, '入口玻璃转角收边', x, 2.07, roomRear, 0.035, 4.02, 0.05, steel);
@@ -761,12 +769,18 @@ export function createPavilion({ seed = 4917 } = {}) {
   blades.receiveShadow = true;
   landscape.add(blades);
 
-  // The Loom OS panda stands in front of the glass-room entrance, facing the default views.
-  // Its model is about 4.3 units tall; 0.42 makes it a 1.8 m statue.
-  const panda = createFacetedPanda();
-  panda.position.set(-1.5, 0, 9.5);
-  panda.rotation.y = 0.85;
-  panda.scale.setScalar(0.42);
+  // Center the climber over the left louver column, not the open structural bay.
+  // Pose against the already-bent facade so both hind soles reach real blades.
+  const rooftopPandaX = screenMid;
+  const rooftopPandaZ = centerline(rooftopPandaX) + 3.9;
+  const rooftopEave = bendPoint(new THREE.Vector3(rooftopPandaX, 4.615, rooftopPandaZ));
+  const eaveBase = bendPoint(new THREE.Vector3(rooftopPandaX, 0, rooftopPandaZ));
+  const outside = bendPoint(new THREE.Vector3(rooftopPandaX, 0, rooftopPandaZ + 0.1)).sub(eaveBase);
+  const panda = createRooftopPanda({
+    eavePosition: rooftopEave,
+    outwardDirection: outside,
+    footSupport: building.getObjectByName('视频起点侧白色栅格立面'),
+  });
   root.add(panda);
   const editableTargets = {
     'pavilion.frame': { materialSlot: 'surface', materials: [white] },

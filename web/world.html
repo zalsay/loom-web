@@ -13,28 +13,85 @@
   </head>
   <body>
     <div id="viewport" aria-label="可以转动和拉近看的织界空间"></div>
+    <div id="world-atmosphere-haze" class="world-atmosphere-haze" aria-hidden="true"></div>
     <div id="loading"><span></span>织界空间正在打开，请稍等…</div>
     <a href="./" class="standalone-back">← 返回 Loom OS</a>
-    <div class="world-tools" aria-label="换个角度看看织界空间">
-      <span class="tools-label">想从哪里看看？</span>
-      <div class="views">
-        <button data-view="perspective" class="active" aria-pressed="true">看全景</button
-        ><button data-view="eye" aria-pressed="false">看看入口</button
-        ><button data-view="aerial" aria-pressed="false">从上面看</button
-        ><button data-view="enclosure" aria-pressed="false">靠近玻璃房</button>
+    <div id="world-tools" class="world-tools" aria-label="换个角度看看织界空间">
+      <div class="tools-header">
+        <span class="tools-label">浏览视角</span>
+        <button
+          id="world-tools-toggle"
+          type="button"
+          aria-controls="world-tool-content"
+          aria-expanded="true"
+        >
+          视角与选项
+        </button>
       </div>
-      <div class="world-options">
-        <a href="./create.html">创建我的空间 ↗</a>
-        <label><input type="checkbox" id="doors" />打开玻璃门</label
-        ><label><input type="checkbox" id="landscape" checked />显示草地和树木</label
-        ><label><input type="checkbox" id="autorotate" />自动转一转</label
-        ><button id="reset">回到最初 ↺</button>
+      <div id="world-tool-content" class="world-tool-content">
+        <div class="views">
+          <button data-view="perspective" class="active" aria-pressed="true">看全景</button
+          ><button data-view="eye" aria-pressed="false">看看入口</button
+          ><button data-view="aerial" aria-pressed="false">从上面看</button
+          ><button data-view="enclosure" aria-pressed="false">靠近玻璃房</button>
+        </div>
+        <div class="world-options">
+          <a href="./create.html">创建我的空间 ↗</a>
+          <label><input type="checkbox" id="doors" />打开玻璃门</label
+          ><label><input type="checkbox" id="landscape" checked />显示草地和树木</label
+          ><label><input type="checkbox" id="autorotate" />自动转一转</label
+          ><button id="reset">回到最初 ↺</button>
+        </div>
       </div>
     </div>
     <div class="world-info">
       <span id="render-mode">织界空间</span>
       <p>拖动转一转，拉近看看建筑和草地。</p>
     </div>
+    <aside
+      id="world-weather-hud"
+      class="world-weather-hud"
+      aria-label="织界福州模型天气预报与北京时间"
+    >
+      <div class="weather-topline">
+        <span id="world-weather-location">织界 · 福州</span>
+      </div>
+      <div class="weather-nowline">
+        <div class="weather-reading">
+          <span id="world-weather-temperature" class="weather-temperature">--°</span>
+          <span id="world-weather-condition" class="weather-condition" aria-label="福州天气状况"
+            >--</span
+          >
+        </div>
+        <div class="clock-stack">
+          <time id="world-local-time" class="local-time" aria-label="福州北京时间，UTC+8"
+            >--:--</time
+          ><span id="world-local-date">--月--日</span>
+        </div>
+      </div>
+      <div class="sunlight-block">
+        <div class="sunlight-labels">
+          <span id="world-sunrise">日出 --:--</span>
+          <span id="world-sun-phase"></span>
+          <span id="world-sunset">日落 --:--</span>
+        </div>
+        <svg
+          class="sunlight-arc"
+          viewBox="0 0 100 32"
+          role="img"
+          aria-label="今日太阳弧线与日照进度"
+        >
+          <path class="sunlight-arc-track" d="M 9 28 A 41 25 0 0 1 91 28" pathLength="100" />
+          <path
+            id="world-sun-arc-progress"
+            class="sunlight-arc-progress"
+            d="M 9 28 A 41 25 0 0 1 91 28"
+            pathLength="100"
+          />
+          <circle id="world-sun-marker" class="sunlight-marker" cx="9" cy="28" r="3" />
+        </svg>
+      </div>
+    </aside>
     <div class="world-hint">拖动转动视角 · 双指或滚轮拉近拉远</div>
     <script type="module" src="./js/world.js"></script>
   </body>

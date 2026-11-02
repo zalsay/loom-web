@@ -1198,12 +1198,94 @@ function bindEvents() {
     event.preventDefault();
     $('#privacy-dialog').showModal();
   });
-  for (const button of document.querySelectorAll('[data-panel]'))
-    button.addEventListener('click', () => {
-      $('#workspace').dataset.panel = button.dataset.panel;
-      for (const other of document.querySelectorAll('[data-panel]'))
-        other.setAttribute('aria-pressed', String(button === other));
+  const isMobileEditor = () =>
+    matchMedia('(max-width: 800px), (max-height: 500px) and (pointer: coarse)').matches;
+  const setEditorPanel = (panel, { focus = false } = {}) => {
+    $('#workspace').dataset.panel = panel;
+    for (const button of document.querySelectorAll('.mobile-switch [data-panel]'))
+      button.setAttribute('aria-pressed', String(button.dataset.panel === panel));
+    if (!focus || !isMobileEditor()) return;
+    const target =
+      panel === 'properties'
+        ? $('#properties-panel h1')
+        : panel === 'assistant'
+          ? $('#assistant-panel h2')
+          : $('.mobile-switch [data-panel="canvas"]');
+    requestAnimationFrame(() => target.focus({ preventScroll: true }));
+  };
+  for (const button of document.querySelectorAll('.mobile-switch [data-panel]'))
+    button.addEventListener('click', () => setEditorPanel(button.dataset.panel, { focus: true }));
+  for (const [selector, destination] of [
+    ['#close-properties', 'canvas'],
+    ['#close-assistant', 'canvas'],
+  ])
+    $(selector).addEventListener('click', () => {
+      setEditorPanel(destination);
+      $('.mobile-switch [data-panel="canvas"]').focus({ preventScroll: true });
     });
+  document.addEventListener('keydown', (event) => {
+    if (
+      event.key !== 'Escape' ||
+      !isMobileEditor() ||
+      $('#workspace').dataset.panel === 'canvas' ||
+      document.querySelector('dialog[open]')
+    )
+      return;
+    event.preventDefault();
+    setEditorPanel('canvas');
+    $('.mobile-switch [data-panel="canvas"]').focus({ preventScroll: true });
+  });
+  const visualViewport = window.visualViewport;
+  let keyboardFrame = 0;
+  let visualViewportListenersAttached = false;
+  const syncVisualViewport = () => {
+    if (keyboardFrame) cancelAnimationFrame(keyboardFrame);
+    keyboardFrame = requestAnimationFrame(() => {
+      keyboardFrame = 0;
+      if (visualViewport) {
+        document.documentElement.style.setProperty(
+          '--editor-viewport-height',
+          `${Math.round(visualViewport.height)}px`,
+        );
+        document.documentElement.style.setProperty(
+          '--editor-viewport-offset',
+          `${Math.max(0, Math.round(visualViewport.offsetTop))}px`,
+        );
+      } else {
+        document.documentElement.style.setProperty('--editor-viewport-height', `${innerHeight}px`);
+      }
+      renderer?.refreshSize?.();
+    });
+  };
+  const attachVisualViewportListeners = () => {
+    if (visualViewportListenersAttached) return;
+    visualViewport?.addEventListener('resize', syncVisualViewport);
+    visualViewport?.addEventListener('scroll', syncVisualViewport);
+    window.addEventListener('resize', syncVisualViewport);
+    visualViewportListenersAttached = true;
+  };
+  const detachVisualViewportListeners = () => {
+    if (!visualViewportListenersAttached) return;
+    visualViewport?.removeEventListener('resize', syncVisualViewport);
+    visualViewport?.removeEventListener('scroll', syncVisualViewport);
+    window.removeEventListener('resize', syncVisualViewport);
+    visualViewportListenersAttached = false;
+  };
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) return;
+    detachVisualViewportListeners();
+    if (keyboardFrame) cancelAnimationFrame(keyboardFrame);
+    keyboardFrame = 0;
+    document.documentElement.style.removeProperty('--editor-viewport-height');
+    document.documentElement.style.removeProperty('--editor-viewport-offset');
+  });
+  window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    attachVisualViewportListeners();
+    syncVisualViewport();
+  });
+  attachVisualViewportListeners();
+  syncVisualViewport();
   for (const button of document.querySelectorAll('[data-prompt]'))
     button.addEventListener('click', () => {
       if ($('#agent-prompt').disabled) {

@@ -6,6 +6,7 @@
 
 - 原生 HTML/CSS/ESM + vendored Three.js；`npm run build` 只复制/压缩 `web/` 到 `dist/`。
 - `cloud-functions/api/v1/[[default]].js` 处理 `/api/v1/*`，使用 Node Cloud Functions。
+- `cloud-functions/api/world-weather.js` 独立处理公开只读 `/api/world-weather`；固定场地的天气/日出日落不依赖身份、Blob 或模型密钥。
 - `agents/space-designer/index.ts` 处理 `/space-designer`，在原生入口独立检查 Cookie/Origin/owner/conversation。前端 POST 后直接消费 SSE，不依赖请求结束后存活的后台进程。
 - `server/` 共享 API、签名、模型适配与存储。生产 Blob SDK 固定在 lockfile；不把这些模块、服务端环境或密钥复制进静态目录。
 - 生产使用 `@edgeone/pages-blob` 命名空间，所有读取经应用鉴权。它不是公开模型/图片 CDN。KV 本期没有启用，不用作权限、锁或预算。
@@ -104,3 +105,36 @@ Node 测试使用内存/临时目录/注入 Blob client 与 fake provider；浏�
 - 压缩后的实际页面通过 390px 手机尺寸冒烟检查：可添加物件，无页面脚本错误或横向溢出。
 
 真实 Blob、EdgeOne 多实例/冷启动、生产域名与模型供应商尚未联调；本地“保存到云端”使用 `.loom-data/`。Agent 默认关闭，发布前仍须完成第 5 节的平台验收。
+
+## 7. World 天气与时间
+
+官网三维场景新增独立公开只读入口 `/api/world-weather`。部署时必须识别 `cloud-functions/api/world-weather.js`，它不调用个人空间 API、Blob 或 Agent，也不需要 Cookie/模型密钥。静态 `dist/` 单独部署时，场景仍可浏览且本地时钟继续走，但天气和日出日落会标记不可用。
+
+数据来自 MET Norway 的 [Locationforecast 2.0](https://api.met.no/weatherapi/locationforecast/2.0/documentation) 与 [Sunrise 3.0](https://api.met.no/weatherapi/sunrise/3.0/documentation)，固定地点为福州织界场地，经度 `119.36433054520208`、纬度 `26.042010002204606`，日期按 `Asia/Shanghai` 计算。上游请求坐标限制为四位小数；不转发访客 Cookie、IP、任意目标 URL 或可变坐标。天气是当前时段的模型预报，不是实时站点测量，场景太阳方向为视觉近似。
+
+可选环境变量 `LOOM_WEATHER_USER_AGENT` 应填写真实应用标识与可联系链接，默认 `loom-web/1.0 https://github.com/zalsay/loom-web`。无需订阅或 API key。MET Norway 来源、CC BY 4.0 许可与本项目的转换说明见首页页脚的[许可说明页](../web/credits.html)。[官方许可](https://docs.api.met.no/doc/License.html)允许注明来源后使用，[服务条款](https://docs.api.met.no/doc/TermsOfService.html)要求缓存、条件请求、退避和应用标识，不提供 SLA。
+
+代理的内存缓存和进行中的请求合并只作用于单个实例，不是全局限流或持久化存储。生产需核验公开天气路由的 CDN 缓存行为、跨实例请求量及上游可达性，避免所有冷实例同时穿透上游；不得因此给 `/api/v1/*`、Cookie 响应或 SSE 开启公共缓存。失败、过期、上海跨日和后台恢复必须单独验收，不能把旧日出日落标为今天。全球模型有自身更新周期，浏览器刷新并不意味着上游获得了新的实测数据。
+
+2026-10-31 本轮本地验收：
+
+- `npm run format:check`、`npm run check`、`npm test`（73/73）和 `npm run build` 全部通过。
+- WebKit / Firefox 完整浏览器回归 62/62；覆盖天气切换、北京时间、当天日出日落、跨日恢复、离线/过期状态、减少动态效果、手机布局和 SVG 降级，并回归原编辑/保存/Agent 合成响应流程。SVG 降水采用轻量 CSS，不因粒子反复重绘建筑。
+- 本地代理成功读取真实 MET Norway 天气和日照接口；天气 Cloud Function 可按 Node 20 目标打包。天气行达到 3 小时只标记为过期，超过 6 小时不再作为当前天气展示；失败/过期响应不作公共缓存。
+- 压缩构建的 WebKit 390px 手机页面通过降雨、落日、时钟、日出日落及原视角控制冒烟检查，无脚本错误或横向溢出；静态目录未包含服务端或密钥配置。
+
+以上不替代 EdgeOne staging/生产的上游可达性、路由发现、缓存和跨实例验收；本轮没有部署。
+
+## 8. World 熊猫造型
+
+当前 World 只显示一只静态屋顶熊猫：位于左侧栅格柱、面朝屋面，身体和头部均为 faceted 面片，双手抓住檐口、脚掌踩在格栅上，臀部略微上翘。场景中没有地面熊猫或手柄入口。`web/js/panda-controller.js` 与 `web/js/panda-input.js` 保留为未接入 World 的独立模块。此静态造型无需新增服务端配置。
+
+以下是 2026-10-31 控制器实验的历史本地验收记录；其中可操控的地面熊猫及屏幕/键盘控制已被当前版本的静态屋顶熊猫替代，不能视为当前版本仍提供这些操作入口，也不代表当前版本的功能验收。
+
+2026-10-31 本轮本地验收：
+
+- `npm test`（84/84）、`npm run check`、`npm run format:check` 与 `npm run build` 通过。
+- WebKit / Firefox 全量回归首轮 75/76，原有 62 项全部通过；唯一超时发生在新增 SVG 用例切换建筑视角时的重绘。该用例改为同步检查浏览按钮回调，不宣称 SVG 动画流畅；调整过的键盘和 SVG 用例在双浏览器定向复测 4/4，通过且没有跳过测试，其余熊猫操作用例首轮通过。
+- 压缩构建在 WebKit 390px 手机上通过移动、奔跑、跳跃/落地、按住跳跃键不重复起跳、复位、镜头跟随/恢复和布局冒烟检查，无脚本错误或横向溢出；强制 SVG 后入口禁用、提示可见，程序化启用同样无效。
+
+以上仅为本地开发验收，不代表 EdgeOne staging/生产部署；本轮没有提交、推送或部署。

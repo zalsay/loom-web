@@ -79,7 +79,7 @@ test('createPavilion keeps the default model stable and isolates seed resources 
     assert.equal(first.building.name, '建筑');
     assert.equal(first.ground.name, '地面与铺装');
     assert.equal(first.landscape.name, '草坪与园林');
-    assert.equal(first.panda.name, 'LoomOS Panda');
+    assert.equal(first.panda.name, 'LoomOS Rooftop Panda');
     assert.deepEqual(Object.keys(first.editableTargets).sort(), [
       'pavilion.frame',
       'pavilion.glass',
@@ -89,7 +89,24 @@ test('createPavilion keeps the default model stable and isolates seed resources 
     first.building.traverse((object) => {
       if (object.userData.doorLeaf) doorLeaves.push(object);
     });
-    assert.equal(doorLeaves.length, 3);
+    assert.equal(doorLeaves.length, 2);
+    assert.ok(doorLeaves.every((door) => door.parent.name === '栅格区前方双开玻璃门'));
+    assert.deepEqual(
+      new Set(doorLeaves.map((door) => door.name)),
+      new Set(['双开玻璃门左扇', '双开玻璃门右扇']),
+    );
+    const frontFacade = first.building.getObjectByName('玻璃房正面固定玻璃立面');
+    assert.ok(frontFacade);
+    const frontObjectNames = [];
+    frontFacade.traverse((object) => frontObjectNames.push(object.name));
+    assert.ok(frontObjectNames.includes('正面固定玻璃'));
+    assert.ok(frontObjectNames.includes('正面固定玻璃竖向接缝'));
+    assert.ok(frontObjectNames.includes('正面固定玻璃底部轨道'));
+    assert.ok(frontObjectNames.includes('正面固定玻璃顶部轨道'));
+    assert.ok(
+      frontObjectNames.every((name) => !/门|拉手|铰链/.test(name)),
+      'the panda-facing front facade must remain fixed glazing without door hardware',
+    );
     assert.equal(grassSignature(first), grassSignature(second));
     assert.notEqual(grassSignature(first), grassSignature(differentSeed));
     assert.notEqual(first.materials['白色哑光铝板'], second.materials['白色哑光铝板']);

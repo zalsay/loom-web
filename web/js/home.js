@@ -112,36 +112,70 @@ $('#copy-clone').addEventListener('click', () =>
 );
 const menu = $('.menu-button'),
   mobileNav = $('#mobile-nav');
-menu.addEventListener('click', () => {
-  const open = menu.getAttribute('aria-expanded') !== 'true';
+function setMobileMenu(open, { restoreFocus = false } = {}) {
   menu.setAttribute('aria-expanded', open);
   menu.setAttribute('aria-label', open ? '收起导航' : '展开导航');
   mobileNav.hidden = !open;
   menu.textContent = open ? '✕' : '☰';
+  if (restoreFocus) menu.focus({ preventScroll: true });
+}
+menu.addEventListener('click', () => {
+  setMobileMenu(menu.getAttribute('aria-expanded') !== 'true');
 });
-mobileNav.querySelectorAll('a').forEach((link) =>
-  link.addEventListener('click', () => {
-    mobileNav.hidden = true;
-    menu.setAttribute('aria-expanded', 'false');
-    menu.setAttribute('aria-label', '展开导航');
-    menu.textContent = '☰';
-  }),
-);
+mobileNav.addEventListener('click', (event) => {
+  const link = event.target.closest('a');
+  if (!link) return;
+  setMobileMenu(false);
+  if (link.hash && new URL(link.href).pathname === location.pathname) {
+    const destination = document.querySelector(link.hash);
+    if (destination) {
+      destination.tabIndex = -1;
+      destination.focus({ preventScroll: true });
+    }
+  }
+});
+document.addEventListener('pointerdown', (event) => {
+  if (
+    menu.getAttribute('aria-expanded') === 'true' &&
+    !menu.contains(event.target) &&
+    !mobileNav.contains(event.target)
+  ) {
+    setMobileMenu(false);
+  }
+});
+const mobileMenuBreakpoint = window.matchMedia('(max-width: 900px)');
+mobileMenuBreakpoint.addEventListener('change', (event) => {
+  if (!event.matches) setMobileMenu(false);
+});
 const stage = $('#world-stage'),
   frame = $('#world-frame'),
   enter = $('#world-enter'),
   close = $('#world-close');
 let isWorldOpen = false,
-  previousFocus;
+  previousFocus,
+  previousScrollY = 0;
 const backgroundElements = [
   ...document.querySelectorAll(
     'body > :not(main):not(script):not(#toast), main > :not(.hero), .hero > :not(#world-stage)',
   ),
 ];
 function setWorld(open) {
+  if (open === isWorldOpen) return;
   isWorldOpen = open;
+  if (open) {
+    if (menu.getAttribute('aria-expanded') === 'true') setMobileMenu(false);
+    previousFocus = enter;
+    previousScrollY = window.scrollY;
+    document.body.style.top = `-${previousScrollY}px`;
+    document.body.classList.add('world-open');
+    document.documentElement.classList.add('world-open');
+  } else {
+    document.body.classList.remove('world-open');
+    document.documentElement.classList.remove('world-open');
+    document.body.style.removeProperty('top');
+    window.scrollTo({ top: previousScrollY, behavior: 'instant' });
+  }
   stage.classList.toggle('is-open', open);
-  document.body.classList.toggle('world-open', open);
   $('.world-overlay-controls').hidden = !open;
   frame.tabIndex = open ? 0 : -1;
   backgroundElements.forEach((element) => {
@@ -149,7 +183,6 @@ function setWorld(open) {
   });
   frame.contentWindow?.postMessage({ type: 'loom-world-mode', interactive: open }, location.origin);
   if (open) {
-    previousFocus = document.activeElement;
     stage.setAttribute('role', 'dialog');
     stage.setAttribute('aria-modal', 'true');
     stage.setAttribute('aria-label', '织界空间');
@@ -158,7 +191,7 @@ function setWorld(open) {
     stage.removeAttribute('role');
     stage.removeAttribute('aria-modal');
     stage.removeAttribute('aria-label');
-    previousFocus?.focus();
+    previousFocus?.focus({ preventScroll: true });
   }
 }
 enter.addEventListener('click', () => setWorld(true));
@@ -170,11 +203,17 @@ window.addEventListener('message', (event) => {
   if (event.data?.type === 'loom-world-close') setWorld(false);
 });
 document.addEventListener('keydown', (event) => {
-  if (!isWorldOpen) return;
-  if (event.key === 'Escape') setWorld(false);
-  if (event.key === 'Tab' && !event.shiftKey && document.activeElement === close) {
+  if (isWorldOpen) {
+    if (event.key === 'Escape') setWorld(false);
+    if (event.key === 'Tab' && document.activeElement === close) {
+      event.preventDefault();
+      frame.focus();
+    }
+    return;
+  }
+  if (event.key === 'Escape' && menu.getAttribute('aria-expanded') === 'true') {
     event.preventDefault();
-    frame.focus();
+    setMobileMenu(false, { restoreFocus: true });
   }
 });
 frame.addEventListener('load', () =>

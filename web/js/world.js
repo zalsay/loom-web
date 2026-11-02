@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPavilion } from '../scene/model.js';
 import { fallbackPlan, pandaDrawOrder } from '../scene/fallback-rules.js';
 import { SITE, mapPoint, bendPoint } from '../scene/site-layout.js';
+import { createWorldWeather } from './world-weather.js';
+import { createWorldAtmosphere } from './world-atmosphere.js';
 
 const $ = (selector) => document.querySelector(selector);
 const embedded = new URLSearchParams(location.search).has('embedded');
@@ -12,7 +14,8 @@ let interactive = !embedded,
   visible = true,
   needsDraw = true,
   transition = null,
-  currentView = 'perspective';
+  currentView = 'perspective',
+  userAdjustedCamera = false;
 function notify(type, extra = {}) {
   if (embedded) parent.postMessage({ type, ...extra }, location.origin);
 }
@@ -149,41 +152,76 @@ async function init() {
     // The panda's small parts share a 4,992-triangle sphere. The SVG renderer paints every
     // triangle as a path, so they get a low-poly sphere here; the head keeps its own mesh.
     const lowSphere = new THREE.SphereGeometry(1, 24, 16);
-    const layered = [];
-    model.panda.traverse((o) => {
-      if (!o.isMesh) return;
-      const order = pandaDrawOrder(o.name, o.userData.paintOrder);
-      if (order !== null) layered.push([o, order]);
-      if (o.geometry.type === 'SphereGeometry' && o.geometry.parameters.widthSegments === 64)
-        o.geometry = lowSphere;
+    const pandas = [model.panda];
+    const pandaFaces = pandas.map((panda) => {
+      const layered = [];
+      const head = panda.getObjectByName('head');
+      const belly = panda.getObjectByName('belly');
+      head.geometry.computeBoundingBox();
+      belly.geometry.computeBoundingBox();
+      panda.traverse((o) => {
+        if (!o.isMesh) return;
+        const order = pandaDrawOrder(o.name, o.userData.paintOrder);
+        if (order !== null) layered.push([o, order]);
+        if (o.geometry.type === 'SphereGeometry' && o.geometry.parameters.widthSegments === 64)
+          o.geometry = lowSphere;
+      });
+      return {
+        panda,
+        // The head can peek over a roof while the belly remains behind it. They
+        // need independent visibility tests before raising their SVG paint order.
+        layerGroups: [
+          {
+            anchor: head,
+            center: head.geometry.boundingBox.getCenter(new THREE.Vector3()),
+            layered: layered.filter(([o]) => !/^(belly$|emblem-svg-)/.test(o.name)),
+            layersOn: null,
+          },
+          {
+            anchor: belly,
+            center: belly.geometry.boundingBox.getCenter(new THREE.Vector3()),
+            layered: layered.filter(([o]) => /^(belly$|emblem-svg-)/.test(o.name)),
+            layersOn: null,
+          },
+        ],
+        faceDirection: new THREE.Vector3(0, 0, 1),
+        facing: new THREE.Vector3(),
+        toCamera: new THREE.Vector3(),
+      };
     });
     // A raised draw order would also paint the face over the head from behind, or over
     // a tree or column in front of the panda, so it only applies while the face is in clear view.
     const ray = new THREE.Raycaster(),
-      head = new THREE.Vector3(),
-      facing = new THREE.Vector3(),
-      toCamera = new THREE.Vector3();
-    let layersOn = null;
+      anchor = new THREE.Vector3();
     beforeRender = () => {
-      model.panda.getWorldPosition(head);
-      head.y += 1.25;
-      facing.set(Math.sin(model.panda.rotation.y), 0, Math.cos(model.panda.rotation.y));
-      toCamera.subVectors(camera.position, head);
-      let clear = toCamera.dot(facing) > 0;
-      if (clear) {
-        const distance = toCamera.length();
-        ray.set(camera.position, toCamera.negate().normalize());
-        ray.far = distance - 1;
-        const blockers = [];
-        model.root.traverse((o) => {
-          if (o.isMesh && !o.isInstancedMesh && !isInside(o, model.panda) && shown(o))
-            blockers.push(o);
-        });
-        clear = ray.intersectObjects(blockers, false).length === 0;
+      // SVGRenderer updates matrices during render, after this hook. Resolve
+      // cloned/posed parts first so the very first visibility result is valid.
+      model.root.updateMatrixWorld(true);
+      for (const state of pandaFaces) {
+        state.facing.copy(state.faceDirection).transformDirection(state.panda.matrixWorld);
+        let blockers;
+        for (const group of state.layerGroups) {
+          anchor.copy(group.center).applyMatrix4(group.anchor.matrixWorld);
+          state.toCamera.subVectors(camera.position, anchor);
+          let clear = state.toCamera.dot(state.facing) > 0;
+          if (clear) {
+            const distance = state.toCamera.length();
+            ray.set(camera.position, state.toCamera.negate().normalize());
+            ray.far = distance - 1;
+            if (!blockers) {
+              blockers = [];
+              model.root.traverse((o) => {
+                if (o.isMesh && !o.isInstancedMesh && !isInside(o, state.panda) && shown(o))
+                  blockers.push(o);
+              });
+            }
+            clear = ray.intersectObjects(blockers, false).length === 0;
+          }
+          if (clear === group.layersOn) continue;
+          group.layersOn = clear;
+          for (const [o, order] of group.layered) o.renderOrder = clear ? order : 0;
+        }
       }
-      if (clear === layersOn) return;
-      layersOn = clear;
-      for (const [o, order] of layered) o.renderOrder = clear ? order : 0;
     };
     for (const g of model.landscape.children.filter(
       (o) => o.name === '园林乔木' && o.userData.detailed,
@@ -205,6 +243,39 @@ async function init() {
     scene.add(new THREE.AmbientLight(0xffffff, 0.62));
   }
   scene.add(model.root);
+  const atmosphere = createWorldAtmosphere({
+    THREE,
+    scene,
+    camera,
+    renderer,
+    hemi,
+    sun,
+    fill,
+    compatibilityMode,
+    reducedMotion,
+  });
+  const weather = createWorldWeather({
+    isActive: () => visible && !document.hidden,
+    onChange(state) {
+      atmosphere.setConditions(state);
+      // SVG weather uses CSS overlays and a background tint. Clock/weather
+      // refreshes must not repeatedly rebuild the complete architectural SVG.
+      if (!compatibilityMode) needsDraw = true;
+    },
+  });
+  weather.start();
+  window.addEventListener('pagehide', (event) => {
+    weather.stop();
+    if (!event.persisted) {
+      atmosphere.dispose();
+    }
+  });
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      weather.start();
+      needsDraw = true;
+    }
+  });
 
   const detail = bendPoint(new THREE.Vector3(-9, 1.9, 0.3));
   const presets = {
@@ -216,16 +287,39 @@ async function init() {
     aerial: { position: [-2, 185, 3], target: [-2, 0, -5] },
     enclosure: { position: [detail.x + 10, 5.8, detail.z + 14], target: detail.toArray() },
   };
+  const compactTools = matchMedia('(max-width: 900px), (pointer: coarse) and (max-height: 500px)');
+  const tools = $('#world-tools');
+  const toolsToggle = $('#world-tools-toggle');
+  function setToolsExpanded(expanded) {
+    tools.classList.toggle('is-collapsed', !expanded);
+    toolsToggle.setAttribute('aria-expanded', String(expanded));
+  }
+  setToolsExpanded(!compactTools.matches);
+  toolsToggle.addEventListener('click', () => {
+    setToolsExpanded(tools.classList.contains('is-collapsed'));
+  });
+  compactTools.addEventListener('change', (event) => {
+    setToolsExpanded(!event.matches);
+  });
+  function updateViewButtons() {
+    document.querySelectorAll('[data-view]').forEach((button) => {
+      const active = button.dataset.view === currentView;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active);
+    });
+  }
   function setView(name, animate = true) {
     if (!presets[name]) return;
     currentView = name;
-    camera.fov = name === 'eye' ? 56 : 40;
+    const aspect = innerWidth / innerHeight;
+    const portraitScale = aspect < 0.65 ? 1.7 : aspect < 0.9 ? 1.45 : 1;
+    camera.fov = name === 'eye' ? 56 : aspect < 0.65 ? 46 : aspect < 0.9 ? 46 : 40;
     camera.updateProjectionMatrix();
     const preset = presets[name];
     const position = new THREE.Vector3(...preset.position),
       target = new THREE.Vector3(...preset.target);
-    if (innerWidth < 550 && name === 'perspective')
-      position.sub(target).multiplyScalar(1.12).add(target);
+    if (name === 'perspective' && portraitScale > 1)
+      position.sub(target).multiplyScalar(portraitScale).add(target);
     if (animate && !reducedMotion)
       transition = {
         start: performance.now(),
@@ -239,17 +333,16 @@ async function init() {
       controls.target.copy(target);
       controls.update();
     }
-    document.querySelectorAll('[data-view]').forEach((button) => {
-      const active = button.dataset.view === name;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', active);
-    });
+    updateViewButtons();
     needsDraw = true;
   }
   setView('perspective', false);
-  document
-    .querySelectorAll('[data-view]')
-    .forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
+  document.querySelectorAll('[data-view]').forEach((button) =>
+    button.addEventListener('click', () => {
+      userAdjustedCamera = true;
+      setView(button.dataset.view);
+    }),
+  );
   $('#landscape').addEventListener('change', (event) => {
     model.landscape.visible = event.target.checked;
     needsDraw = true;
@@ -269,11 +362,13 @@ async function init() {
     needsDraw = true;
   });
   $('#reset').addEventListener('click', () => {
+    userAdjustedCamera = false;
     controls.autoRotate = false;
     $('#autorotate').checked = false;
     setView('perspective');
   });
   controls.addEventListener('start', () => {
+    userAdjustedCamera = true;
     transition = null;
   });
   controls.addEventListener('change', () => {
@@ -283,6 +378,7 @@ async function init() {
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
+    if (!userAdjustedCamera && currentView === 'perspective') setView('perspective', false);
     needsDraw = true;
   });
   window.addEventListener('message', (event) => {
@@ -305,7 +401,8 @@ async function init() {
     }
   });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && embedded) notify('loom-world-close');
+    if (event.key !== 'Escape') return;
+    if (embedded) notify('loom-world-close');
   });
   document.addEventListener('visibilitychange', () => {
     needsDraw = true;
@@ -317,7 +414,8 @@ async function init() {
     if (!visible || document.hidden) return;
     if (compatibilityMode && time - lastDraw < 160) return;
     controls.update();
-    if (!needsDraw && !transition && !controls.autoRotate) return;
+    const atmosphereChanged = atmosphere.update(time);
+    if (!needsDraw && !transition && !controls.autoRotate && !atmosphereChanged) return;
     lastDraw = time;
     needsDraw = false;
     if (transition) {
@@ -350,6 +448,8 @@ async function init() {
     model,
     setView,
     compatibilityMode,
+    weather,
+    atmosphere,
     ready: true,
   };
 }

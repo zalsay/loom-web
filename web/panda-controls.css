@@ -1,0 +1,419 @@
+.tools-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tools-header .tools-label {
+  margin-bottom: 14px;
+}
+#panda-control-toggle {
+  flex: 0 0 auto;
+  min-height: 44px;
+  margin-top: -8px;
+  padding: 0 15px;
+  border: 1px solid #66845e;
+  border-radius: 7px;
+  background: #426e4b;
+  color: #f3f6ec;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.35px;
+  box-shadow: 0 3px 8px rgb(50 82 54 / 16%);
+}
+#panda-control-toggle:hover {
+  background: #355e41;
+}
+#panda-control-toggle:disabled {
+  background: #e3e9dd;
+  border-color: #c4cfbb;
+  color: #65765e;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.panda-control-availability {
+  margin: 0 0 10px;
+  color: #65765e;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.panda-control-availability[hidden] {
+  display: none;
+}
+
+.panda-controls {
+  position: absolute;
+  z-index: 6;
+  right: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    'left right'
+    'footer footer';
+  align-items: center;
+  gap: 4px 22px;
+  width: min(620px, calc(100% - 28px));
+  padding: 14px 22px 12px;
+  transform: translateX(50%);
+  border: 1px solid rgb(255 255 255 / 82%);
+  border-radius: 20px;
+  background: rgb(243 246 236 / 92%);
+  box-shadow:
+    0 12px 34px rgb(39 59 42 / 22%),
+    inset 0 1px 0 #fff;
+  color: #334a38;
+  backdrop-filter: blur(16px) saturate(1.06);
+  -webkit-backdrop-filter: blur(16px) saturate(1.06);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+.panda-controls[hidden],
+.embedded:not(.interactive) #panda-control-toggle,
+.embedded:not(.interactive) #panda-controls {
+  display: none;
+}
+body.panda-playing .world-tools,
+body.panda-playing .world-info,
+body.panda-playing .world-hint {
+  display: none;
+}
+.panda-controls-grip {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 17px;
+  pointer-events: none;
+}
+.panda-controls-left {
+  grid-area: left;
+}
+.panda-controls-right {
+  grid-area: right;
+  justify-content: flex-end;
+}
+.panda-control-caption {
+  align-self: flex-start;
+  margin-top: 3px;
+  color: #8b9983;
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  writing-mode: vertical-rl;
+}
+.panda-stick {
+  position: relative;
+  display: grid;
+  width: 116px;
+  height: 116px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #d5decb;
+  border-radius: 50%;
+  background: #e3e9dc;
+  box-shadow: inset 0 0 0 1px rgb(65 86 62 / 8%);
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+  pointer-events: auto;
+}
+.panda-stick::before,
+.panda-stick::after {
+  position: absolute;
+  color: #9aa88e;
+  font-size: 9px;
+  pointer-events: none;
+}
+.panda-stick::before {
+  top: 8px;
+  content: '▲';
+}
+.panda-stick::after {
+  bottom: 8px;
+  content: '▼';
+}
+.panda-stick:focus-visible {
+  outline: 3px solid #729260;
+  outline-offset: 3px;
+}
+.panda-stick.is-dragging {
+  cursor: grabbing;
+}
+.panda-stick-thumb {
+  z-index: 1;
+  display: block;
+  width: 56px;
+  height: 56px;
+  border: 1px solid #becbb4;
+  border-radius: 50%;
+  background: #f7f8f2;
+  box-shadow: 0 2px 4px rgb(48 69 48 / 16%);
+  pointer-events: none;
+  will-change: transform;
+}
+.panda-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+}
+.panda-action {
+  position: relative;
+  display: flex;
+  min-width: 74px;
+  min-height: 74px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid #c8d3bf;
+  border-radius: 50%;
+  background: #f7f8f2;
+  color: #36583f;
+  box-shadow: 0 2px 4px rgb(47 69 48 / 12%);
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+}
+.panda-action:active,
+.panda-action.is-pressed {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 3px rgb(47 69 48 / 17%),
+    inset 0 2px 5px rgb(57 81 54 / 12%);
+}
+.panda-action:focus-visible,
+.panda-control-utilities button:focus-visible {
+  outline: 3px solid #729260;
+  outline-offset: 3px;
+}
+.panda-jump {
+  border-color: #c4d2b8;
+}
+.panda-run {
+  min-width: 82px;
+  min-height: 82px;
+  border-color: #b6c9a8;
+  background: #e2ecd9;
+}
+.panda-action-letter {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+.panda-action-label {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.panda-controls-footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 9px;
+  border-top: 1px solid rgb(111 132 101 / 15%);
+  pointer-events: none;
+}
+.panda-control-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: #788873;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.panda-control-utilities {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 7px;
+}
+.panda-control-utilities button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d1dbca;
+  border-radius: 7px;
+  background: #f7f8f2;
+  color: #566d50;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.panda-control-utilities button:hover {
+  background: #e8eee2;
+}
+
+@media (max-width: 600px) {
+  .tools-header {
+    align-items: center;
+  }
+  .tools-header .tools-label {
+    margin-bottom: 14px;
+  }
+  #panda-control-toggle {
+    margin-top: -7px;
+    padding-inline: 12px;
+    font-size: 11px;
+  }
+  .panda-controls {
+    gap: 3px 12px;
+    width: calc(100% - 20px);
+    padding: 12px 13px max(10px, env(safe-area-inset-bottom));
+    border-radius: 17px;
+    background: #f3f6ec;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .panda-controls-grip {
+    gap: 9px;
+  }
+  .panda-controls-right {
+    gap: 6px;
+  }
+  .panda-control-caption {
+    font-size: 12px;
+  }
+  .panda-stick {
+    width: 104px;
+    height: 104px;
+  }
+  .panda-stick-thumb {
+    width: 52px;
+    height: 52px;
+  }
+  .panda-action-buttons {
+    gap: 8px;
+  }
+  .panda-action {
+    min-width: 64px;
+    min-height: 64px;
+  }
+  .panda-run {
+    min-width: 72px;
+    min-height: 72px;
+  }
+  .panda-action-label {
+    font-size: 12px;
+  }
+  .panda-controls-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .panda-control-legend {
+    gap: 3px 9px;
+    font-size: 12px;
+  }
+  .panda-control-utilities {
+    width: 100%;
+  }
+  .panda-control-utilities button {
+    flex: 1;
+    padding-inline: 8px;
+  }
+}
+
+@media (pointer: coarse) {
+  .panda-controls {
+    background: #f3f6ec;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .panda-control-caption {
+    display: none;
+  }
+  .panda-controls-grip {
+    justify-content: center;
+  }
+  .panda-stick {
+    width: 96px;
+    height: 96px;
+  }
+  .panda-stick-thumb {
+    width: 48px;
+    height: 48px;
+  }
+  .panda-action-buttons {
+    gap: 4px;
+  }
+  .panda-action {
+    min-width: 56px;
+    min-height: 56px;
+  }
+  .panda-run {
+    min-width: 64px;
+    min-height: 64px;
+  }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .panda-controls {
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas: 'left right footer';
+    gap: 12px;
+    width: min(790px, calc(100% - 30px));
+    padding: 8px 16px;
+    border-radius: 15px;
+  }
+  .panda-controls-grip {
+    gap: 8px;
+  }
+  .panda-stick {
+    width: 92px;
+    height: 92px;
+  }
+  .panda-stick-thumb {
+    width: 48px;
+    height: 48px;
+  }
+  .panda-action-buttons {
+    gap: 8px;
+  }
+  .panda-action {
+    min-width: 58px;
+    min-height: 58px;
+  }
+  .panda-run {
+    min-width: 64px;
+    min-height: 64px;
+  }
+  .panda-controls-footer {
+    min-width: 122px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 5px;
+    padding: 0 0 0 10px;
+    border-top: 0;
+    border-left: 1px solid rgb(111 132 101 / 15%);
+  }
+  .panda-control-legend {
+    display: grid;
+    gap: 2px;
+    font-size: 12px;
+  }
+  .panda-control-utilities {
+    gap: 4px;
+  }
+  .panda-control-utilities button {
+    min-height: 44px;
+    padding-inline: 6px;
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panda-controls *,
+  #panda-control-toggle {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}

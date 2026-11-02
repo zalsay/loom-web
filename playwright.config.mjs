@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const port = Number(process.env.LOOM_TEST_PORT || 5187);
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid test port');
+const baseURL = `http://localhost:${port}`;
+
 export default defineConfig({
   testDir: './tests/browser',
   timeout: 60_000,
@@ -8,7 +12,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5187',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     viewport: { width: 1440, height: 980 },
@@ -24,8 +28,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'node scripts/dev.mjs --port 5187',
-    url: 'http://localhost:5187/create.html',
+    command: `node scripts/dev.mjs --port ${port}`,
+    url: `${baseURL}/create.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },

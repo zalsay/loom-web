@@ -24,14 +24,22 @@
         <span id="save-status" role="status">本地草稿</span>
       </div>
       <div class="header-buttons">
-        <button id="open-library">我的空间</button>
-        <button id="save-scene" class="primary" disabled>保存到云端</button>
+        <button id="open-library" type="button" aria-label="我的空间">
+          <span class="library-label-full">我的空间</span
+          ><span class="library-label-short">空间</span>
+        </button>
+        <button id="save-scene" class="primary" type="button" aria-label="保存到云端" disabled>
+          <span class="save-label-full">保存到云端</span><span class="save-label-short">保存</span>
+        </button>
       </div>
     </header>
-    <main id="workspace" class="workspace">
-      <aside class="properties panel" aria-label="空间设置">
+    <main id="workspace" class="workspace" data-panel="canvas">
+      <aside id="properties-panel" class="properties panel" aria-label="空间设置">
         <div class="panel-heading">
-          <h1>布置你的空间</h1>
+          <h1 tabindex="-1">布置你的空间</h1>
+          <button id="close-properties" class="panel-close" type="button" aria-label="收起布置面板">
+            完成
+          </button>
           <button id="new-scene">新建</button>
         </div>
         <p class="panel-description">从一座园林开始，把喜欢的生活放进来。</p>
@@ -194,7 +202,7 @@
           <input id="import-file" type="file" accept=".json,application/json" hidden />
         </div>
       </aside>
-      <section class="canvas-area" aria-label="3D 空间预览">
+      <section id="canvas-area" class="canvas-area" aria-label="3D 空间预览">
         <div id="viewport"></div>
         <div id="renderer-loading" class="canvas-loading">正在打开你的园林…</div>
         <div class="canvas-topline">
@@ -210,19 +218,41 @@
           </div>
           <p>拖动转动 · 滚轮缩放 · 点击物件选中</p>
         </div>
-        <div class="mobile-switch" aria-label="切换编辑面板">
-          <button data-panel="properties">布置</button
-          ><button data-panel="canvas" aria-pressed="true">空间</button
-          ><button data-panel="assistant">对话</button>
+        <div class="mobile-switch" role="group" aria-label="编辑区域">
+          <button
+            type="button"
+            data-panel="properties"
+            aria-controls="properties-panel"
+            aria-pressed="false"
+          >
+            布置</button
+          ><button
+            type="button"
+            data-panel="canvas"
+            aria-controls="canvas-area"
+            aria-pressed="true"
+          >
+            空间</button
+          ><button
+            type="button"
+            data-panel="assistant"
+            aria-controls="assistant-panel"
+            aria-pressed="false"
+          >
+            对话
+          </button>
         </div>
       </section>
-      <aside class="assistant panel" aria-label="空间设计助手">
+      <aside id="assistant-panel" class="assistant panel" aria-label="空间设计助手">
         <div class="assistant-heading">
           <span class="assistant-mark" aria-hidden="true">织</span>
           <div>
-            <h2>一起布置</h2>
+            <h2 tabindex="-1">一起布置</h2>
             <p>把想法说出来，让空间有你的样子。</p>
           </div>
+          <button id="close-assistant" class="panel-close" type="button" aria-label="收起对话面板">
+            完成
+          </button>
         </div>
         <div id="agent-status" class="agent-status">正在检查助手连接…</div>
         <div

@@ -9,6 +9,7 @@ import { createApp } from '../server/app.mjs';
 import { createFileStore } from '../server/storage.mjs';
 import { createChatCompletionsProvider } from '../server/provider.mjs';
 import { loadConfig } from '../server/config.mjs';
+import { createWorldWeatherHandler } from '../server/world-weather.mjs';
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = path.join(project, process.argv.includes('--dist') ? 'dist' : 'web');
 const portFlag = process.argv.indexOf('--port');
@@ -47,6 +48,7 @@ const app = createApp({
   config,
   provider: config.agentEnabled ? createChatCompletionsProvider(config) : null,
 });
+const worldWeather = createWorldWeatherHandler();
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -81,7 +83,8 @@ http
             ? { body: Readable.toWeb(request), duplex: 'half' }
             : {}),
         });
-        const output = await app.handle(input);
+        const output =
+          pathname === '/api/world-weather' ? await worldWeather(input) : await app.handle(input);
         response.statusCode = output.status;
         for (const [name, value] of output.headers)
           if (name !== 'set-cookie') response.setHeader(name, value);

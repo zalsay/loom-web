@@ -1,5 +1,7 @@
 @charset "UTF-8";
 :root {
+  --editor-header-height: 76px;
+  --editor-viewport-height: 100dvh;
   --paper: #f3f4ee;
   --surface: #fbfcf8;
   --ink: #24342d;
@@ -108,7 +110,7 @@ summary:focus-visible {
   top: 12px;
 }
 .editor-header {
-  height: 76px;
+  height: var(--editor-header-height);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -155,7 +157,7 @@ summary:focus-visible {
   flex: none;
 }
 .workspace {
-  height: calc(100dvh - 76px);
+  height: calc(var(--editor-viewport-height) - var(--editor-header-height));
   min-height: 560px;
   display: grid;
   grid-template-columns: 256px minmax(260px, 1fr) 300px;
@@ -175,6 +177,9 @@ summary:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+.panel-close {
+  display: none;
 }
 .panel-heading button,
 .inspector-heading button {
@@ -584,7 +589,14 @@ details[open] summary {
 }
 dialog {
   width: min(560px, calc(100% - 32px));
-  max-height: 80dvh;
+  max-height: min(
+    80dvh,
+    calc(
+      var(--editor-viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px
+    )
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
@@ -682,37 +694,57 @@ dialog > button {
   }
 }
 @media (max-width: 800px) {
+  :root {
+    --editor-header-height: calc(68px + env(safe-area-inset-top));
+  }
+}
+@media (max-width: 800px), (max-height: 500px) and (pointer: coarse) {
   .editor-header {
-    height: 68px;
-    padding: 10px 12px;
-    gap: 12px;
+    padding: calc(9px + env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 9px
+      max(8px, env(safe-area-inset-left));
+    gap: 8px;
   }
   .editor-brand {
-    padding: 2px 6px;
+    padding: 2px 5px;
   }
   .editor-brand img {
-    width: 80px;
-    height: 32px;
+    width: 66px;
+    height: 30px;
+  }
+  .document-heading {
+    gap: 1px;
   }
   .document-heading input {
-    font-size: 14px;
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+  #save-status {
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: nowrap;
   }
   .header-buttons {
-    gap: 5px;
+    gap: 4px;
   }
   .header-buttons button {
+    min-height: 44px;
     font-size: 11px;
-    padding: 9px 7px;
+    padding: 7px 6px;
     white-space: nowrap;
   }
   #open-library {
     flex: none;
+    min-width: 44px;
+  }
+  #save-scene {
+    min-width: 44px;
   }
   .workspace {
-    height: calc(100dvh - 68px);
-    min-height: 420px;
+    min-height: 0;
     display: block;
     position: relative;
+    overflow: hidden;
   }
   .canvas-area {
     height: 100%;
@@ -722,20 +754,44 @@ dialog > button {
     display: none;
     position: absolute;
     z-index: 4;
-    top: 0;
-    bottom: 58px;
-    width: min(320px, 88%);
-    border: 0;
-    box-shadow: 3px 0 16px #50634225;
+    top: auto;
+    bottom: calc(58px + env(safe-area-inset-bottom));
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: min(
+      74%,
+      calc(
+        var(--editor-viewport-height) - var(--editor-header-height) - 76px -
+          env(safe-area-inset-bottom)
+      )
+    );
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    border: 1px solid var(--line);
+    border-radius: 12px 12px 8px 8px;
+    box-shadow: 0 -8px 26px #50634225;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-block: 18px;
   }
   .workspace[data-panel='properties'] .properties {
     display: block;
-    left: 0;
   }
   .workspace[data-panel='assistant'] .assistant {
     display: flex;
-    right: 0;
-    box-shadow: -3px 0 16px #50634225;
+  }
+  .panel-close {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 56px;
+    min-height: 44px;
+    margin-left: auto;
+    font-size: 12px;
+  }
+  .panel-heading h1 {
+    font-size: 15px;
+    white-space: nowrap;
   }
   .mobile-switch {
     position: absolute;
@@ -747,11 +803,13 @@ dialog > button {
     grid-template-columns: 1fr 1fr 1fr;
     background: var(--surface);
     border-top: 1px solid var(--line);
-    height: 58px;
-    padding: 7px 12px;
+    height: calc(58px + env(safe-area-inset-bottom));
+    padding: 6px max(12px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
     gap: 8px;
   }
   .mobile-switch button {
+    min-height: 44px;
     border: 0;
     background: transparent;
   }
@@ -759,29 +817,123 @@ dialog > button {
     background: #e3ecd9;
     color: #2f5032;
   }
-  .canvas-bottom {
-    bottom: 76px;
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px;
   }
-  .canvas-topline {
-    top: 18px;
+  .field select {
+    height: 44px;
+  }
+  .field input[type='range'] {
+    min-height: 44px;
+  }
+  .field-pair {
+    gap: 8px;
+  }
+  .asset-palette button,
+  .history-controls button,
+  .panel-heading button,
+  .file-actions button,
+  .inspector-heading button {
+    min-height: 44px;
+  }
+  .vector input {
+    min-height: 44px;
+    padding-inline: 5px;
+  }
+  #object-list {
+    font-size: 16px;
+    min-height: 104px;
+  }
+  #agent-prompt {
+    min-height: 88px;
+    max-height: 24dvh;
+    font-size: 16px;
+  }
+  .composer-actions button,
+  .prompt-suggestions button,
+  .share-button {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .canvas-bottom {
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    left: 6px;
+    right: 6px;
   }
   .canvas-tools {
     max-width: 100%;
+    gap: 0;
   }
   .canvas-tools button {
-    font-size: 10px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 7px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .canvas-bottom p {
+    margin-top: 6px;
+    font-size: 11px;
+  }
+  .canvas-topline {
+    top: 14px;
+    left: 12px;
+    right: 12px;
   }
   .canvas-label {
     font-size: 11px;
   }
   .read-only .canvas-bottom {
-    bottom: 24px;
-  }
-  .read-only .panel {
-    display: none;
+    bottom: calc(18px + env(safe-area-inset-bottom));
   }
   .read-only .document-heading input {
     pointer-events: none;
+  }
+  dialog {
+    width: calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    max-height: calc(
+      var(--editor-viewport-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px
+    );
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  }
+  dialog button,
+  .library-item button {
+    min-height: 44px;
+  }
+}
+.library-label-short,
+.save-label-short {
+  display: none;
+}
+@media (max-width: 360px) {
+  .document-heading {
+    flex: 1 1 38px;
+  }
+  .document-heading input {
+    font-size: 16px;
+  }
+  #save-status {
+    font-size: 10px;
+  }
+  .header-buttons button,
+  .canvas-tools button {
+    padding-inline: 5px;
+    font-size: 12px;
+  }
+  .library-label-full,
+  .save-label-full {
+    display: none;
+  }
+  .library-label-short,
+  .save-label-short {
+    display: inline;
+  }
+  .panel {
+    left: 4px;
+    right: 4px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
