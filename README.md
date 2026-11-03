@@ -99,6 +99,10 @@ npx playwright install webkit firefox
 npm run test:e2e  # 只使用 WebKit / Firefox，不使用 Chrome
 ```
 
+## 织界实验室计划
+
+[织界实验室 PBL 共创计划](docs/plans/loom-lab-pbl.md)记录 Loom OS 与 Loom Web 支持孩子自主创作的讨论共识、首期机器狗项目草案，以及 G 老师、现场家长和观察硬件的分工。该文档是未来方向与活动规划，不表示现场教学、音视频接入或机器人控制已经实现，也不改变现有 MVP 的技术边界。
+
 ## 第三方许可
 
 Three.js 及官方插件遵循 MIT，许可原文见 `web/vendor/THREE-LICENSE.txt`。场景代码与官网内容的使用授权由仓库所有者决定；未对 Loom OS 本身另作许可声明。
