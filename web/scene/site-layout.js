@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLASS_ROOM, PAVILION } from './pavilion-dimensions.js';
 
 // The supplied screenshot is a visual plan, not a survey. Image right is +X,
 // image down is +Z. No true-north bearing or scale bar was supplied.
@@ -22,29 +23,28 @@ export function mapPoint(x, z, y = 0) {
     (z - SITE.imageOrigin[1]) * SITE.metresPerPixel,
   );
 }
-export const oldCenterline = (x) => 0.0038 * (x + 4) ** 2 - 0.35;
+const arcAnchor = mapPoint(...SITE.canopyCurvePixels[0]);
+const arcTangent = mapPoint(...SITE.canopyCurvePixels[1])
+  .sub(arcAnchor)
+  .normalize();
+const arcNormal = new THREE.Vector3(-arcTangent.z, 0, arcTangent.x);
+// Canonical x is now true centreline arc distance, z is the radial offset. Do
+// not apply the former parabola before the circular transform a second time.
+export const oldCenterline = () => 0;
 function curveAt(t) {
-  const p = SITE.canopyCurvePixels,
-    a = (1 - t) ** 3,
-    b = 3 * (1 - t) ** 2 * t,
-    c = 3 * (1 - t) * t * t,
-    d = t ** 3;
-  return mapPoint(
-    a * p[0][0] + b * p[1][0] + c * p[2][0] + d * p[3][0],
-    a * p[0][1] + b * p[1][1] + c * p[2][1] + d * p[3][1],
-  );
+  return bendPoint(new THREE.Vector3(PAVILION.startX + t * PAVILION.length, 0, 0));
 }
 export function bendPoint(v) {
-  const raw = (v.x + 17) / 32.9,
-    t = Math.max(0, Math.min(1, raw)),
-    point = curveAt(t);
-  const ta = Math.max(0, t - 0.0001),
-    tb = Math.min(1, t + 0.0001),
-    dir = curveAt(tb).sub(curveAt(ta)).normalize();
-  if (raw !== t) point.addScaledVector(dir, (raw - t) * 32.9);
-  const normal = new THREE.Vector3(-dir.z, 0, dir.x),
-    offset = v.z - oldCenterline(v.x);
-  return point.addScaledVector(normal, offset).setY(v.y);
+  const radius = GLASS_ROOM.centerRadius;
+  const angle = (v.x - PAVILION.startX) / radius;
+  const offset = v.z;
+  const along = (radius + offset) * Math.sin(angle);
+  const across = (radius + offset) * Math.cos(angle) - radius;
+  return new THREE.Vector3(
+    arcAnchor.x + arcTangent.x * along + arcNormal.x * across,
+    v.y,
+    arcAnchor.z + arcTangent.z * along + arcNormal.z * across,
+  );
 }
 function bendGeometry(original, worldMatrix) {
   const g = original.index ? original.toNonIndexed() : original.clone();
@@ -97,17 +97,20 @@ function bendGeometry(original, worldMatrix) {
 export function bendGroup(source) {
   source.updateMatrixWorld(true);
   function copy(node) {
-    if (node.userData.doorLeaf) {
+    if (node.userData.doorLeaf || node.userData.rigidPlan) {
       const oldP = new THREE.Vector3().setFromMatrixPosition(node.matrixWorld),
         oldX = new THREE.Vector3(1, 0, 0).applyMatrix4(node.matrixWorld);
+      // Use a local differential, not a one-metre secant. Measured rigid boxes
+      // keep their dimensions, and door hinges keep their radial orientation.
+      const step = oldX.sub(oldP).normalize().multiplyScalar(0.0001);
       const p = bendPoint(oldP),
-        dir = bendPoint(oldX).sub(p).normalize(),
+        dir = bendPoint(oldP.clone().add(step)).sub(p).normalize(),
         yaw = Math.atan2(-dir.z, dir.x),
         out = node.clone(true);
       out.position.copy(p);
       out.rotation.set(0, yaw, 0);
       out.scale.set(1, 1, 1);
-      out.userData.closedAngle = yaw;
+      if (node.userData.doorLeaf) out.userData.closedAngle = yaw;
       return out;
     }
     if (node.isMesh) {

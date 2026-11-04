@@ -231,3 +231,53 @@ test('reduced motion and SVG compatibility keep precipitation out of the scene',
   compatibility.controller.dispose();
   assert.equal(compatibility.renderer.domElement.style.backgroundColor, originalBackground);
 });
+
+test('isolated indoor lighting suppresses outdoor effects and restores the latest forecast on exit', () => {
+  const { scene, hemi, controller, originalFog } = createHarness();
+  controller.setConditions(state(Date.parse('2026-06-21T04:00:00Z'), { condition: 'rain' }));
+  const rain = particle(scene);
+  const rainDisposals = trackDispose(rain.geometry);
+  controller.setIndoor(true);
+  controller.setIndoor(true);
+  assert.equal(rainDisposals(), 1);
+  assert.equal(particle(scene), null);
+  assert.equal(scene.fog, null);
+  const roomColor = scene.background.getHex();
+  const roomIntensity = hemi.intensity;
+  controller.setConditions(state(Date.parse('2026-06-21T13:00:00Z'), { condition: 'snow' }));
+  assert.equal(document.body.dataset.worldCondition, 'snow');
+  assert.equal(document.body.dataset.worldPhase, 'night');
+  assert.equal(scene.background.getHex(), roomColor);
+  assert.equal(hemi.intensity, roomIntensity);
+  assert.equal(particle(scene), null);
+  assert.equal(controller.update(1000), false);
+  controller.setIndoor(false);
+  const snow = particle(scene);
+  assert.ok(snow?.isPoints, 'leaving indoors restores the latest forecast, not the old rain');
+  assert.equal(scene.fog, originalFog);
+  assert.notEqual(scene.background.getHex(), roomColor);
+  controller.setIndoor(false);
+  assert.equal(particle(scene), snow, 'repeated exterior activation does not rebuild particles');
+  controller.setIndoor(true);
+  controller.dispose();
+  assert.equal(scene.fog, originalFog);
+  controller.setIndoor(false);
+  assert.equal(particle(scene), null, 'disposed controllers cannot recreate particles');
+});
+
+test('SVG indoor background stays neutral through weather updates and restores on exit', () => {
+  const { scene, controller, renderer, hemi } = createHarness({ compatibilityMode: true });
+  const exteriorColor = hemi.color.clone();
+  controller.setIndoor(true);
+  const roomColor = scene.background.getStyle();
+  for (const condition of ['rain', 'snow', 'fog']) {
+    controller.setConditions(state(Date.parse('2026-06-21T13:00:00Z'), { condition }));
+    assert.equal(scene.fog, null);
+    assert.equal(renderer.domElement.style.backgroundColor, roomColor);
+  }
+  controller.setIndoor(false);
+  assert.ok(hemi.color.equals(exteriorColor));
+  assert.notEqual(renderer.domElement.style.backgroundColor, roomColor);
+  assert.ok(scene.fog);
+  controller.dispose();
+});

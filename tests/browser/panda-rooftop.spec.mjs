@@ -72,6 +72,46 @@ test('the only panda is a roof climber with its back and tail outside', async ({
     const tail = panda.getObjectByName('tail').getWorldPosition(new THREE.Vector3());
     const support = world.model.building.getObjectByName('视频起点侧白色栅格立面');
     const blades = support.children.filter((object) => object.name === '白色水平栅格片');
+    const headCenter = new THREE.Box3()
+      .setFromObject(panda.getObjectByName('head'))
+      .getCenter(new THREE.Vector3());
+    const eave = new THREE.Vector3().fromArray(panda.userData.rooftopEavePosition);
+    const bends = ['left', 'right'].flatMap((side) =>
+      [
+        ['arm', 'forearm', 'elbow', 'paw'],
+        ['leg', 'shin', 'knee', 'foot'],
+      ].map(([upperName, lowerName, jointName, endName]) => {
+        const upper = panda.getObjectByName(`${upperName}-${side}`);
+        const lower = panda.getObjectByName(`${lowerName}-${side}`);
+        const joint = panda.getObjectByName(`${jointName}-${side}`);
+        const end = panda.getObjectByName(`${endName}-${side}`);
+        const axis = (part) => new THREE.Vector3(0, 1, 0).transformDirection(part.matrixWorld);
+        const bounds = (part) => new THREE.Box3().setFromObject(part);
+        const upperBounds = bounds(upper);
+        const lowerBounds = bounds(lower);
+        const jointBounds = bounds(joint);
+        const geometrySize = (part) => {
+          part.geometry.computeBoundingBox();
+          return (
+            part.geometry.boundingBox.getSize(new THREE.Vector3()).y * part.scale.y * panda.scale.y
+          );
+        };
+        return {
+          side,
+          kind: upperName,
+          bend: axis(upper).dot(axis(lower)),
+          lengths: [geometrySize(upper), geometrySize(lower)],
+          connects:
+            upperBounds.intersectsBox(jointBounds) &&
+            lowerBounds.intersectsBox(jointBounds) &&
+            lowerBounds.intersectsBox(bounds(end)) &&
+            upperBounds.intersectsBox(bounds(panda.getObjectByName('torso'))),
+          faceted: [upper, lower, joint].every(
+            (part) => part.material.flatShading && part.geometry.getAttribute('color'),
+          ),
+        };
+      }),
+    );
     const feet = ['left', 'right'].map((side) => {
       const foot = panda.getObjectByName(`foot-${side}`);
       foot.geometry.computeBoundingBox();
@@ -95,6 +135,9 @@ test('the only panda is a roof climber with its back and tail outside', async ({
       static: !world.pandaController && !world.pandaInput && !world.setPandaMode,
       support: panda.userData.rooftopFootSupport,
       feet,
+      bends,
+      headHeight: headCenter.y - eave.y,
+      headOutside: headCenter.sub(eave).dot(outward),
     };
   });
   expect(pose.face).toBeLessThan(-0.99);
@@ -102,6 +145,14 @@ test('the only panda is a roof climber with its back and tail outside', async ({
   expect(pose.onlyRoof).toBe(true);
   expect(pose.static).toBe(true);
   expect(pose.support).toBe('视频起点侧白色栅格立面');
+  expect(pose.headHeight).toBeGreaterThan(0.6);
+  expect(pose.headOutside).toBeLessThan(0.95);
+  for (const limb of pose.bends) {
+    expect(limb.bend, `${limb.side} ${limb.kind} visibly bends`).toBeLessThan(0.96);
+    expect(limb.connects, `${limb.side} ${limb.kind} stays joined`).toBe(true);
+    expect(limb.faceted).toBe(true);
+    for (const length of limb.lengths) expect(length).toBeLessThan(0.95);
+  }
   for (const gap of pose.feet) {
     expect(gap).not.toBeNull();
     expect(gap).toBeLessThan(0.004);

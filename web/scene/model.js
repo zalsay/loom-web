@@ -1,16 +1,19 @@
 import * as THREE from 'three';
 import { SITE, mapPoint, bendPoint, bendGroup, addSiteGround, nearCanopy } from './site-layout.js';
 import { createRooftopPanda } from './panda-rooftop.js';
+import { createAppleStore, addAppleStoreLighting } from './apple-store.js';
+import { GLASS_ROOM, PAVILION, LOUVER, ENTRANCE } from './pavilion-dimensions.js';
 
-// Video-based proportions, in estimated metres. No survey dimensions are available.
+// Measured room, roof and facade modules share one calibrated circular plan.
 export const PARAMETERS = {
-  length: 35.0,
-  width: 7.8,
-  eaveHeight: 4.55,
-  columnDepth: 0.48,
-  archSpan: 7.4,
+  length: PAVILION.length,
+  width: PAVILION.width,
+  eaveHeight: PAVILION.roofBodyTop,
+  columnDepth: PAVILION.columnDepth,
+  archSpan: PAVILION.archSpan,
+  glassRoom: GLASS_ROOM,
 };
-export const centerline = (x) => 0.0038 * (x + 4) ** 2 - 0.35;
+export const centerline = () => 0;
 
 function randomGenerator(seed = 4917) {
   return () => {
@@ -58,14 +61,16 @@ function canvasTexture(kind, rand) {
   return t;
 }
 function groundShape() {
-  const s = new THREE.Shape();
-  s.moveTo(-19, -5.7 + centerline(-17));
-  for (let x = -19; x <= 13; x += 1) s.lineTo(x, -5.7 + centerline(Math.max(-17, x)));
+  const s = new THREE.Shape(),
+    start = PAVILION.startX - 2,
+    cap = PAVILION.capCenterX;
+  s.moveTo(start, -5.7);
+  s.lineTo(cap, -5.7);
   for (let i = 0; i <= 40; i++) {
     let a = (i / 40) * Math.PI;
-    s.lineTo(13 + 5.7 * Math.sin(a), centerline(13) - 5.7 * Math.cos(a));
+    s.lineTo(cap + 5.7 * Math.sin(a), -5.7 * Math.cos(a));
   }
-  for (let x = 13; x >= -19; x -= 1) s.lineTo(x, 5.7 + centerline(Math.max(-17, x)));
+  s.lineTo(start, 5.7);
   s.closePath();
   return s;
 }
@@ -80,15 +85,15 @@ function flatShape(parent, s, y, m, name) {
   return o;
 }
 function roofShape(inset = 0) {
-  const w = 3.9 - inset,
+  const w = PAVILION.width / 2 - inset,
     s = new THREE.Shape();
-  s.moveTo(-17 + inset, centerline(-17) - w);
-  for (let x = -17 + inset; x <= 12; x += 0.5) s.lineTo(x, centerline(x) - w);
+  s.moveTo(PAVILION.startX + inset, -w);
+  s.lineTo(PAVILION.capCenterX, -w);
   for (let i = 0; i <= 48; i++) {
     let a = (i / 48) * Math.PI;
-    s.lineTo(12 + w * Math.sin(a), centerline(12) - w * Math.cos(a));
+    s.lineTo(PAVILION.capCenterX + w * Math.sin(a), -w * Math.cos(a));
   }
-  for (let x = 12; x >= -17 + inset; x -= 0.5) s.lineTo(x, centerline(x) + w);
+  s.lineTo(PAVILION.startX + inset, w);
   s.closePath();
   return s;
 }
@@ -103,40 +108,47 @@ function slab(parent, s, top, depth, m, name) {
   parent.add(o);
   return o;
 }
-function archGeometry(span = 7.4, height = 4.22) {
+function archGeometry(fraction = 1, span = PAVILION.archSpan, height = PAVILION.soffitY) {
   const h = height,
     a = span / 2,
-    w = 0.79,
     s = new THREE.Shape();
-  s.moveTo(-a - 0.32, 0.04);
-  s.lineTo(-0.47, h);
-  s.lineTo(0.47, h);
-  s.lineTo(a + 0.32, 0.04);
-  s.lineTo(a - 0.64, 0.04);
-  s.lineTo(0.2, h - 1.04);
-  s.quadraticCurveTo(0, h - 0.8, -0.2, h - 1.04);
-  s.lineTo(-a + 0.64, 0.04);
+  s.moveTo(-a, 0.04);
+  s.lineTo(-0.16, h);
+  if (fraction === 1) {
+    s.lineTo(0.16, h);
+    s.lineTo(a, 0.04);
+    s.lineTo(a - PAVILION.columnFootWidth, 0.04);
+    s.lineTo(0.08, h - 0.65);
+  } else {
+    s.lineTo(0, h);
+    s.lineTo(0, h - 0.65);
+  }
+  s.lineTo(-0.08, h - 0.65);
+  s.lineTo(-a + PAVILION.columnFootWidth, 0.04);
   s.closePath();
   return new THREE.ExtrudeGeometry(s, {
     depth: PARAMETERS.columnDepth,
     steps: 1,
-    bevelEnabled: true,
-    bevelSegments: 2,
-    bevelSize: 0.015,
-    bevelThickness: 0.015,
+    bevelEnabled: false,
     curveSegments: 12,
   });
 }
-function ribbonColumn(parent, cx, side, m) {
-  const g = archGeometry();
+function ribbonColumn(parent, cx, side, m, index, fraction = 1) {
+  const g = archGeometry(fraction);
   let p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i) + cx;
-    p.setXYZ(i, x, p.getY(i), p.getZ(i) - PARAMETERS.columnDepth / 2 + centerline(x) + side * 3.47);
+    p.setXYZ(
+      i,
+      x,
+      p.getY(i),
+      p.getZ(i) - PARAMETERS.columnDepth / 2 + side * PAVILION.columnOffset,
+    );
   }
   g.computeVertexNormals();
   const o = new THREE.Mesh(g, m);
   o.name = `${side > 0 ? '前' : '后'}侧 W 形斜柱 ${cx.toFixed(1)}`;
+  o.userData = { structuralModule: true, index, side, fraction };
   o.castShadow = true;
   o.receiveShadow = true;
   parent.add(o);
@@ -215,11 +227,11 @@ export function createPavilion({ seed = 4917 } = {}) {
   const dark = mat('深灰网格吊顶', { color: 0x333d3b, roughness: 0.9 });
   const seam = mat('铝板接缝', { color: 0x9aa49e, roughness: 0.88 });
   const glass = mat('淡绿玻璃', {
-    color: 0x9bbeb4,
-    metalness: 0.2,
-    roughness: 0.12,
+    color: 0xd6e5e4,
+    metalness: 0.08,
+    roughness: 0.06,
     transparent: true,
-    opacity: 0.23,
+    opacity: 0.12,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
@@ -255,7 +267,7 @@ export function createPavilion({ seed = 4917 } = {}) {
   }
   for (const side of [-1, 1]) {
     const points = [];
-    for (let x = -18.9; x <= 13; x += 0.3)
+    for (let x = PAVILION.startX - 1.9; x <= PAVILION.capCenterX; x += 0.3)
       points.push(new THREE.Vector3(x, 0.014, centerline(x) + side * 5.53));
     const strip = new THREE.Mesh(
       new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 110, 0.055, 4, false),
@@ -266,132 +278,149 @@ export function createPavilion({ seed = 4917 } = {}) {
     strip.position.y = 0.018;
     ground.add(strip);
   }
-  for (let x = -5.4; x <= 12; x += 4.65) {
+  for (let x = GLASS_ROOM.endX + 1; x <= PAVILION.capCenterX; x += PAVILION.archSpan) {
     const z = centerline(x);
     const mark = box(ground, '停车分隔线', x, 0.018, z + 0.15, 0.075, 0.008, 9.2, line);
-    mark.rotation.y = -Math.atan(0.0076 * (x + 4));
   }
 
   // Continuous curved roof, a thin cap, and the dark recessed soffit.
-  slab(building, roofShape(), 4.57, 0.38, roofSurface, '弧形屋面与白色檐口');
-  slab(building, roofShape(-0.025), 4.615, 0.055, roofTop, '屋面顶板与金属压边');
-  slab(building, roofShape(0.22), 4.205, 0.06, dark, '内凹网格吊顶底板');
+  slab(
+    building,
+    roofShape(),
+    PAVILION.roofBodyTop,
+    PAVILION.roofBodyDepth,
+    roofSurface,
+    '弧形屋面与白色檐口',
+  );
+  slab(building, roofShape(), PAVILION.roofTop, 0.055, roofTop, '屋面顶板与金属压边');
+  slab(building, roofShape(0.22), PAVILION.soffitY + 0.015, 0.06, dark, '内凹网格吊顶底板');
   // Dense open grid beneath the canopy: individual strips cast natural fine shadows.
-  for (let x = -16.8; x <= 15.3; x += 0.36) {
+  for (let x = PAVILION.startX + 0.2; x <= PAVILION.endX - 0.26; x += 0.36) {
     let half = 3.64;
-    if (x > 12) half = Math.sqrt(Math.max(0, 3.64 ** 2 - (x - 12) ** 2));
+    if (x > PAVILION.capCenterX)
+      half = Math.sqrt(Math.max(0, 3.64 ** 2 - (x - PAVILION.capCenterX) ** 2));
     if (half < 0.2) continue;
-    box(
-      building,
-      '横向吊顶格栅',
-      x,
-      4.155,
-      centerline(Math.min(x, 12)),
-      0.025,
-      0.075,
-      half * 2,
-      dark,
-    );
+    box(building, '横向吊顶格栅', x, PAVILION.soffitY - 0.035, 0, 0.025, 0.075, half * 2, dark);
   }
   for (let zoff = -3.55; zoff <= 3.56; zoff += 0.36) {
-    let end = 12 + Math.sqrt(Math.max(0, 3.64 ** 2 - zoff ** 2));
+    let end = PAVILION.capCenterX + Math.sqrt(Math.max(0, 3.64 ** 2 - zoff ** 2));
     const coords = [];
-    for (let x = -16.8; x <= end; x += 0.4)
-      coords.push(new THREE.Vector3(x, 4.135, centerline(Math.min(x, 12)) + zoff));
+    for (let x = PAVILION.startX + 0.2; x <= end; x += 0.4)
+      coords.push(new THREE.Vector3(x, PAVILION.soffitY - 0.055, zoff));
     const g = new THREE.BufferGeometry().setFromPoints(coords);
     const o = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x65716a }));
     o.name = '纵向吊顶格栅';
     building.add(o);
   }
-  for (let side of [-1, 1])
-    for (let cx of [-12.7, -5.3, 2.1, 9.5]) ribbonColumn(building, cx, side, white);
-  // Curved return at the right end, with a crosswise diagonal support.
-  const endGeo = archGeometry(5.7, 4.22);
-  endGeo.rotateY(Math.PI / 2);
-  endGeo.translate(14.35, 0, centerline(12));
-  const endArch = new THREE.Mesh(endGeo, white);
-  endArch.name = '端部横向折柱';
-  endArch.castShadow = true;
-  endArch.receiveShadow = true;
-  building.add(endArch);
-  // Subtle panel joints across the wide white diagonal members.
-  for (let side of [-1, 1])
-    for (let cx of [-12.7, -5.3, 2.1, 9.5]) {
-      for (let sign of [-1, 1])
-        for (let y of [1.25, 2.55]) {
-          let x = cx + sign * (3.7 - y * 0.8);
-          const o = box(
-            building,
-            '斜柱铝板拼缝',
-            x,
-            y,
-            centerline(x) + side * (3.47 + 0.253),
-            0.77,
-            0.012,
-            0.012,
-            seam,
-          );
-          o.rotation.z = -sign * 0.035;
-        }
+  // Start the five full triangles and rising half triangle at the glass room,
+  // not after it. Leave the measured roof's remaining end bay open; do not
+  // stretch the clear openings or add another triangle to fill the round end.
+  for (const side of [-1, 1])
+    for (let index = 0; index < Math.ceil(PAVILION.triangleCount); index++) {
+      const fraction = Math.min(1, PAVILION.triangleCount - index);
+      const cx = PAVILION.moduleStartX + (index + 0.5) * PAVILION.archSpan;
+      ribbonColumn(building, cx, side, white, index, fraction);
     }
   for (let side of [-1, 1])
-    for (let x = -16; x < 13; x += 1.65) {
+    for (let x = PAVILION.startX + 1; x < PAVILION.capCenterX; x += 1.65) {
       const seamline = box(
         building,
         '檐口分缝',
         x,
-        4.38,
+        PAVILION.soffitY + PAVILION.roofThickness / 2,
         centerline(x) + side * 3.905,
         0.012,
-        0.3,
+        PAVILION.roofThickness - 0.1,
         0.008,
         seam,
       );
     }
-  // Glazed enclosed room occupies the straight starting bay, as in the opening shot.
-  const roomX = -13.45,
-    roomW = 6.55,
-    roomZ = centerline(roomX),
-    roomD = 6.68;
-  box(building, '玻璃房室内地坪', roomX, 0.045, roomZ, roomW, 0.08, roomD, curb);
+  // The measured footprint includes the end entrance and louver bay: do not
+  // append them outside the 7.6/6.5 m envelope. Only the shop occupies this span.
+  const roomX = GLASS_ROOM.storeCenterX,
+    roomW = GLASS_ROOM.storeWidth,
+    roomZ = 0,
+    roomD = GLASS_ROOM.width;
+  const roomBase = GLASS_ROOM.floorY,
+    roomTop = GLASS_ROOM.ceilingY,
+    paneH = roomTop - roomBase,
+    paneY = (roomTop + roomBase) / 2;
+  const laboratory = new THREE.Group();
+  laboratory.name = '织界实验室';
+  laboratory.userData.laboratory = true;
+  building.add(laboratory);
+  building.userData.glassRoom = { ...GLASS_ROOM, interpretation: 'concentric-internal-arcs' };
+  box(
+    laboratory,
+    '玻璃房室内地坪',
+    GLASS_ROOM.centerX,
+    0.0425,
+    0,
+    GLASS_ROOM.centerlineLength,
+    0.085,
+    roomD,
+    curb,
+  );
   for (let side of [-1, 1]) {
-    let z = roomZ + (side * roomD) / 2;
+    let z = roomZ + side * (roomD / 2 + 0.0175);
     if (side > 0) {
       const facade = new THREE.Group();
       facade.name = '玻璃房正面固定玻璃立面';
       facade.position.set(roomX, 0, z);
-      building.add(facade);
-      box(facade, '正面固定玻璃', 0, 2.01, 0, roomW, 3.92, 0.035, glass);
-      for (let x = -roomW / 2; x <= roomW / 2; x += 1.32)
-        box(facade, '正面固定玻璃竖向接缝', x, 2.02, 0, 0.022, 3.96, 0.042, steel);
+      laboratory.add(facade);
+      box(facade, '正面固定玻璃', 0, paneY, 0, roomW, paneH, 0.035, glass);
+      const bays = Math.ceil(roomW / 1.32);
+      for (let i = 0; i <= bays; i++)
+        box(
+          facade,
+          '正面固定玻璃竖向接缝',
+          -roomW / 2 + (i * roomW) / bays,
+          paneY,
+          0.022,
+          0.022,
+          paneH,
+          0.042,
+          steel,
+        );
       box(facade, '正面固定玻璃底部轨道', 0, 0.12, 0, roomW, 0.055, 0.065, steel);
-      box(facade, '正面固定玻璃顶部轨道', 0, 4.0, 0, roomW, 0.06, 0.055, steel);
+      box(facade, '正面固定玻璃顶部轨道', 0, roomTop + 0.03, 0, roomW, 0.06, 0.055, steel);
     } else {
-      box(building, '玻璃房侧面玻璃', roomX, 2.01, z, roomW, 3.92, 0.035, glass);
-      for (let x = -16.72; x <= -10.12; x += 1.32)
-        box(building, '玻璃竖向接缝', x, 2.02, z, 0.022, 3.96, 0.042, steel);
-      box(building, '玻璃底部轨道', roomX, 0.12, z, roomW, 0.055, 0.065, steel);
-      box(building, '玻璃顶部轨道', roomX, 4.0, z, roomW, 0.06, 0.055, steel);
+      box(laboratory, '玻璃房侧面玻璃', roomX, paneY, z, roomW, paneH, 0.035, glass);
+      const bays = Math.ceil(roomW / 1.32);
+      for (let i = 0; i <= bays; i++)
+        box(
+          laboratory,
+          '玻璃竖向接缝',
+          GLASS_ROOM.startX + (i * roomW) / bays,
+          paneY,
+          z,
+          0.022,
+          paneH,
+          0.042,
+          steel,
+        );
+      box(laboratory, '玻璃底部轨道', roomX, 0.12, z, roomW, 0.055, 0.065, steel);
+      box(laboratory, '玻璃顶部轨道', roomX, roomTop + 0.03, z, roomW, 0.06, 0.055, steel);
     }
   }
-  box(building, '端面玻璃', -16.73, 2.03, roomZ, 0.035, 3.94, roomD, glass);
+  box(laboratory, '端面玻璃', GLASS_ROOM.startX - 0.0175, paneY, roomZ, 0.035, paneH, roomD, glass);
   for (let z = roomZ - roomD / 2; z <= roomZ + roomD / 2; z += 1.34)
-    box(building, '端面玻璃接缝', -16.75, 2.03, z, 0.04, 3.95, 0.024, steel);
-  // The video-facing rear third is the outer-arc side. Keep the remaining two
-  // thirds available for the double-door entrance opposite it.
+    box(laboratory, '端面玻璃接缝', GLASS_ROOM.startX - 0.02, paneY, z, 0.04, paneH, 0.024, steel);
+  // A measured, rigid 2.2 m x 1.6 m enclosure sits fully inside the curved room.
   const enclosure = new THREE.Group();
   enclosure.name = '白色栅格围合区';
-  building.add(enclosure);
-  const screenStart = -10.18,
-    screenEnd = -7.74,
-    screenMid = (screenStart + screenEnd) / 2;
-  const screenW = screenEnd - screenStart,
-    screenD = roomD / 3,
-    screenH = 4.1,
+  laboratory.add(enclosure);
+  const screenStart = GLASS_ROOM.partitionX,
+    screenEnd = GLASS_ROOM.endX,
+    screenMid = LOUVER.centerX,
+    entryLength = screenEnd - screenStart;
+  const screenW = LOUVER.depth,
+    screenD = LOUVER.width,
+    screenH = PAVILION.soffitY - 0.075,
     screenBase = 0.075;
   const roomRear = roomZ - roomD / 2,
     roomFront = roomZ + roomD / 2;
-  const screenZ = roomFront - screenD / 2,
+  const screenZ = LOUVER.centerZ,
     screenCenterY = screenBase + screenH / 2;
   const entryBack = roomRear,
     entryFront = roomFront - screenD,
@@ -401,18 +430,22 @@ export function createPavilion({ seed = 4917 } = {}) {
     access: 'closed',
     interiorUse: 'unspecified',
     source: 'user-confirmed layout',
-    widthFraction: 1 / 3,
+    widthFraction: screenD / roomD,
+    width: screenD,
+    depth: screenW,
+    rigidPlan: true,
     glassRoomWidth: roomD,
     facing: 'video-start-side',
   };
+  enclosure.position.set(screenMid, 0, screenZ);
   // Opaque inset walls and floor/top caps make this a genuinely enclosed volume.
   // The three visible louver skins stand proud of the backing for readable depth.
   box(
     enclosure,
     '栅格区封闭内体',
-    screenMid,
+    0,
     screenCenterY,
-    screenZ,
+    0,
     screenW - 0.16,
     screenH - 0.06,
     screenD - 0.18,
@@ -421,31 +454,21 @@ export function createPavilion({ seed = 4917 } = {}) {
   box(
     enclosure,
     '与玻璃房相邻的封闭侧墙',
-    screenStart + 0.04,
+    -screenW / 2 + 0.04,
     screenCenterY,
-    screenZ,
+    0,
     0.08,
     screenH,
     screenD,
     white,
   );
-  box(
-    enclosure,
-    '栅格区独立基座',
-    screenMid,
-    0.07,
-    screenZ,
-    screenW + 0.06,
-    0.14,
-    screenD + 0.06,
-    curb,
-  );
+  box(enclosure, '栅格区独立基座', 0, 0.07, 0, screenW, 0.14, screenD, curb);
   box(
     enclosure,
     '栅格区顶部封板',
-    screenMid,
+    0,
     screenBase + screenH - 0.035,
-    screenZ,
+    0,
     screenW,
     0.07,
     screenD,
@@ -466,15 +489,51 @@ export function createPavilion({ seed = 4917 } = {}) {
     box(face, '栅格底部收边', 0, screenBase + 0.025, 0.025, width, 0.05, 0.125, louver);
     box(face, '栅格顶部收边', 0, screenBase + screenH - 0.025, 0.025, width, 0.05, 0.125, louver);
   }
-  louverSkin('视频起点侧白色栅格立面', screenMid, screenZ + screenD / 2, screenW, 0);
-  louverSkin('入口一侧白色栅格立面', screenMid, screenZ - screenD / 2, screenW, Math.PI);
-  louverSkin('朝开放廊道的白色栅格端面', screenEnd, screenZ, screenD, Math.PI / 2);
+  louverSkin('视频起点侧白色栅格立面', 0, screenD / 2 - 0.09, screenW - 0.05, 0);
+  louverSkin('入口一侧白色栅格立面', 0, -screenD / 2 + 0.09, screenW - 0.05, Math.PI);
+  louverSkin('朝开放廊道的白色栅格端面', screenW / 2 - 0.09, 0, screenD - 0.05, Math.PI / 2);
   // This floor joins the main glass room without a transverse blocking wall.
   const entry = new THREE.Group();
   entry.name = '栅格前方玻璃房入口';
-  building.add(entry);
-  entry.userData = { access: 'walk-in', widthFraction: 2 / 3 };
-  box(entry, '与玻璃房连通的入口地坪', screenMid, 0.045, entryZ, screenW, 0.08, entryDepth, curb);
+  laboratory.add(entry);
+  entry.userData = {
+    access: 'walk-in',
+    widthFraction: entryDepth / roomD,
+    clearWidth: ENTRANCE.clearWidth,
+  };
+  box(
+    entry,
+    '与玻璃房连通的入口地坪',
+    screenMid,
+    0.045,
+    entryZ,
+    entryLength,
+    0.08,
+    entryDepth,
+    curb,
+  );
+  box(
+    entry,
+    '入口浅灰石材地面',
+    screenMid,
+    roomBase - 0.0225,
+    entryZ,
+    entryLength,
+    0.045,
+    entryDepth,
+    curb,
+  );
+  box(
+    entry,
+    '入口完成吊顶',
+    screenMid,
+    roomTop + 0.03,
+    entryZ,
+    entryLength,
+    0.06,
+    entryDepth,
+    white,
+  );
   function glazedEntrance(name, cx, cz, width, rotation, leafCount) {
     const face = new THREE.Group();
     face.name = name;
@@ -482,9 +541,9 @@ export function createPavilion({ seed = 4917 } = {}) {
     face.rotation.y = rotation;
     entry.add(face);
     const base = 0.09,
-      totalH = 4.04,
-      doorH = 2.7,
-      doorW = leafCount === 2 ? Math.min(width - 0.14, 2.2) : 1.05;
+      totalH = roomTop - base,
+      doorH = 2.2,
+      doorW = ENTRANCE.clearWidth + ENTRANCE.jambWidth;
     const fixedW = (width - doorW) / 2,
       leafW = doorW / leafCount;
     for (const sign of [-1, 1]) {
@@ -505,7 +564,7 @@ export function createPavilion({ seed = 4917 } = {}) {
         (sign * doorW) / 2,
         base + doorH / 2,
         0,
-        0.037,
+        ENTRANCE.jambWidth,
         doorH,
         0.065,
         steel,
@@ -575,35 +634,70 @@ export function createPavilion({ seed = 4917 } = {}) {
       const handleX = dir * (leafW - 0.16);
       for (const z of [-0.07, 0.07])
         box(hinge, '玻璃门竖向拉手', handleX, 1.18, z, 0.025, 0.4, 0.025, steel);
-      for (const y of [0.58, 2.28])
+      for (const y of [0.48, 1.95])
         box(hinge, '玻璃门铰链', dir * 0.02, y, 0, 0.05, 0.075, 0.07, steel);
     }
   }
   // The louver occupies the video-facing rear side; the doors use the other side.
-  glazedEntrance('栅格区前方双开玻璃门', screenEnd, entryZ, entryDepth, Math.PI / 2, 2);
-  box(entry, '入口内弧侧固定玻璃', screenMid, 2.07, roomRear, screenW, 3.95, 0.032, glass);
+  glazedEntrance('栅格区前方双开玻璃门', screenEnd + 0.0325, entryZ, entryDepth, Math.PI / 2, 2);
+  box(
+    entry,
+    '入口内弧侧固定玻璃',
+    screenMid,
+    paneY,
+    roomRear - 0.016,
+    entryLength,
+    paneH,
+    0.032,
+    glass,
+  );
   for (const x of [screenStart, screenEnd])
-    box(entry, '入口玻璃转角收边', x, 2.07, roomRear, 0.035, 4.02, 0.05, steel);
-  box(entry, '入口固定玻璃底轨', screenMid, 0.105, roomRear, screenW, 0.035, 0.05, steel);
-  // Restrained interior detail visible through the glazing.
-  const furniture = mat('室内深灰金属', { color: 0x4e5c53, roughness: 0.82 });
-  box(building, '室内长凳', -14.2, 0.52, roomZ - 1.6, 3.3, 0.11, 0.55, furniture);
-  for (let x of [-15.35, -13.05])
-    box(building, '长凳支脚', x, 0.27, roomZ - 1.6, 0.07, 0.46, 0.4, furniture);
+    box(entry, '入口玻璃转角收边', x, paneY, roomRear, 0.035, paneH, 0.05, steel);
+  box(entry, '入口固定玻璃底轨', screenMid, 0.105, roomRear, entryLength, 0.035, 0.05, steel);
+  // The shop is one independent component, contained in the existing glass room.
+  // Add before bending so the floor, displays and exterior signs follow the plan.
+  const store = createAppleStore({
+    roomX,
+    roomZ,
+    roomW,
+    roomD,
+    clearHeight: GLASS_ROOM.clearHeight,
+    floorY: GLASS_ROOM.floorY,
+  });
+  // Restored diagonals cross the glass facade. Keep the existing sign within
+  // the first clear triangle instead of leaving it buried in a white member.
+  const frontSign = store.getObjectByName('正面玻璃外墙织界标志');
+  frontSign.position.x = PAVILION.moduleStartX + PAVILION.archSpan / 2 - roomX;
+  frontSign.position.y = GLASS_ROOM.floorY + 0.95;
+  laboratory.add(store);
   // Roof panel seams are shallow, visible mainly in the aerial view.
-  for (let x = -15.5; x < 13; x += 2.2)
-    box(building, '屋面板接缝', x, 4.618, centerline(x), 0.009, 0.003, 7.6, seam);
+  for (let x = PAVILION.startX + 1.5; x < PAVILION.capCenterX; x += 2.2)
+    box(
+      building,
+      '屋面板接缝',
+      x,
+      PAVILION.roofTop + 0.003,
+      centerline(x),
+      0.009,
+      0.003,
+      7.6,
+      seam,
+    );
   // The supplied map corrects the whole plan, including the former almost-straight roof.
   const oldBuilding = building,
     oldGround = ground;
   building = bendGroup(oldBuilding);
   ground = bendGroup(oldGround);
+  const bentLaboratory = building.getObjectByName(laboratory.name);
   root.remove(oldBuilding, oldGround);
   root.add(building, ground);
+  addAppleStoreLighting(bentLaboratory);
   const siteGround = addSiteGround(ground, { asphalt, curb, line });
   root.userData = {
-    reference: 'user-supplied satellite screenshot and video',
-    planScale: 'estimated',
+    reference: 'user-measured pavilion with reference-image site context',
+    planScale: 'measured room, roof depth, overall chord and facade modules; estimated site',
+    curveInterpretation:
+      'room sides are concentric arcs; overall length and outward triangle clear openings are chords',
     imageTop: 'reference direction only',
     videoStartPixel: SITE.videoStartPixel,
   };
@@ -773,7 +867,7 @@ export function createPavilion({ seed = 4917 } = {}) {
   // Pose against the already-bent facade so both hind soles reach real blades.
   const rooftopPandaX = screenMid;
   const rooftopPandaZ = centerline(rooftopPandaX) + 3.9;
-  const rooftopEave = bendPoint(new THREE.Vector3(rooftopPandaX, 4.615, rooftopPandaZ));
+  const rooftopEave = bendPoint(new THREE.Vector3(rooftopPandaX, PAVILION.roofTop, rooftopPandaZ));
   const eaveBase = bendPoint(new THREE.Vector3(rooftopPandaX, 0, rooftopPandaZ));
   const outside = bendPoint(new THREE.Vector3(rooftopPandaX, 0, rooftopPandaZ + 0.1)).sub(eaveBase);
   const panda = createRooftopPanda({
@@ -798,6 +892,7 @@ export function createPavilion({ seed = 4917 } = {}) {
   return {
     root,
     building,
+    laboratory: bentLaboratory,
     ground,
     landscape,
     panda,

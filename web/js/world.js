@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPavilion } from '../scene/model.js';
+import { createLaboratoryView } from '../scene/laboratory-view.js';
 import { fallbackPlan, pandaDrawOrder } from '../scene/fallback-rules.js';
 import { SITE, mapPoint, bendPoint } from '../scene/site-layout.js';
+import { GLASS_ROOM } from '../scene/pavilion-dimensions.js';
 import { createWorldWeather } from './world-weather.js';
 import { createWorldAtmosphere } from './world-atmosphere.js';
 
@@ -99,6 +101,7 @@ async function init() {
       ground: root.getObjectByName('地面与铺装'),
       landscape: root.getObjectByName('草坪与园林'),
       panda: root.getObjectByName(exportModel.panda.name),
+      laboratory: root.getObjectByName(exportModel.laboratory.name),
     };
     root.traverse((o) => {
       const plan = fallbackPlan(o.name, o.material?.name);
@@ -198,6 +201,7 @@ async function init() {
       // cloned/posed parts first so the very first visibility result is valid.
       model.root.updateMatrixWorld(true);
       for (const state of pandaFaces) {
+        if (!shown(state.panda)) continue;
         state.facing.copy(state.faceDirection).transformDirection(state.panda.matrixWorld);
         let blockers;
         for (const group of state.layerGroups) {
@@ -243,6 +247,7 @@ async function init() {
     scene.add(new THREE.AmbientLight(0xffffff, 0.62));
   }
   scene.add(model.root);
+  const laboratoryView = createLaboratoryView(model);
   const atmosphere = createWorldAtmosphere({
     THREE,
     scene,
@@ -267,6 +272,7 @@ async function init() {
   window.addEventListener('pagehide', (event) => {
     weather.stop();
     if (!event.persisted) {
+      laboratoryView.dispose();
       atmosphere.dispose();
     }
   });
@@ -277,15 +283,24 @@ async function init() {
     }
   });
 
-  const detail = bendPoint(new THREE.Vector3(-9, 1.9, 0.3));
   const presets = {
     perspective: { position: [34, 31, 43], target: [1, 1, -8] },
     eye: {
       position: mapPoint(...SITE.videoStartPixel, 1.7).toArray(),
       target: mapPoint(...SITE.videoTargetPixel, 1.9).toArray(),
     },
-    aerial: { position: [-2, 185, 3], target: [-2, 0, -5] },
-    enclosure: { position: [detail.x + 10, 5.8, detail.z + 14], target: detail.toArray() },
+    aerial: {
+      position: bendPoint(new THREE.Vector3(-0.55, 55, 0.5)).toArray(),
+      target: bendPoint(new THREE.Vector3(-0.55, 0, 0)).toArray(),
+    },
+    enclosure: {
+      position: bendPoint(new THREE.Vector3(GLASS_ROOM.startX - 4, 3.65, 14)).toArray(),
+      target: bendPoint(new THREE.Vector3(GLASS_ROOM.centerX, 1.45, 0)).toArray(),
+    },
+    interior: {
+      position: bendPoint(new THREE.Vector3(GLASS_ROOM.partitionX - 0.45, 1.72, 2.25)).toArray(),
+      target: bendPoint(new THREE.Vector3(GLASS_ROOM.storeCenterX - 0.5, 1.4, -1.1)).toArray(),
+    },
   };
   const compactTools = matchMedia('(max-width: 900px), (pointer: coarse) and (max-height: 500px)');
   const tools = $('#world-tools');
@@ -311,9 +326,31 @@ async function init() {
   function setView(name, animate = true) {
     if (!presets[name]) return;
     currentView = name;
+    const indoor = name === 'interior';
+    laboratoryView.setActive(indoor);
+    atmosphere.setIndoor(indoor);
+    document.body.dataset.worldView = indoor ? 'laboratory' : name;
+    $('#landscape').disabled = indoor;
+    $('#viewport').setAttribute(
+      'aria-label',
+      indoor ? '可以转动和拉近看的织界实验室' : '可以转动和拉近看的织界空间',
+    );
+    $('.tools-label').textContent = indoor ? '织界实验室' : '浏览视角';
+    if (!compatibilityMode) $('#render-mode').textContent = indoor ? '织界实验室' : '织界空间';
+    $('.world-info p').textContent = indoor
+      ? '转动视角，看看实验室的工具与作品。'
+      : '拖动转一转，拉近看看建筑和草地。';
     const aspect = innerWidth / innerHeight;
     const portraitScale = aspect < 0.65 ? 1.7 : aspect < 0.9 ? 1.45 : 1;
-    camera.fov = name === 'eye' ? 56 : aspect < 0.65 ? 46 : aspect < 0.9 ? 46 : 40;
+    camera.fov =
+      name === 'interior' ? (aspect < 0.9 ? 78 : 66) : name === 'eye' ? 56 : aspect < 0.9 ? 46 : 40;
+    camera.near = name === 'interior' ? 0.04 : 0.5;
+    controls.minDistance = name === 'interior' ? 0.6 : 5;
+    controls.maxDistance = indoor ? 8.5 : 220;
+    controls.maxTargetRadius = indoor ? 3 : 90;
+    controls.cursor.copy(
+      indoor ? bendPoint(new THREE.Vector3(GLASS_ROOM.storeCenterX, 1.4, 0)) : new THREE.Vector3(),
+    );
     camera.updateProjectionMatrix();
     const preset = presets[name];
     const position = new THREE.Vector3(...preset.position),
@@ -344,7 +381,7 @@ async function init() {
     }),
   );
   $('#landscape').addEventListener('change', (event) => {
-    model.landscape.visible = event.target.checked;
+    if (!laboratoryView.active) model.landscape.visible = event.target.checked;
     needsDraw = true;
   });
   const doors = [];
@@ -426,12 +463,19 @@ async function init() {
       if (progress === 1) transition = null;
       controls.update();
     }
-    const near = Math.max(0.25, Math.min(3, camera.position.distanceTo(controls.target) / 50));
+    const near =
+      currentView === 'interior'
+        ? 0.04
+        : Math.max(0.25, Math.min(3, camera.position.distanceTo(controls.target) / 50));
     if (Math.abs(camera.near - near) > 0.0001) {
       camera.near = near;
       camera.updateProjectionMatrix();
     }
     beforeRender();
+    if (compatibilityMode)
+      // SVGRenderer removes old paths one-by-one; batch-clear the attached SVG
+      // first to avoid WebKit's pathological live-child removal cost.
+      renderer.domElement.replaceChildren();
     renderer.render(scene, camera);
     if (!readySent) {
       readySent = true;
@@ -446,6 +490,7 @@ async function init() {
     renderer,
     controls,
     model,
+    laboratoryView,
     setView,
     compatibilityMode,
     weather,

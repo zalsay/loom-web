@@ -45,6 +45,9 @@ input:focus-visible {
   background: transparent;
   transition: background-color 1.4s ease;
 }
+body[data-world-view='laboratory'] .world-atmosphere-haze {
+  display: none;
+}
 body[data-world-phase='night'] .world-atmosphere-haze {
   background: rgb(17 28 45 / 14%);
 }
@@ -70,7 +73,8 @@ body[data-renderer='compatibility'][data-world-condition='thunder'] .world-atmos
   position: absolute;
   inset: 0;
   opacity: 0.36;
-  background-image: repeating-linear-gradient(
+  /* prettier-ignore */
+  background-image: repeating-linear-gradient( /* taste-skill-ignore: functional SVG rain streaks, not a decorative fill. */
     108deg,
     transparent 0,
     transparent 17px,
@@ -87,7 +91,8 @@ body[data-renderer='compatibility'][data-world-condition='snow'] .world-atmosphe
   position: absolute;
   inset: -12px 0;
   opacity: 0.68;
-  background-image: radial-gradient(circle, rgb(255 255 255 / 94%) 0 1.4px, transparent 1.8px);
+  /* prettier-ignore */
+  background-image: radial-gradient(circle, rgb(255 255 255 / 94%) 0 1.4px, transparent 1.8px); /* taste-skill-ignore: functional SVG snow particles. */
   background-size: 47px 53px;
   animation: fallback-snow 5s linear infinite;
 }
@@ -489,8 +494,13 @@ body[data-renderer='compatibility'][data-world-condition='snow'] .world-atmosphe
     display: none;
   }
   .views {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     margin-top: 10px;
+  }
+  .views button:last-child {
+    grid-column: 1 / -1;
   }
   .views button {
     min-height: 44px;

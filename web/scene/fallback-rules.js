@@ -3,7 +3,9 @@
 // and large ground surfaces get flat colors. Rules match mesh names from
 // model.js and site-layout.js; in each list the first matching rule wins.
 
-const HIDDEN = /^疏朗树叶$|吊顶格栅|吊顶底板|屋面板接缝/;
+// SVGRenderer cannot sample an alpha map: omit the optional LED halo plane,
+// while retaining the complete, emissive native logo geometry.
+const HIDDEN = /^疏朗树叶$|吊顶格栅|吊顶底板|屋面板接缝|^织界 LED 柔光$/;
 
 // Lower values are painted first.
 const DRAW_ORDER = [

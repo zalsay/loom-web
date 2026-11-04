@@ -3,15 +3,34 @@ import { createFacetedPanda } from './panda-faceted.js';
 import { disposePanda } from './panda/model.js';
 
 const CLIMBER_SCALE = 0.8;
-const BODY_OUTSIDE_OFFSET = 1.0;
+const BODY_OUTSIDE_OFFSET = 0.88;
 const HEAD_LOCAL_Y = 3.04;
-const HEAD_CLEARANCE = 0.52;
+const HEAD_CLEARANCE = 0.62;
 const PAW_LOCAL_X = 1.48;
 const PAW_OUTSIDE_OFFSET = 0.12;
 const PAW_ABOVE_EAVE = 0.185;
 const RUMP_PITCH = Math.PI / 15;
 const RUMP_PIVOT_Y = 2.05;
 const RUMP_LIFT = 0.08;
+
+function makeFacetedPart(panda, template, name) {
+  const part = new THREE.Mesh(template.geometry, template.material);
+  part.name = name;
+  part.castShadow = template.castShadow;
+  part.receiveShadow = template.receiveShadow;
+  panda.add(part);
+  return part;
+}
+
+function placeLimbSegment(mesh, start, end, radiusX, radiusZ, padding = 0.035) {
+  const direction = end.clone().sub(start);
+  const length = direction.length();
+  mesh.position.copy(start).add(end).multiplyScalar(0.5);
+  mesh.scale.set(radiusX, length / 2 + padding, radiusZ);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+  mesh.userData.limbStart = start.toArray();
+  mesh.userData.limbEnd = end.toArray();
+}
 
 function raiseRump(panda) {
   // Pitch the body gently around the upper torso, not the whole sculpture: the
@@ -23,6 +42,21 @@ function raiseRump(panda) {
   for (const name of ['torso', 'belly', 'tail', 'loom-emblem'])
     panda.getObjectByName(name).applyMatrix4(pose);
   return pose;
+}
+
+function poseHindLeg(panda, side, sign, bodyPose, ankle) {
+  const thigh = panda.getObjectByName(`leg-${side}`);
+  const shin = panda.getObjectByName(`shin-${side}`);
+  const knee = panda.getObjectByName(`knee-${side}`);
+  const hip = new THREE.Vector3(sign * 0.56, 0.91, 0.4).applyMatrix4(bodyPose);
+  const kneePoint = hip
+    .clone()
+    .lerp(ankle, 0.5)
+    .add(new THREE.Vector3(0, 0.3, 0.1));
+  placeLimbSegment(thigh, hip, kneePoint, 0.34, 0.38, 0.055);
+  placeLimbSegment(shin, kneePoint, ankle, 0.3, 0.35, 0.055);
+  knee.position.copy(kneePoint);
+  knee.scale.set(0.285, 0.28, 0.3);
 }
 
 function braceFeet(panda, support, scale, bodyPose) {
@@ -59,7 +93,6 @@ function braceFeet(panda, support, scale, bodyPose) {
   // the facade, toes point upward and the knees reach forward instead of dangling.
   for (const { side, sign, point, normal } of contacts) {
     const foot = panda.getObjectByName(`foot-${side}`);
-    const leg = panda.getObjectByName(`leg-${side}`);
     for (let i = 0; i < 2; i++) foot.attach(panda.getObjectByName(`toe-${side}-${i}`));
     foot.scale.z = 0.48;
     // A broad, flattened sole reads as weight against the column rather than a
@@ -79,11 +112,7 @@ function braceFeet(panda, support, scale, bodyPose) {
     ).applyQuaternion(foot.quaternion);
     const contact = panda.worldToLocal(point.clone());
     foot.position.copy(contact).sub(sole).addScaledVector(intoSupport, 0.002);
-    const hip = new THREE.Vector3(sign * 0.55, 0.8, 0.02).applyMatrix4(bodyPose);
-    const towardFoot = foot.position.clone().sub(hip);
-    leg.position.copy(hip).add(foot.position).multiplyScalar(0.5);
-    leg.scale.set(0.38, towardFoot.length() / 2 + 0.12, 0.4);
-    leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), towardFoot.normalize());
+    poseHindLeg(panda, side, sign, bodyPose, foot.position.clone());
     foot.userData.supportContact = point.toArray();
     foot.userData.supportNormal = normal.toArray();
   }
@@ -134,22 +163,38 @@ export function createRooftopPanda({
   const gripHeight = (eavePosition.y + PAW_ABOVE_EAVE - panda.position.y) / scale;
   const gripForward = (BODY_OUTSIDE_OFFSET - PAW_OUTSIDE_OFFSET) / scale;
 
+  const bodyPose = raiseRump(panda);
   for (const sign of [-1, 1]) {
     const side = sign < 0 ? 'left' : 'right';
     const arm = panda.getObjectByName(`arm-${side}`);
     const paw = panda.getObjectByName(`paw-${side}`);
+    const forearm = makeFacetedPart(panda, arm, `forearm-${side}`);
+    const elbow = makeFacetedPart(panda, arm, `elbow-${side}`);
     paw.position.set(sign * PAW_LOCAL_X, gripHeight, gripForward);
 
-    const shoulder = new THREE.Vector3(sign * 1.055, 1.53, 0.015);
-    const grip = paw.position.clone().add(new THREE.Vector3(0, -0.22, 0.08));
-    const towardGrip = grip.clone().sub(shoulder);
-    const armAxis = new THREE.Vector3(0, -1, 0);
-    arm.position.copy(shoulder).add(grip).multiplyScalar(0.5);
-    arm.scale.set(0.34, towardGrip.length() / 2 + 0.08, 0.51);
-    arm.quaternion.setFromUnitVectors(armAxis, towardGrip.normalize());
+    const shoulder = new THREE.Vector3(sign * 0.86, 1.88, 0.18).applyMatrix4(bodyPose);
+    const elbowPoint = new THREE.Vector3(sign * 1.32, 2.2, 0.45).applyMatrix4(bodyPose);
+    const wrist = paw.position.clone().add(new THREE.Vector3(-sign * 0.06, -0.18, 0.02));
+    placeLimbSegment(arm, shoulder, elbowPoint, 0.285, 0.34, 0.045);
+    placeLimbSegment(forearm, elbowPoint, wrist, 0.27, 0.32, 0.045);
+    elbow.position.copy(elbowPoint);
+    elbow.scale.set(0.255, 0.255, 0.27);
   }
 
-  const bodyPose = raiseRump(panda);
+  for (const sign of [-1, 1]) {
+    const side = sign < 0 ? 'left' : 'right';
+    const leg = panda.getObjectByName(`leg-${side}`);
+    makeFacetedPart(panda, leg, `shin-${side}`);
+    makeFacetedPart(panda, leg, `knee-${side}`);
+    if (!footSupport)
+      poseHindLeg(
+        panda,
+        side,
+        sign,
+        bodyPose,
+        panda.getObjectByName(`foot-${side}`).position.clone(),
+      );
+  }
   if (footSupport) {
     try {
       braceFeet(panda, footSupport, scale, bodyPose);

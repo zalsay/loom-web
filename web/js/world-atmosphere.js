@@ -110,6 +110,7 @@ export function createWorldAtmosphere({
   const focus = new THREE.Vector3();
   let previousTime = null;
   let disposed = false;
+  let indoor = false;
   let lastVisual = '';
 
   scene.background = ownedBackground;
@@ -202,6 +203,7 @@ export function createWorldAtmosphere({
   }
 
   function applyLighting(state) {
+    scene.fog = ownedFog;
     const condition = CONDITION_VISUALS[state?.current?.condition] || CONDITION_VISUALS.unknown;
     const sunState = daylight(state);
     const daylightLevel = sunState.fraction;
@@ -248,6 +250,10 @@ export function createWorldAtmosphere({
         .lerp(color(night ? 0x8ca4c7 : 0xe2f0f3, THREE), night ? 0.65 : 0.08);
     } else {
       // SVG fallback has no real lighting; its sky/fog and the CSS haze still carry the day/weather shift.
+      hemi.color.copy(baselineHemiSky);
+      hemi.groundColor.copy(baselineHemiGround);
+      sun.color.copy(baselineSun);
+      fill.color.copy(baselineFill);
       hemi.intensity = Math.max(0.62, baseHemi * (night ? 0.82 : illumination));
       sun.intensity = Math.max(0.15, baseSun * (night ? 0.7 : illumination));
       fill.intensity = Math.max(0.1, baseFill * (night ? 0.8 : illumination));
@@ -274,15 +280,38 @@ export function createWorldAtmosphere({
     if (disposed) return;
     current = state && typeof state === 'object' ? state : null;
     applyLighting(current);
-    const nextKind =
-      current?.current?.condition === 'rain' ||
-      current?.current?.condition === 'sleet' ||
-      current?.current?.condition === 'thunder'
+    if (indoor) {
+      // The isolated laboratory keeps its own neutral room light. Weather data
+      // still updates the HUD, but outdoor fog, rain and night tint stay outside.
+      ownedBackground.set(0xe6e8e3);
+      scene.fog = null;
+      hemi.intensity = compatibilityMode ? 0.9 : 2.1;
+      hemi.color.set(0xf2f4ed);
+      hemi.groundColor.set(0xb5b8ae);
+      sun.intensity = compatibilityMode ? 0.15 : 0.22;
+      sun.color.copy(baselineSun);
+      fill.intensity = compatibilityMode ? 0.1 : 0.65;
+      fill.color.copy(baselineFill);
+      if (compatibilityMode && output?.style)
+        output.style.backgroundColor = ownedBackground.getStyle();
+    }
+    const nextKind = indoor
+      ? null
+      : current?.current?.condition === 'rain' ||
+          current?.current?.condition === 'sleet' ||
+          current?.current?.condition === 'thunder'
         ? 'rain'
         : current?.current?.condition === 'snow'
           ? 'snow'
           : null;
     if (nextKind !== particleKind) createParticles(nextKind);
+  }
+
+  function setIndoor(value) {
+    if (disposed || indoor === !!value) return;
+    indoor = !!value;
+    previousTime = null;
+    setConditions(current);
   }
 
   function update(timeMs) {
@@ -348,5 +377,5 @@ export function createWorldAtmosphere({
     delete document.body.dataset.renderer;
   }
 
-  return { setConditions, update, dispose };
+  return { setConditions, setIndoor, update, dispose };
 }

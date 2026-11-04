@@ -19,8 +19,9 @@ register(`data:text/javascript,${encodeURIComponent(loaderSource)}`, import.meta
 const THREE = await import('three');
 const { createRooftopPanda } = await import('../web/scene/panda-rooftop.js');
 const { createFacetedPanda } = await import('../web/scene/panda-faceted.js');
-const { createPavilion, centerline } = await import('../web/scene/model.js');
+const { createPavilion } = await import('../web/scene/model.js');
 const { bendPoint } = await import('../web/scene/site-layout.js');
+const { GLASS_ROOM, PAVILION, LOUVER } = await import('../web/scene/pavilion-dimensions.js');
 
 function canvasContext() {
   return {
@@ -66,6 +67,14 @@ function dispose(root) {
 
 function along(vector, direction) {
   return vector.dot(direction);
+}
+
+function segmentWorldLength(panda, part) {
+  return (
+    new THREE.Vector3(...part.userData.limbStart).distanceTo(
+      new THREE.Vector3(...part.userData.limbEnd),
+    ) * panda.scale.x
+  );
 }
 
 test('rump tilts slightly upward and outward without moving the head or separating belly details', () => {
@@ -151,10 +160,83 @@ test('rooftop panda grips the eave with its head above and body outside', () => 
       );
       assert.ok(Math.abs(paw.y - (eave.y + 0.185)) < 0.02, `${side} paw should rest above roof`);
       const armBounds = new THREE.Box3().setFromObject(panda.getObjectByName(`arm-${side}`));
+      const forearm = panda.getObjectByName(`forearm-${side}`);
+      const elbow = panda.getObjectByName(`elbow-${side}`);
       const pawBounds = new THREE.Box3().setFromObject(panda.getObjectByName(`paw-${side}`));
       assert.ok(armBounds.intersectsBox(pawBounds), `${side} arm should connect to its paw`);
+      assert.ok(
+        new THREE.Box3().setFromObject(forearm).intersectsBox(pawBounds),
+        `${side} forearm should meet the gripping paw`,
+      );
+      assert.ok(
+        armBounds.intersectsBox(new THREE.Box3().setFromObject(elbow)) &&
+          new THREE.Box3()
+            .setFromObject(forearm)
+            .intersectsBox(new THREE.Box3().setFromObject(elbow)),
+        `${side} upper and lower arm should meet at a real elbow mesh`,
+      );
     }
     assert.equal(panda.userData.rooftopPose, 'eave-climber');
+  } finally {
+    dispose(panda);
+  }
+});
+
+test('climbing limbs use short bent segments with real elbow and knee joints', () => {
+  const panda = createRooftopPanda({
+    eavePosition: new THREE.Vector3(0, 4.615, 0),
+    outwardDirection: new THREE.Vector3(0, 0, 1),
+  });
+  try {
+    panda.updateMatrixWorld(true);
+    for (const side of ['left', 'right']) {
+      const arm = panda.getObjectByName(`arm-${side}`);
+      const forearm = panda.getObjectByName(`forearm-${side}`);
+      const elbow = panda.getObjectByName(`elbow-${side}`);
+      const leg = panda.getObjectByName(`leg-${side}`);
+      const shin = panda.getObjectByName(`shin-${side}`);
+      const knee = panda.getObjectByName(`knee-${side}`);
+      for (const part of [arm, forearm, elbow, leg, shin, knee]) {
+        assert.ok(part?.isMesh, `${side} limb part should be a real mesh`);
+        assert.equal(part.material.flatShading, true, `${part.name} stays faceted`);
+        assert.equal(part.material.vertexColors, true, `${part.name} retains vertex colors`);
+      }
+      assert.ok(arm.userData.limbStart && arm.userData.limbEnd);
+      assert.ok(forearm.userData.limbStart && forearm.userData.limbEnd);
+      assert.ok(leg.userData.limbStart && leg.userData.limbEnd);
+      assert.ok(shin.userData.limbStart && shin.userData.limbEnd);
+      const armLength = new THREE.Vector3(...arm.userData.limbStart).distanceTo(
+        new THREE.Vector3(...arm.userData.limbEnd),
+      );
+      const forearmLength = new THREE.Vector3(...forearm.userData.limbStart).distanceTo(
+        new THREE.Vector3(...forearm.userData.limbEnd),
+      );
+      assert.ok(armLength < 0.9 && forearmLength < 0.9, 'forelimb segments remain short');
+      assert.ok(segmentWorldLength(panda, leg) < 0.95, 'thigh remains short');
+      assert.ok(segmentWorldLength(panda, shin) < 0.95, 'shin remains short');
+      const directions = (upper, lower) =>
+        [upper, lower].map((part) =>
+          new THREE.Vector3(0, 1, 0).transformDirection(part.matrixWorld),
+        );
+      const [upperArm, lowerArm] = directions(arm, forearm);
+      const [thigh, lowerLeg] = directions(leg, shin);
+      assert.ok(upperArm.angleTo(lowerArm) > 0.3, `${side} elbow forms a visible bend`);
+      assert.ok(thigh.angleTo(lowerLeg) > 0.2, `${side} knee forms a visible bend`);
+      assert.ok(
+        new THREE.Box3().setFromObject(arm).intersectsBox(new THREE.Box3().setFromObject(elbow)),
+      );
+      assert.ok(
+        new THREE.Box3()
+          .setFromObject(forearm)
+          .intersectsBox(new THREE.Box3().setFromObject(elbow)),
+      );
+      assert.ok(
+        new THREE.Box3().setFromObject(leg).intersectsBox(new THREE.Box3().setFromObject(knee)),
+      );
+      assert.ok(
+        new THREE.Box3().setFromObject(shin).intersectsBox(new THREE.Box3().setFromObject(knee)),
+      );
+    }
   } finally {
     dispose(panda);
   }
@@ -248,9 +330,9 @@ test('pavilion contains only the static rooftop panda, with no ground-level dupl
     });
     assert.deepEqual(pandas, [rooftopPanda]);
     assert.equal(rooftopPanda.userData.rooftopPose, 'eave-climber');
-    const screenMid = (-10.18 - 7.74) / 2;
+    const screenMid = LOUVER.centerX;
     const expectedEave = bendPoint(
-      new THREE.Vector3(screenMid, 4.615, centerline(screenMid) + 3.9),
+      new THREE.Vector3(screenMid, PAVILION.roofTop, GLASS_ROOM.width / 2 + 0.4),
     );
     assert.ok(
       new THREE.Vector3(...rooftopPanda.userData.rooftopEavePosition).distanceTo(expectedEave) <
@@ -334,15 +416,36 @@ test('pavilion contains only the static rooftop panda, with no ground-level dupl
         `${side} sole must face the facade, not hang downward`,
       );
       const legBounds = new THREE.Box3().setFromObject(rooftopPanda.getObjectByName(`leg-${side}`));
+      const shin = rooftopPanda.getObjectByName(`shin-${side}`);
+      const knee = rooftopPanda.getObjectByName(`knee-${side}`);
+      const shinBounds = new THREE.Box3().setFromObject(shin);
+      const kneeBounds = new THREE.Box3().setFromObject(knee);
       assert.ok(
-        legBounds.intersectsBox(new THREE.Box3().setFromObject(foot)),
-        `${side} ankle connects to foot`,
+        shinBounds.intersectsBox(new THREE.Box3().setFromObject(foot)),
+        `${side} lower leg connects to foot`,
+      );
+      assert.ok(
+        legBounds.intersectsBox(kneeBounds) && shinBounds.intersectsBox(kneeBounds),
+        `${side} thigh and lower leg meet at a real knee mesh`,
       );
       assert.ok(
         legBounds.intersectsBox(
           new THREE.Box3().setFromObject(rooftopPanda.getObjectByName('torso')),
         ),
         `${side} hip connects to body`,
+      );
+      const upperDirection = new THREE.Vector3(0, 1, 0).transformDirection(
+        rooftopPanda.getObjectByName(`leg-${side}`).matrixWorld,
+      );
+      const lowerDirection = new THREE.Vector3(0, 1, 0).transformDirection(shin.matrixWorld);
+      assert.ok(
+        segmentWorldLength(rooftopPanda, rooftopPanda.getObjectByName(`leg-${side}`)) < 0.95 &&
+          segmentWorldLength(rooftopPanda, shin) < 0.95,
+        `${side} integrated thigh and shin stay short`,
+      );
+      assert.ok(
+        upperDirection.angleTo(lowerDirection) > 0.2,
+        `${side} thigh and shin should form a visibly bent climbing pose`,
       );
       for (let i = 0; i < 2; i++)
         assert.equal(
