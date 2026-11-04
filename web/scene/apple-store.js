@@ -9,24 +9,111 @@ import { createLaboratoryTableExhibits } from './laboratory-exhibits.js';
 export const APPLE_STORE_NAME = '玻璃房 · 织界创客实验室';
 
 function grainTexture() {
-  const width = 128,
-    height = 32;
+  const width = 256,
+    height = 128;
   const bytes = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const grain =
-        Math.sin(y * 2.1 + Math.sin(x * 0.065) * 0.8) * 2 + Math.sin(y * 0.71 + x * 0.012) * 1.3;
+        Math.sin(y * 0.65 + Math.sin(x * 0.035) * 1.6) * 4 +
+        Math.sin(y * 2.7 + x * 0.018) * 1.8 +
+        Math.sin(y * 0.17 + Math.sin(x * 0.012) * 2) * 2.4;
       const i = (y * width + x) * 4;
-      bytes.set([211 + grain, 179 + grain, 133 + grain, 255], i);
+      bytes.set([202 + grain, 172 + grain, 132 + grain, 255], i);
     }
   }
   const texture = new THREE.DataTexture(bytes, width, height);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.magFilter = THREE.LinearFilter;
-  texture.minFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
   texture.needsUpdate = true;
   return texture;
+}
+
+// Small physical edge radii, inset before extrusion so the original footprint is unchanged.
+function bevelBox(width, height, depth, radius) {
+  const x = width / 2 - radius,
+    y = height / 2 - radius;
+  const r = Math.min(radius, x / 3, y / 3);
+  const shape = new THREE.Shape();
+  shape.moveTo(-x + r, -y);
+  shape.lineTo(x - r, -y);
+  shape.quadraticCurveTo(x, -y, x, -y + r);
+  shape.lineTo(x, y - r);
+  shape.quadraticCurveTo(x, y, x - r, y);
+  shape.lineTo(-x + r, y);
+  shape.quadraticCurveTo(-x, y, -x, y - r);
+  shape.lineTo(-x, -y + r);
+  shape.quadraticCurveTo(-x, -y, -x + r, -y);
+  shape.closePath();
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: depth - radius * 2,
+    bevelEnabled: true,
+    bevelSize: radius,
+    bevelThickness: radius,
+    bevelSegments: 2,
+    curveSegments: 3,
+    steps: 1,
+  });
+  geometry.translate(0, 0, -depth / 2 + radius);
+  return geometry;
+}
+
+function finishTexture(kind) {
+  const size = 128,
+    bytes = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++) {
+      const hash = Math.imul(x + 71, 374761393) ^ Math.imul(y + 19, 668265263);
+      const noise = ((hash >>> 8) & 255) / 255 - 0.5;
+      const weave = x % 4 < 2 === y % 4 < 2 ? 1 : -1;
+      const tone = kind === 'stone' ? noise * 7 : noise * 3 + weave * 3;
+      const base = kind === 'stone' ? [215, 213, 205] : [178, 175, 163];
+      bytes.set([...base.map((v) => Math.round(v + tone)), 255], (y * size + x) * 4);
+    }
+  const texture = new THREE.DataTexture(bytes, size, size);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function plantLeafGeometry() {
+  const positions = [],
+    colors = [],
+    indices = [];
+  const dark = new THREE.Color('#38563b'),
+    light = new THREE.Color('#799c5c');
+  const color = new THREE.Color();
+  for (let row = 0; row <= 8; row++) {
+    const t = row / 8;
+    const width = 0.072 * Math.sin(Math.PI * t) ** 0.8;
+    for (let col = -1; col <= 1; col++) {
+      positions.push(col * width, Math.sin(Math.PI * t) * (col === 0 ? 0.035 : 0.018), t * 0.38);
+      color.copy(dark).lerp(light, t * 0.6 + (col === 0 ? 0.2 : 0));
+      colors.push(color.r, color.g, color.b);
+    }
+  }
+  for (let row = 0; row < 8; row++)
+    for (let col = 0; col < 2; col++) {
+      const a = row * 3 + col;
+      if (row > 0) indices.push(a, a + 3, a + 1);
+      if (row < 7) indices.push(a + 1, a + 3, a + 4);
+    }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  // Remove the unused endpoint vertices, whose zero normals are invalid in glTF.
+  const result = geometry.toNonIndexed();
+  geometry.dispose();
+  return result;
 }
 
 export function createAppleStore({ roomX, roomZ, roomW, roomD, clearHeight = 2.5, floorY = 0.13 }) {
@@ -54,10 +141,16 @@ export function createAppleStore({ roomX, roomZ, roomW, roomD, clearHeight = 2.5
     material.name = name;
     return material;
   };
-  const wood = standard('浅橡木 · 陈列柜与吊顶', { map: grainTexture(), roughness: 0.58 });
+  const wood = standard('浅橡木 · 陈列柜与吊顶', { map: grainTexture(), roughness: 0.68 });
+  const doorWood = wood.clone();
+  doorWood.name = '竖向浅橡木柜门与顶条';
+  doorWood.map = wood.map.clone();
+  doorWood.map.center.set(0.5, 0.5);
+  doorWood.map.rotation = Math.PI / 2;
+  const trim = standard('柔光灯铝合金边框', { color: 0xc3c5be, roughness: 0.52, metalness: 0.4 });
   const stone = standard('浅灰石材 · 店内地面', {
-    color: 0xd5d4cf,
-    roughness: 0.82,
+    map: finishTexture('stone'),
+    roughness: 0.88,
     emissive: 0xc8c5bb,
     emissiveIntensity: 0.045,
   });
@@ -69,27 +162,35 @@ export function createAppleStore({ roomX, roomZ, roomW, roomD, clearHeight = 2.5
     emissiveIntensity: 0.08,
   });
   const graphite = standard('设备石墨色', { color: 0x242a2d, metalness: 0.28, roughness: 0.32 });
-  const felt = standard('休息区浅灰软垫', { color: 0xaaa89f, roughness: 1 });
+  const felt = standard('休息区浅灰软垫', { map: finishTexture('fabric'), roughness: 1 });
   const porcelain = standard('花盆哑光石材', { color: 0xcecec4, roughness: 0.95 });
-  const foliage = standard('室内植物叶片', { color: 0x4d6a3c, roughness: 0.9 });
+  const foliage = standard('室内植物叶片', {
+    color: 0xffffff,
+    roughness: 0.86,
+    vertexColors: true,
+    side: THREE.DoubleSide,
+  });
   const bark = standard('室内植物枝干', { color: 0x76614b, roughness: 1 });
   const light = standard('柔光天花与标志', {
     color: 0xfffcf2,
     emissive: 0xfff2d6,
-    emissiveIntensity: 0.85,
+    emissiveIntensity: 0.6,
     roughness: 0.5,
   });
-  const screens = [0x81b8c0, 0xd4a386, 0x7796ba, 0xa7b99b].map((color) => {
+  const screens = [0x81b8c0, 0xd4a386, 0x203a40, 0xa7b99b].map((color) => {
     const material = new THREE.MeshBasicMaterial({ color });
     material.name = '实验室项目屏幕';
     return material;
   });
   const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
-  function box(parent, name, x, y, z, sx, sy, sz, material) {
-    const mesh = new THREE.Mesh(boxGeometry, material);
+  const bevelGeometries = new Map();
+  function box(parent, name, x, y, z, sx, sy, sz, material, radius = 0) {
+    const key = `${sx}:${sy}:${sz}:${radius}`;
+    if (radius && !bevelGeometries.has(key)) bevelGeometries.set(key, bevelBox(sx, sy, sz, radius));
+    const mesh = new THREE.Mesh(radius ? bevelGeometries.get(key) : boxGeometry, material);
     mesh.name = name;
     mesh.position.set(x, y, z);
-    mesh.scale.set(sx, sy, sz);
+    if (!radius) mesh.scale.set(sx, sy, sz);
     mesh.castShadow = material !== light;
     mesh.receiveShadow = true;
     parent.add(mesh);
@@ -120,16 +221,43 @@ export function createAppleStore({ roomX, roomZ, roomW, roomD, clearHeight = 2.5
         0.026,
         floorD / 6 - 0.009,
         stone,
+        0.001,
       );
     }
 
   const ceiling = group(store, '木质声学天花与柔光灯', 0, 0, 0);
   box(ceiling, '店内暖白天花', 0, ceilingY + 0.06, 0, floorW, 0.06, floorD, wall);
   for (let x = -floorW / 2 + 0.12; x < floorW / 2; x += 0.24)
-    box(ceiling, '橡木声学顶条', x, ceilingY + 0.0225, 0, 0.13, 0.015, floorD - 0.1, wood);
+    box(ceiling, '橡木声学顶条', x, ceilingY + 0.0225, 0, 0.13, 0.015, floorD - 0.1, doorWood);
   for (const x of [-1.22, 1.22])
-    for (const z of [-1.28, 1.28])
-      box(ceiling, '嵌入式柔光灯', x, ceilingY + 0.0125, z, 1.55, 0.025, 1.25, light);
+    for (const z of [-1.28, 1.28]) {
+      // The same four fixtures: a shallow diffuser set inside its physical frame.
+      box(ceiling, '嵌入式柔光灯', x, ceilingY + 0.0145, z, 1.51, 0.021, 1.21, light);
+      for (const side of [-1, 1]) {
+        box(
+          ceiling,
+          '柔光灯铝合金边框',
+          x + side * 0.765,
+          ceilingY + 0.008,
+          z,
+          0.02,
+          0.016,
+          1.25,
+          trim,
+        );
+        box(
+          ceiling,
+          '柔光灯铝合金边框',
+          x,
+          ceilingY + 0.008,
+          z + side * 0.615,
+          1.51,
+          0.016,
+          0.02,
+          trim,
+        );
+      }
+    }
 
   const tablePositions = [
     [0.12, 1.65],
@@ -160,7 +288,42 @@ export function createAppleStore({ roomX, roomZ, roomW, roomD, clearHeight = 2.5
     0.16,
     wall,
   );
-  box(avenue, '橡木储物柜', 0, 0.49, 0.15, roomW - 0.62, 0.7, 0.34, wood);
+  const cabinet = group(avenue, '橡木储物柜', 0, 0.49, 0.15);
+  const cabinetW = roomW - 0.62;
+  box(cabinet, '橡木柜顶收口', 0, 0.325, 0, cabinetW, 0.05, 0.34, wood, 0.002);
+  box(cabinet, '柜体背板', 0, -0.01, -0.158, cabinetW - 0.04, 0.6, 0.024, wood);
+  box(cabinet, '柜体底板', 0, -0.295, 0, cabinetW - 0.04, 0.035, 0.32, wood);
+  box(cabinet, '内收柜脚', 0, -0.322, -0.025, cabinetW - 0.12, 0.056, 0.24, graphite);
+  for (const side of [-1, 1])
+    box(
+      cabinet,
+      '柜体侧板',
+      side * (cabinetW / 2 - 0.014),
+      -0.01,
+      0,
+      0.028,
+      0.62,
+      0.34,
+      wood,
+      0.001,
+    );
+  for (let i = 0; i < 6; i++) {
+    const x = -cabinetW / 2 + ((i + 0.5) * cabinetW) / 6;
+    const door = box(
+      cabinet,
+      '独立橡木柜门',
+      x,
+      -0.003,
+      0.158,
+      cabinetW / 6 - 0.004,
+      0.57,
+      0.024,
+      doorWood,
+      0.001,
+    );
+    door.userData.cabinetFront = true;
+    box(cabinet, '柜门细拉手', x, 0.22, 0.172, 0.13, 0.008, 0.005, graphite, 0.001);
+  }
   for (const [x, makePanel] of [
     [-1.95, createToolPegboard],
     [1.95, createBrickWallPanel],
@@ -171,7 +334,7 @@ export function createAppleStore({ roomX, roomZ, roomW, roomD, clearHeight = 2.5
     panel.position.set(x, 1.58, 0.095);
     avenue.add(panel);
   }
-  box(avenue, '主展示屏边框', 0, 1.65, 0.14, 2.36, 1.3, 0.055, graphite);
+  box(avenue, '主展示屏边框', 0, 1.65, 0.14, 2.36, 1.3, 0.055, graphite, 0.008);
   box(avenue, '主展示屏画面', 0, 1.65, 0.174, 2.29, 1.23, 0.015, screens[2]);
   // A local project schematic echoes the real robot and PCB on the workbench,
   // rather than advertising phones/tablets inside the laboratory.
@@ -213,24 +376,54 @@ export function createAppleStore({ roomX, roomZ, roomW, roomD, clearHeight = 2.5
     }
 
   const lounge = group(store, '玻璃端景休息区', -roomW / 2 + 0.48, 0, -0.05);
-  box(lounge, '橡木端景长凳', 0, 0.52, 0, 0.52, 0.1, 1.5, wood);
-  box(lounge, '浅灰长凳坐垫', 0.01, 0.59, 0, 0.48, 0.06, 1.38, felt);
-  for (const z of [-0.52, 0.52]) box(lounge, '长凳板腿', 0, 0.33, z, 0.4, 0.37, 0.1, wood);
+  box(lounge, '橡木端景长凳', 0, 0.52, 0, 0.52, 0.1, 1.5, wood, 0.006);
+  box(lounge, '浅灰长凳坐垫', 0.01, 0.59, 0, 0.48, 0.06, 1.38, felt, 0.012);
+  for (const z of [-0.52, 0.52]) box(lounge, '长凳板腿', 0, 0.33, z, 0.4, 0.37, 0.1, wood, 0.003);
 
   const plant = group(store, '室内端景绿植', -roomW / 2 + 0.52, 0, roomD / 2 - 0.65);
-  const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.42, 16), porcelain);
+  // A potted plant is a rigid object, not part of the curved building shell.
+  plant.userData.rigidPlan = true;
+  const potProfile = [
+    [0, -0.21],
+    [0.18, -0.21],
+    [0.22, 0.18],
+    [0.22, 0.21],
+    [0.198, 0.21],
+    [0.195, 0.17],
+    [0.16, -0.16],
+    [0, -0.16],
+  ];
+  const pot = new THREE.Mesh(
+    new THREE.LatheGeometry(
+      potProfile.map(([r, y]) => new THREE.Vector2(r, y)),
+      24,
+    ),
+    porcelain,
+  );
   pot.name = '端景绿植花盆';
   pot.position.y = 0.34;
+  pot.castShadow = true;
+  pot.receiveShadow = true;
   plant.add(pot);
-  box(plant, '端景绿植枝干', 0, 0.92, 0, 0.035, 0.95, 0.035, bark);
-  const leafGeometry = new THREE.SphereGeometry(1, 7, 5);
+  const soilMaterial = standard('花盆土壤', { color: 0x514538, roughness: 1 });
+  const soil = new THREE.Mesh(new THREE.CylinderGeometry(0.194, 0.19, 0.012, 24), soilMaterial);
+  soil.name = '花盆内凹土面';
+  soil.position.y = 0.5;
+  plant.add(soil);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.018, 0.99, 10), bark);
+  stem.name = '端景绿植枝干';
+  stem.position.y = 0.93;
+  plant.add(stem);
+  const leafGeometry = plantLeafGeometry();
   for (let i = 0; i < 9; i++) {
     const angle = i * 2.4;
     const leaf = new THREE.Mesh(leafGeometry, foliage);
     leaf.name = '端景绿植叶簇';
-    leaf.position.set(Math.cos(angle) * 0.17, 1.18 + i * 0.065, Math.sin(angle) * 0.17);
-    leaf.scale.set(0.27, 0.12, 0.18);
-    leaf.rotation.z = Math.cos(angle) * 0.5;
+    leaf.position.set(0, 0.72 + i * 0.08, 0);
+    leaf.rotation.set(-0.25 - (i % 3) * 0.12, angle, 0);
+    leaf.scale.setScalar(1.1 - i * 0.025);
+    leaf.castShadow = true;
+    leaf.receiveShadow = true;
     plant.add(leaf);
   }
 
@@ -257,11 +450,18 @@ export function addAppleStoreLighting(building) {
   store.traverse((object) => {
     if (object.name === '嵌入式柔光灯') panels.push(object);
   });
-  for (const [i, panel] of panels.filter((_, i) => i % 2 === 0).entries()) {
-    panel.updateWorldMatrix(true, false);
-    const center = new THREE.Box3().setFromObject(panel).getCenter(new THREE.Vector3());
-    const light = new THREE.PointLight(0xfff1da, 7, 7, 2);
-    light.name = `店内柔和照明 ${i + 1}`;
+  // Average the front/rear panels on each side. The old even-index selection
+  // put both lights on the rear row, leaving the entrance workbench underlit.
+  for (let i = 0; i < panels.length; i += 2) {
+    const pair = panels.slice(i, i + 2);
+    const center = new THREE.Vector3();
+    for (const panel of pair) {
+      panel.updateWorldMatrix(true, false);
+      center.add(new THREE.Box3().setFromObject(panel).getCenter(new THREE.Vector3()));
+    }
+    center.multiplyScalar(1 / pair.length);
+    const light = new THREE.PointLight(0xfff5e6, 6.5, 7, 2);
+    light.name = `店内柔和照明 ${i / 2 + 1}`;
     light.position.copy(building.worldToLocal(center)).y -= 0.2;
     light.castShadow = false;
     building.add(light);

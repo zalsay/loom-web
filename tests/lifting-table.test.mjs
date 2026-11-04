@@ -253,3 +253,17 @@ test('dimensions, height, and floor position reject invalid values', () => {
     dispose(defaults);
   }
 });
+
+test('desktop has a physical fine bevel without moving its device-placement plane', () => {
+  const table = createLiftingTable();
+  try {
+    const top = table.getObjectByName('白色圆角长方桌面');
+    assert.equal(top.geometry.parameters.options.bevelEnabled, true);
+    assert.ok(top.geometry.parameters.options.bevelSize <= 0.002);
+    assert.ok(
+      Math.abs(boundsOf(top).max.y - table.getObjectByName('升降桌面承载组').position.y) < 1e-6,
+    );
+  } finally {
+    dispose(table);
+  }
+});

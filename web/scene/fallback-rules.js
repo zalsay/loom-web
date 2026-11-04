@@ -31,9 +31,9 @@ function match(rules, name) {
 }
 
 function flatColor(name, materialName) {
-  if (/沥青|园路$/.test(name)) return { color: 0x8a918b, doubleSide: true };
-  if (materialName === '市政道路沥青') return { color: 0x7b847d, doubleSide: true };
-  if (name === '草坪地面') return { color: 0xa6af7d, doubleSide: false };
+  if (/沥青|园路$/.test(name)) return { color: 0x89918a, doubleSide: true };
+  if (materialName === '市政道路沥青') return { color: 0x747f73, doubleSide: true };
+  if (name === '草坪地面') return { color: 0x709c4e, doubleSide: false };
   return null;
 }
 

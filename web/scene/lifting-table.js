@@ -114,12 +114,20 @@ export function createLiftingTable({
 
   // Extrusion is rotated into the XZ plane and runs downward from the exact
   // device-placement plane at local y=0.
-  const topGeometry = new THREE.ExtrudeGeometry(roundedRectangle(width, depth, 0.025), {
-    depth: TOP_THICKNESS,
-    bevelEnabled: false,
-    curveSegments: 4,
-    steps: 1,
-  });
+  const bevel = 0.0015;
+  const topGeometry = new THREE.ExtrudeGeometry(
+    roundedRectangle(width - 2 * bevel, depth - 2 * bevel, 0.025 - bevel),
+    {
+      depth: TOP_THICKNESS - 2 * bevel,
+      bevelEnabled: true,
+      bevelSize: bevel,
+      bevelThickness: bevel,
+      bevelSegments: 1,
+      curveSegments: 4,
+      steps: 1,
+    },
+  );
+  topGeometry.translate(0, 0, bevel);
   const top = new THREE.Mesh(topGeometry, tabletopMaterial);
   top.name = '白色圆角长方桌面';
   top.rotation.x = Math.PI / 2;

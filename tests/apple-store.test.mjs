@@ -472,3 +472,93 @@ test('integrated store stays clear of the closed louver volume and preserves the
     dispose(model.root);
   }
 });
+
+test('refined finishes keep the cabinet footprint, with separate fronts, plinth and bevelled seating', () => {
+  const room = storeRoom(),
+    store = createAppleStore(room);
+  try {
+    const cabinet = store.getObjectByName('橡木储物柜');
+    assert.ok(cabinet.isGroup, 'replace the solid block with its actual carcass and fronts');
+    const doors = descendants(cabinet, (o) => o.userData.cabinetFront);
+    assert.equal(doors.length, 6);
+    assert.ok(cabinet.getObjectByName('内收柜脚'));
+    const bounds = meshBounds(cabinet).getSize(new THREE.Vector3());
+    assert.ok(Math.abs(bounds.x - (room.roomW - 0.62)) < 0.002);
+    assert.ok(bounds.z <= 0.35 && bounds.y <= 0.71);
+    const sorted = doors.map((o) => meshBounds(o)).sort((a, b) => a.min.x - b.min.x);
+    for (let i = 1; i < sorted.length; i++)
+      assert.ok(sorted[i].min.x - sorted[i - 1].max.x >= 0.003);
+    const cushion = store.getObjectByName('浅灰长凳坐垫');
+    assert.ok(cushion.geometry.parameters.options.bevelEnabled);
+    const tile = store.getObjectByName('大规格石材地板');
+    assert.ok(tile.material.map?.isDataTexture, 'locally generated stone grain');
+    assert.ok(cushion.material.map?.isDataTexture, 'locally generated textile weave');
+    assert.ok(doors[0].material.map?.isDataTexture);
+    assert.equal(descendants(store, (o) => o.name === '柔光灯铝合金边框').length, 16);
+  } finally {
+    dispose(store);
+  }
+});
+
+test('indoor plant has a hollow pot, recessed soil and shaped leaves rather than spheres', () => {
+  const store = createAppleStore(storeRoom());
+  try {
+    const plant = store.getObjectByName('室内端景绿植');
+    const pot = plant.getObjectByName('端景绿植花盆');
+    assert.equal(pot.geometry.type, 'LatheGeometry');
+    assert.ok(plant.getObjectByName('花盆内凹土面'));
+    const leaves = descendants(plant, (o) => o.name === '端景绿植叶簇');
+    assert.equal(leaves.length, 9);
+    assert.ok(
+      leaves.every(
+        (o) => o.geometry.type === 'BufferGeometry' && o.material.side === THREE.DoubleSide,
+      ),
+    );
+  } finally {
+    dispose(store);
+  }
+});
+
+test('the same two indoor lamps balance front and rear instead of both sitting over the back wall', () => {
+  const host = new THREE.Group();
+  host.add(createAppleStore(storeRoom()));
+  try {
+    addAppleStoreLighting(host);
+    const lamps = descendants(host, (o) => o.isPointLight);
+    assert.equal(lamps.length, 2);
+    for (const lamp of lamps) {
+      assert.ok(Math.abs(lamp.position.z) < 0.01);
+      assert.equal(lamp.castShadow, false);
+    }
+  } finally {
+    dispose(host);
+  }
+});
+
+test('integrated potted plant stays rigid and retains its leaf colours and unit normals', () => {
+  const model = createPavilion();
+  try {
+    const plant = model.laboratory.getObjectByName('室内端景绿植');
+    assert.equal(plant.userData.rigidPlan, true);
+    for (const leaf of descendants(plant, (o) => o.name === '端景绿植叶簇')) {
+      assert.ok(
+        leaf.geometry.getAttribute('color'),
+        'curved building bake must not discard leaf colour',
+      );
+      const n = leaf.geometry.getAttribute('normal');
+      for (let i = 0; i < n.count; i++)
+        assert.ok(Math.abs(Math.hypot(n.getX(i), n.getY(i), n.getZ(i)) - 1) < 1e-5);
+    }
+  } finally {
+    dispose(model.root);
+  }
+});
+
+test('an empty store does not create lamps without physical ceiling panels', () => {
+  const host = new THREE.Group(),
+    store = new THREE.Group();
+  store.name = APPLE_STORE_NAME;
+  host.add(store);
+  addAppleStoreLighting(host);
+  assert.equal(descendants(host, (o) => o.isLight).length, 0);
+});

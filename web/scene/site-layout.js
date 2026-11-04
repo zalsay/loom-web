@@ -225,20 +225,20 @@ export function addSiteGround(ground, materials) {
   const { asphalt, curb, line } = materials,
     paver = new THREE.MeshStandardMaterial({
       name: '浅灰园路砖',
-      color: 0xc1c4b5,
+      color: 0xc6c3ad,
       roughness: 0.95,
       side: THREE.DoubleSide,
     });
   const road = new THREE.MeshStandardMaterial({
     name: '市政道路沥青',
-    color: 0x737d78,
+    color: 0xc6cbc5,
     map: asphalt.map,
     roughness: 1,
     side: THREE.DoubleSide,
   });
   const edge = new THREE.MeshStandardMaterial({
     name: '道路路缘石',
-    color: 0xd1d2c4,
+    color: 0xd7d4bf,
     roughness: 0.97,
     side: THREE.DoubleSide,
   });

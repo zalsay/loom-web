@@ -112,11 +112,14 @@ async function init() {
       if (!o.isMesh) return;
       o.material = o.material.clone();
       if (plan.renderOrder !== null) o.renderOrder = plan.renderOrder;
-      if (plan.flatLawn) o.geometry = new THREE.PlaneGeometry(180, 170, 30, 28);
+      // Keep the lawn's world-space colour field when textures and grass instances are unavailable.
+      if (plan.flatLawn && !o.geometry.getAttribute('color'))
+        o.geometry = new THREE.PlaneGeometry(180, 170, 30, 28);
       if (plan.flatColor) {
         const { color, doubleSide } = plan.flatColor;
         o.material = new THREE.MeshBasicMaterial({
           color,
+          vertexColors: !!(plan.flatLawn && o.geometry.getAttribute('color')),
           side: doubleSide ? THREE.DoubleSide : THREE.FrontSide,
         });
       }
@@ -331,6 +334,7 @@ async function init() {
     atmosphere.setIndoor(indoor);
     document.body.dataset.worldView = indoor ? 'laboratory' : name;
     $('#landscape').disabled = indoor;
+    $('#landscape').checked = model.landscape.visible;
     $('#viewport').setAttribute(
       'aria-label',
       indoor ? '可以转动和拉近看的织界实验室' : '可以转动和拉近看的织界空间',

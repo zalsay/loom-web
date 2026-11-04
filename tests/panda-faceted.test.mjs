@@ -123,10 +123,10 @@ test('faceted head stays beneath both eye patches across dense interior samples'
     for (const sign of [-1, 1]) {
       const side = sign < 0 ? 'left' : 'right';
       const patch = panda.getObjectByName(`eye-patch-${side}`);
-      const cx = sign * 0.465;
-      const cy = 3.145;
-      const rx = 0.275;
-      const ry = 0.385;
+      const cx = sign * 0.64;
+      const cy = 3.24;
+      const rx = 0.34;
+      const ry = 0.46;
       const rotation = sign * 0.34;
       const cos = Math.cos(rotation);
       const sin = Math.sin(rotation);
@@ -144,6 +144,10 @@ test('faceted head stays beneath both eye patches across dense interior samples'
           const patchHit = raycaster.intersectObject(patch, false)[0];
           assert.ok(headHit, `${side} head surface hit at radius ${radius}, angle ${angle}`);
           assert.ok(patchHit, `${side} eye patch hit at radius ${radius}, angle ${angle}`);
+          assert.ok(
+            Math.abs(patchHit.point.z - headHit.point.z - 0.009) < 1e-5,
+            'eye patch follows the same head plane without floating',
+          );
           maxPenetration[side] = Math.max(maxPenetration[side], headHit.point.z - patchHit.point.z);
         }
       }
@@ -173,6 +177,82 @@ test('faceted head stays beneath both eye patches across dense interior samples'
       assert.ok(mark?.isMesh, `${name} remains present`);
       assert.equal(mark.material.depthTest, true, `${name} retains depth testing`);
     }
+  } finally {
+    dispose(panda);
+  }
+});
+
+test('sculpture has a broad head and muzzle, restrained black eyes, and no fur tuft', () => {
+  const panda = createFacetedPanda();
+  try {
+    panda.updateMatrixWorld(true);
+    const bounds = (name) => new THREE.Box3().setFromObject(panda.getObjectByName(name));
+    const head = bounds('head').getSize(new THREE.Vector3());
+    const nose = bounds('nose').getSize(new THREE.Vector3());
+    assert.ok(head.x >= 2.6, 'broad sculpture head, not the narrow mascot head');
+    assert.ok(nose.x >= 0.6, 'wide angular nose');
+    assert.equal(panda.getObjectByName('tuft'), undefined, 'clean sculptural crown');
+    assert.equal(panda.getObjectByName('short-fur'), undefined);
+    assert.equal(!!panda.getObjectByName('smile-dimple'), false);
+    assert.ok(
+      panda.getObjectByName('smile-left').material.color.r > 0.2,
+      'mouth is a subtle sculpted crease rather than a black cartoon grin',
+    );
+    for (const side of ['left', 'right']) {
+      const eye = panda.getObjectByName(`eye-${side}`);
+      assert.ok(eye.material.color.getHex() < 0x404040, 'no white cartoon sclera');
+      const patch = panda.getObjectByName(`eye-patch-${side}`);
+      assert.equal(patch.geometry.index, null, 'eye markings share real head panels');
+      assert.equal(patch.material.flatShading, true);
+      assert.ok(
+        panda.getObjectByName(`catchlight-${side}`).material.color.r > 0.7,
+        'black eyes do not recolour the shared pale catchlight material',
+      );
+    }
+    const ray = new THREE.Raycaster(new THREE.Vector3(0.42, 2.78, 5), new THREE.Vector3(0, 0, -1));
+    const hit = ray.intersectObject(panda.getObjectByName('head'), false)[0];
+    assert.ok(hit.point.z > 1.18, 'muzzle extends across the cheeks, not only under the nose');
+    const highlight = panda.getObjectByName('nose-soft-highlight');
+    ray.set(
+      new THREE.Vector3(highlight.position.x, highlight.position.y, 5),
+      new THREE.Vector3(0, 0, -1),
+    );
+    const noseHit = ray.intersectObject(panda.getObjectByName('nose'), false)[0];
+    assert.ok(
+      noseHit && Math.abs(highlight.position.z - noseHit.point.z - 0.002) < 1e-5,
+      'nose highlight touches the nose rather than floating in profile',
+    );
+  } finally {
+    dispose(panda);
+  }
+});
+
+test('the climbing sculpture has an ivory rump and a black shoulder band on the same mesh', () => {
+  const panda = createFacetedPanda();
+  try {
+    const torso = panda.getObjectByName('torso');
+    assert.ok(torso.material.color.r > 0.7, 'rump is white, not an all-black mascot back');
+    const p = torso.geometry.getAttribute('position');
+    const c = torso.geometry.getAttribute('color');
+    let white = 0,
+      black = 0;
+    for (let i = 0; i < p.count; i += 3) {
+      const ys = [p.getY(i), p.getY(i + 1), p.getY(i + 2)];
+      assert.ok(
+        Math.min(...ys) >= 0.38 - 1e-6 || Math.max(...ys) <= 0.38 + 1e-6,
+        'shoulder edge is clipped through panels, not a sawtooth of whole triangles',
+      );
+      const y = ys.reduce((a, b) => a + b, 0) / 3;
+      if (y < -0.2) {
+        assert.ok(c.getX(i) > 0.85);
+        white++;
+      }
+      if (y > 0.55) {
+        assert.ok(c.getX(i) < 0.04);
+        black++;
+      }
+    }
+    assert.ok(white > 10 && black > 10);
   } finally {
     dispose(panda);
   }

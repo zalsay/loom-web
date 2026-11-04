@@ -141,3 +141,94 @@ test('seed validation and renderer entrypoint are explicit', async () => {
   assert.equal(typeof createSpaceRenderer, 'function');
   await assert.rejects(createSpaceRenderer({}), /container must be a DOM element/);
 });
+
+const THREE = await import('three');
+const { nearCanopy, addSiteGround } = await import('../web/scene/site-layout.js');
+const { fallbackPlan } = await import('../web/scene/fallback-rules.js');
+
+test('short lawn has grounded 5–10 cm tufts, terrain colour variation and no grass on paving', () => {
+  const model = createPavilion();
+  const ground = new THREE.Group();
+  const asphalt = new THREE.MeshStandardMaterial();
+  const curb = new THREE.MeshStandardMaterial();
+  const line = new THREE.MeshStandardMaterial();
+  const site = addSiteGround(ground, { asphalt, curb, line });
+  try {
+    const lawn = model.landscape.getObjectByName('草坪地面');
+    const blades = model.landscape.getObjectByName('细草叶');
+    assert.ok(
+      lawn.geometry.getAttribute('color'),
+      'ground retains meadow variation without textures',
+    );
+    assert.equal(lawn.material.vertexColors, true);
+    assert.ok(blades.instanceColor, 'short tufts have coherent green variation');
+    assert.ok(blades.count <= 24000, 'reuse the existing instance budget');
+    const position = blades.geometry.getAttribute('position');
+    assert.ok((position.count / 3) * blades.count <= 216000, 'bounded short-grass geometry budget');
+    const matrix = new THREE.Matrix4();
+    const v = new THREE.Vector3();
+    for (let i = 0; i < blades.count; i++) {
+      blades.getMatrixAt(i, matrix);
+      const x = matrix.elements[12],
+        z = matrix.elements[14];
+      assert.equal(nearCanopy(x, z, 6) || site.isPaved(x, z), false);
+      let min = Infinity,
+        max = -Infinity;
+      for (let j = 0; j < position.count; j++) {
+        v.fromBufferAttribute(position, j).applyMatrix4(matrix);
+        min = Math.min(min, v.y);
+        max = Math.max(max, v.y);
+      }
+      assert.ok(Math.abs(min - lawn.position.y) <= 0.003, 'roots touch the lawn');
+      assert.ok(max - min >= 0.049 && max - min <= 0.101, 'short lawn, not knee-high grass');
+    }
+  } finally {
+    dispose(model.root);
+    dispose(ground);
+    asphalt.dispose();
+    curb.dispose();
+    line.dispose();
+  }
+});
+
+test('near and distant trees have layered solid crowns, not alpha cards or bare fallback branches', () => {
+  const model = createPavilion();
+  try {
+    const trees = model.landscape.children.filter((o) => o.name === '园林乔木');
+    assert.ok(trees.length > 20);
+    let triangles = 0;
+    for (const tree of trees) {
+      const crowns = tree.children.filter((o) => o.name === '树带树冠');
+      assert.ok(crowns.length >= 3 && crowns.length <= 6, 'layered crown clusters on every tree');
+      for (const crown of crowns) {
+        assert.equal(fallbackPlan(crown.name).hidden, false);
+        assert.equal(crown.material.alphaTest, 0);
+        assert.equal(crown.material.map, null);
+        assert.equal(crown.material.vertexColors, true);
+        assert.ok(crown.geometry.getAttribute('color'));
+        triangles +=
+          (crown.geometry.index?.count ?? crown.geometry.getAttribute('position').count) / 3;
+      }
+      assert.equal(
+        tree.children.some((o) => o.name === '疏朗树叶'),
+        false,
+      );
+    }
+    assert.ok(triangles < 20000, `keep SVG-friendly crown budget, got ${triangles}`);
+  } finally {
+    dispose(model.root);
+  }
+});
+
+test('road tint no longer multiplies a dark texture by another dark asphalt colour', () => {
+  const model = createPavilion();
+  try {
+    const road = model.ground.getObjectByName('右侧主路');
+    assert.ok(road.material.color.r > 0.5, 'lighter neutral tint over the asphalt texture');
+    assert.equal(road.material.roughness, 1);
+    assert.ok(model.ground.getObjectByName('道路虚线'));
+    assert.equal(fallbackPlan('草坪地面').flatColor.color, 0x709c4e);
+  } finally {
+    dispose(model.root);
+  }
+});

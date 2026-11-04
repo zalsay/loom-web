@@ -34,9 +34,10 @@ function canvasTexture(kind, rand) {
         p =
           Math.sin(x * 0.038 + Math.sin(y * 0.019) * 3) * Math.cos(y * 0.028) * 0.5 +
           Math.sin(x * 0.007 + y * 0.012) * 0.5;
-      let base = kind === 'grass' ? [105, 120, 69] : [110, 115, 112];
-      let amp = kind === 'grass' ? 31 : 22;
-      let v = n * amp + p * (kind === 'grass' ? 16 : 2);
+      let base = kind === 'grass' ? [112, 156, 78] : [137, 145, 138];
+      let amp = kind === 'grass' ? 9 : 8;
+      // Broad meadow variation lives in world-space vertex colours, not a repeating tile.
+      let v = n * amp + p * 0.7;
       for (let k = 0; k < 3; k++) im.data[i + k] = base[k] + v;
       im.data[i + 3] = 255;
     }
@@ -45,7 +46,7 @@ function canvasTexture(kind, rand) {
     for (let i = 0; i < 50000; i++) {
       let x = rand() * size,
         y = rand() * size;
-      ctx.strokeStyle = rand() > 0.5 ? 'rgba(192,185,118,.12)' : 'rgba(40,63,26,.16)';
+      ctx.strokeStyle = rand() > 0.5 ? 'rgba(211,226,153,.10)' : 'rgba(66,106,46,.08)';
       ctx.lineWidth = 0.6;
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -153,24 +154,47 @@ function ribbonColumn(parent, cx, side, m, index, fraction = 1) {
   o.receiveShadow = true;
   parent.add(o);
 }
-function leafTexture(rand) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const q = c.getContext('2d');
-  for (let i = 0; i < 230; i++) {
-    const a = rand() * Math.PI * 2,
-      r = Math.sqrt(rand()) * 57,
-      x = 64 + Math.cos(a) * r,
-      y = 64 + Math.sin(a) * r;
-    const light = Math.floor(35 + rand() * 45);
-    q.fillStyle = `rgba(${light + 9},${light + 35},${light - 8},.95)`;
-    q.beginPath();
-    q.ellipse(x, y, 2 + rand() * 5, 1 + rand() * 2.8, rand() * 6, 0, Math.PI * 2);
-    q.fill();
+// Coherent field shared by the lawn and its short tufts; independent of texture UVs.
+function meadowTone(x, z) {
+  return THREE.MathUtils.clamp(
+    0.5 +
+      0.24 * Math.sin(x * 0.08 + 0.7 * Math.sin(z * 0.06)) +
+      0.18 * Math.cos(z * 0.11 - x * 0.04) +
+      0.08 * Math.sin((x + z) * 0.19),
+    0,
+    1,
+  );
+}
+
+function crownGeometry(detail) {
+  const geometry = new THREE.IcosahedronGeometry(1, detail);
+  const p = geometry.getAttribute('position');
+  const colors = [];
+  const shade = new THREE.Color('#315e38'),
+    light = new THREE.Color('#88b95b');
+  const color = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i),
+      y = p.getY(i),
+      z = p.getZ(i);
+    const ripple = 1 + 0.17 * Math.sin(x * 8 + z * 3) * Math.cos(y * 6 - z * 5);
+    p.setXYZ(i, x * ripple, y * ripple, z * ripple);
+    color
+      .copy(shade)
+      .lerp(
+        light,
+        THREE.MathUtils.clamp(
+          (y + 0.8) / 1.8 + 0.13 * Math.sin(x * 19 + z * 11) * Math.sin(y * 15 - z * 7),
+          0,
+          1,
+        ),
+      );
+    colors.push(color.r, color.g, color.b);
   }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+  // Retain the sphere's smooth normals: clumps should read as foliage, not faceted rock.
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.computeBoundingSphere();
+  return geometry;
 }
 
 export function createPavilion({ seed = 4917 } = {}) {
@@ -244,14 +268,26 @@ export function createPavilion({ seed = 4917 } = {}) {
     side: THREE.DoubleSide,
   });
   const grassMap = canvasTexture('grass', rand);
-  const grass = mat('自然草坪', { map: grassMap, roughness: 1 });
+  const grass = mat('自然草坪', { map: grassMap, roughness: 1, vertexColors: true });
   const line = mat('白色地面标线', { color: 0xe7e4d5, roughness: 0.95, side: THREE.DoubleSide });
-  const curb = mat('浅灰混凝土路缘', { color: 0xbfc3b3, roughness: 0.95, side: THREE.DoubleSide });
+  const curb = mat('浅灰混凝土路缘', { color: 0xd0ceba, roughness: 0.95, side: THREE.DoubleSide });
   const dirt = mat('树池土壤', { color: 0x736d4a, roughness: 1 });
-  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(180, 170, 12, 12), grass);
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(180, 170, 30, 28), grass);
   lawn.rotation.x = -Math.PI / 2;
   lawn.position.y = -0.055;
   lawn.name = '草坪地面';
+  const lawnVertices = lawn.geometry.getAttribute('position');
+  const lawnColors = [];
+  const lawnShade = new THREE.Color('#d9e8bc'),
+    lawnLight = new THREE.Color('#ffffff');
+  const lawnColor = new THREE.Color();
+  for (let i = 0; i < lawnVertices.count; i++) {
+    lawnColor
+      .copy(lawnShade)
+      .lerp(lawnLight, meadowTone(lawnVertices.getX(i), -lawnVertices.getY(i)));
+    lawnColors.push(lawnColor.r, lawnColor.g, lawnColor.b);
+  }
+  lawn.geometry.setAttribute('color', new THREE.Float32BufferAttribute(lawnColors, 3));
   lawn.receiveShadow = true;
   landscape.add(lawn);
   // Asphalt matches the curved pavilion, with a slim exposed concrete perimeter.
@@ -702,18 +738,12 @@ export function createPavilion({ seed = 4917 } = {}) {
     videoStartPixel: SITE.videoStartPixel,
   };
   // Landscape is a separate group and can be hidden for architectural inspection.
-  const bark = mat('树干', { color: 0x716b57, roughness: 1 });
+  const bark = mat('树干', { color: 0x7d7052, roughness: 1 });
   const support = mat('绿色树木支架', { color: 0x3e684d, roughness: 0.82 });
-  const leafMat = new THREE.MeshStandardMaterial({
-    map: leafTexture(rand),
-    alphaTest: 0.4,
-    side: THREE.DoubleSide,
-    roughness: 1,
-    color: 0xaebc91,
-  });
-  leafMat.name = '疏朗树叶';
-  materials[leafMat.name] = leafMat;
-  const distantFoliage = mat('树带绿色树冠', { color: 0x6e8456, roughness: 1 });
+  const foliage = mat('树带绿色树冠', { color: 0xffffff, roughness: 1, vertexColors: true });
+  // Share native geometries inside this pavilion, but never across model instances.
+  const farCrown = crownGeometry(1),
+    nearCrown = crownGeometry(3);
   function tree(x, z, h = 6.7, seedAngle = 0, detailed = true) {
     const group = new THREE.Group();
     group.name = '园林乔木';
@@ -724,57 +754,35 @@ export function createPavilion({ seed = 4917 } = {}) {
     disk.rotation.x = -Math.PI / 2;
     disk.position.y = -0.035;
     group.add(disk);
-    if (!detailed) {
-      rod(
-        group,
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0.05, h * 0.7, 0),
-        0.11,
-        bark,
-        '树带树干',
-      );
-      for (let i = 0; i < 2; i++) {
-        const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.65, 1), distantFoliage);
-        crown.position.set(i * 0.65 - 0.3, h * 0.72 + i * 0.8, (i - 0.5) * 0.5);
-        crown.scale.set(1.1, 0.9, 1.05);
-        crown.castShadow = true;
-        crown.name = '树带树冠';
-        group.add(crown);
-      }
-      return;
-    }
     rod(
       group,
       new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0.13, h * 0.7, 0.1),
-      0.105,
+      new THREE.Vector3(0.13, h * 0.67, 0.1),
+      detailed ? 0.14 : 0.12,
       bark,
-      '树干',
+      detailed ? '树干' : '树带树干',
     );
-    for (let i = 0; i < 8; i++) {
-      let a = seedAngle + i * 2.399,
-        sy = h * (0.4 + rand() * 0.25),
-        tip = new THREE.Vector3(
-          Math.cos(a) * (1.1 + rand() * 0.8),
-          h * (0.75 + rand() * 0.22),
-          Math.sin(a) * (1.1 + rand() * 0.8),
-        );
-      rod(group, new THREE.Vector3(0.08, sy, 0), tip, 0.035, bark, '树枝');
-      for (let j = 0; j < 3; j++) {
-        const leaf = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.6 + rand() * 0.8, 1.4 + rand() * 0.8),
-          leafMat,
-        );
-        leaf.position
-          .copy(tip)
-          .add(new THREE.Vector3((rand() - 0.5) * 1.3, (rand() - 0.5) * 0.7, (rand() - 0.5) * 1.3));
-        leaf.rotation.set((rand() - 0.5) * 1.1, a + j * 1.1, rand() * 0.6);
-        leaf.name = '疏朗树叶';
-        leaf.castShadow = true;
-        group.add(leaf);
-      }
+    const count = detailed ? 5 : 3;
+    for (let i = 0; i < count; i++) {
+      const angle = seedAngle + i * 2.399;
+      const spread = i === count - 1 ? 0.25 : 0.95;
+      const tip = new THREE.Vector3(
+        Math.cos(angle) * spread,
+        h * (i === count - 1 ? 0.88 : 0.7 + (i % 2) * 0.07),
+        Math.sin(angle) * spread,
+      );
+      if (detailed) rod(group, new THREE.Vector3(0.08, h * 0.46, 0), tip, 0.045, bark, '树枝');
+      const crown = new THREE.Mesh(detailed ? nearCrown : farCrown, foliage);
+      crown.name = '树带树冠';
+      crown.position.copy(tip);
+      const radius = (h / 6.7) * (1.48 + 0.12 * Math.sin(seedAngle + i));
+      crown.scale.set(radius * 1.15, radius * (i === count - 1 ? 0.94 : 0.85), radius);
+      crown.rotation.set(0.12 * Math.sin(angle), angle, 0.1 * Math.cos(angle));
+      crown.castShadow = true;
+      crown.receiveShadow = true;
+      group.add(crown);
     }
-    if (z > 7 && Math.abs(x) < 22) {
+    if (detailed && z > 7 && Math.abs(x) < 22) {
       for (let i = 0; i < 3; i++) {
         let a = (i / 3) * Math.PI * 2;
         rod(
@@ -832,13 +840,34 @@ export function createPavilion({ seed = 4917 } = {}) {
   }
   // Fine, distributed grass blades break up the plane without external textures.
   const bladeGeo = new THREE.BufferGeometry();
-  bladeGeo.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute([-0.018, 0, 0, 0.018, 0, 0, 0.008, 0.1, 0], 3),
-  );
+  const bladePositions = [],
+    bladeColors = [];
+  // Three narrow bent blades per instance, rather than wide triangular spikes.
+  for (let blade = 0; blade < 3; blade++) {
+    const angle = blade * 2.399,
+      h = 0.1 * (1 - blade * 0.12);
+    const c = Math.cos(angle),
+      s = Math.sin(angle);
+    const points = [
+      [-0.006, 0, 0],
+      [0.006, 0, 0],
+      [0.004, h * 0.62, 0.012],
+      [0.011, h * 0.62, 0.012],
+      [0.023, h, 0.026],
+    ];
+    for (const i of [0, 1, 2, 1, 3, 2, 2, 3, 4]) {
+      const [x, y, z] = points[i];
+      bladePositions.push(x * c - z * s + c * 0.018, y, x * s + z * c + s * 0.018);
+      const t = y / h;
+      bladeColors.push(0.82 + 0.18 * t, 0.9 + 0.1 * t, 0.68 + 0.2 * t);
+    }
+  }
+  bladeGeo.setAttribute('position', new THREE.Float32BufferAttribute(bladePositions, 3));
+  bladeGeo.setAttribute('color', new THREE.Float32BufferAttribute(bladeColors, 3));
   bladeGeo.computeVertexNormals();
   const bladeMat = new THREE.MeshStandardMaterial({
-    color: 0x7d8e4b,
+    color: 0xffffff,
+    vertexColors: true,
     side: THREE.DoubleSide,
     roughness: 1,
   });
@@ -847,16 +876,24 @@ export function createPavilion({ seed = 4917 } = {}) {
   const count = 24000,
     blades = new THREE.InstancedMesh(bladeGeo, bladeMat, count),
     dummy = new THREE.Object3D();
+  const tuftShade = new THREE.Color('#789e48'),
+    tuftLight = new THREE.Color('#98b45c');
+  const tuftColor = new THREE.Color();
   let k = 0;
   for (let i = 0; i < count * 2 && k < count; i++) {
-    let x = (rand() - 0.5) * 155,
-      z = (rand() - 0.5) * 143;
+    // Spend the existing instance budget around the walkable garden; distant lawn
+    // gets its detail from the same ground texture instead of more geometry.
+    const near = i % 4 !== 0;
+    let x = (rand() - 0.5) * (near ? 110 : 155),
+      z = (rand() - 0.5) * (near ? 90 : 143);
     if (nearCanopy(x, z, 6) || siteGround.isPaved(x, z)) continue;
-    dummy.position.set(x, -0.025, z);
+    dummy.position.set(x, lawn.position.y + 0.002, z);
     dummy.rotation.y = rand() * Math.PI;
-    dummy.scale.setScalar(0.5 + rand() * 1.3);
+    const height = 0.5 + rand() * 0.5;
+    dummy.scale.set(0.8 + height * 0.4, height, 0.8 + height * 0.4);
     dummy.updateMatrix();
-    blades.setMatrixAt(k++, dummy.matrix);
+    blades.setMatrixAt(k, dummy.matrix);
+    blades.setColorAt(k++, tuftColor.copy(tuftShade).lerp(tuftLight, meadowTone(x, z)));
   }
   blades.count = k;
   blades.name = '细草叶';

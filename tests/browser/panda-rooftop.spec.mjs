@@ -35,6 +35,7 @@ async function setRoofView(page, angle) {
     const direction = new THREE.Vector3()
       .fromArray(panda.userData.rooftopOutwardDirection)
       .applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+    world.controls.dispatchEvent({ type: 'start' });
     world.controls.enableDamping = false;
     world.model.landscape.visible = false;
     world.controls.target.copy(eave);
@@ -187,5 +188,54 @@ test('SVG layers show the face above the roof without painting the hidden belly 
   await setRoofView(page, 0);
   await expect.poll(() => layers(page)).toMatchObject({ eyes: 0, belly: 0 });
   expect((await layers(page)).emblem.every((order) => order === 0)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('sculpture refactor keeps the roof rig and renders front, side and street silhouettes', async ({
+  page,
+}, testInfo) => {
+  const errors = await openWorld(page);
+  const sculpture = await page.evaluate(() => {
+    const panda = window.loomWorld.model.panda;
+    return {
+      tuft: !!panda.getObjectByName('tuft'),
+      headVertices: panda.getObjectByName('head').geometry.getAttribute('position').count,
+      eyeColor: panda.getObjectByName('eye-left').material.color.getHex(),
+      support: panda.userData.rooftopFootSupport,
+    };
+  });
+  expect(sculpture.tuft).toBe(false);
+  expect(sculpture.headVertices).toBeLessThanOrEqual(2304);
+  expect(sculpture.eyeColor).toBe(0x20252a);
+  expect(sculpture.support).toBeTruthy();
+  let previousScreenshot;
+  for (const [name, angle] of [
+    ['front', Math.PI],
+    ['side', Math.PI / 2],
+    ['street', 0],
+  ]) {
+    await setRoofView(page, angle);
+    await page.evaluate(async () => {
+      const world = window.loomWorld;
+      world.camera.position
+        .sub(world.controls.target)
+        .multiplyScalar(0.65)
+        .add(world.controls.target);
+      world.controls.update();
+      // Await an actual render, not just a changed camera: SVG mode throttles frames.
+      await new Promise((resolve) => {
+        const original = world.renderer.render;
+        world.renderer.render = function (...args) {
+          original.apply(this, args);
+          this.render = original;
+          requestAnimationFrame(resolve);
+        };
+        world.controls.dispatchEvent({ type: 'change' });
+      });
+    });
+    const screenshot = await page.screenshot({ path: testInfo.outputPath(`panda-${name}.png`) });
+    if (previousScreenshot) expect(screenshot.equals(previousScreenshot)).toBe(false);
+    previousScreenshot = screenshot;
+  }
   expect(errors).toEqual([]);
 });

@@ -8,6 +8,12 @@ export function createLaboratoryView(model) {
     throw new TypeError('model must contain 织界实验室 directly under 建筑');
   }
 
+  // Resolve from this root, including the SVG clone, rather than the source model.
+  // The garden is the real view through the glass, not a second scene or a backdrop.
+  const surroundings = ['地面与铺装', '草坪与园林']
+    .map((name) => root.getObjectByName(name))
+    .filter((object) => object?.parent === root);
+
   let active = false;
   let visibilitySnapshot = null;
 
@@ -29,6 +35,9 @@ export function createLaboratoryView(model) {
       for (const object of controlled) object.visible = false;
       building.visible = true;
       laboratory.visible = true;
+      // Snapshot these groups even when the outside landscape toggle was off.
+      // Keep descendant visibility (e.g. fallback-hidden grass instances) intact.
+      for (const object of surroundings) object.visible = true;
       active = true;
       return;
     }

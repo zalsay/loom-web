@@ -57,14 +57,13 @@ async function visibility(page) {
   });
 }
 
-test('walk into the laboratory renders only its room, then restores exterior state and controls', async ({
+test('walk into the laboratory retains its garden view and restores exterior state and controls', async ({
   page,
 }) => {
   const errors = await openWorld(page);
   const entry = page.getByRole('button', { name: '走进实验室', exact: true });
   await expect(entry).toBeVisible();
   await expect(page.getByRole('button', { name: '店内看看', exact: true })).toHaveCount(0);
-  const before = await visibility(page);
   await page.locator('#landscape').uncheck();
   await page.evaluate(() => {
     const w = window.loomWorld;
@@ -86,8 +85,8 @@ test('walk into the laboratory renders only its room, then restores exterior sta
   expect(inside).toMatchObject({
     active: true,
     laboratory: true,
-    ground: false,
-    landscape: false,
+    ground: true,
+    landscape: true,
     panda: false,
     roof: false,
     roomCeiling: true,
@@ -96,7 +95,10 @@ test('walk into the laboratory renders only its room, then restores exterior sta
     lights: 2,
     maxDistance: 8.5,
   });
-  expect(inside.visible.length).toBeLessThan(before.visible.length / 2);
+  expect(inside.visible).toContain('草坪地面');
+  expect(inside.visible).toContain('树带树冠');
+  expect(inside.visible).toContain('右侧主路');
+  await expect(page.locator('#landscape')).toBeChecked();
   expect(inside.visible).not.toContain('弧形屋面与白色檐口');
   expect(inside.visible).toContain('正面固定玻璃');
   expect(inside.visible).toContain('端面玻璃');
@@ -108,7 +110,7 @@ test('walk into the laboratory renders only its room, then restores exterior sta
     const rendered = await page.evaluate(() => [...window.__laboratoryRendered]);
     expect(rendered).not.toContain('屋面顶板与金属压边');
     expect(rendered).not.toContain('head');
-    expect(rendered).not.toContain('草坪地面');
+    expect(rendered).toContain('草坪地面');
     for (const exhibitMesh of [
       '黄色模块化背板',
       '绿色PCB电路基板',
@@ -136,6 +138,7 @@ test('walk into the laboratory renders only its room, then restores exterior sta
   ).toBe(true);
   await page.locator('[data-view="aerial"]').click();
   await expect(page.locator('#landscape')).toBeEnabled();
+  await expect(page.locator('#landscape')).not.toBeChecked();
   expect(await visibility(page)).toMatchObject({
     active: false,
     laboratory: true,
@@ -177,9 +180,12 @@ test('laboratory hides rain, fog and SVG overlays while retaining fallback-hidde
   });
   await page.locator('[data-view="interior"]').click();
   await expect(page.locator('#world-atmosphere-haze')).toBeHidden();
-  await expect
-    .poll(() => page.locator('#viewport svg path').count())
-    .toBeLessThan(exteriorPaths / 2);
+  expect(await visibility(page)).toMatchObject({
+    ground: true,
+    landscape: true,
+    roof: false,
+    panda: false,
+  });
   expect(await page.locator('#viewport svg path').count()).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.loomWorld.scene.fog)).toBeNull();
   const flags = await page.evaluate(() => {

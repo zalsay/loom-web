@@ -13,7 +13,7 @@ const PALETTE = Object.freeze({
   lens: 0x314f61,
 });
 
-function material(color, name, { metalness = 0.08, roughness = 0.76 } = {}) {
+function material(color, name, { metalness = 0, roughness = 0.68 } = {}) {
   const result = new THREE.MeshStandardMaterial({ color, metalness, roughness });
   result.name = name;
   return result;
@@ -28,10 +28,17 @@ function createBuilder() {
     yellow: material(PALETTE.yellow, '安全黄积木'),
     orange: material(PALETTE.orange, '安全橙识别件'),
     pcb: material(PALETTE.pcb, '哑光绿色电路板', { roughness: 0.84 }),
-    brass: material(PALETTE.brass, '黄铜触点', { metalness: 0.62, roughness: 0.38 }),
-    steel: material(PALETTE.steel, '喷砂金属', { metalness: 0.48, roughness: 0.48 }),
-    lens: material(PALETTE.lens, '蓝黑传感器镜片', { metalness: 0.18, roughness: 0.28 }),
+    brass: material(PALETTE.brass, '黄铜触点', { metalness: 0.78, roughness: 0.3 }),
+    steel: material(PALETTE.steel, '喷砂金属', { metalness: 0.68, roughness: 0.36 }),
+    lens: new THREE.MeshPhysicalMaterial({
+      color: PALETTE.lens,
+      metalness: 0.02,
+      roughness: 0.18,
+      clearcoat: 0.45,
+      clearcoatRoughness: 0.16,
+    }),
   };
+  materials.lens.name = '蓝黑传感器镜片';
   const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
   const sphereGeometry = new THREE.SphereGeometry(1, 10, 8);
   const cylinderGeometries = new Map();

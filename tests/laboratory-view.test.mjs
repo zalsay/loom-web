@@ -159,7 +159,7 @@ test('pavilion keeps a complete exterior while its bent glass room is one furnis
   }
 });
 
-test('laboratory view hides the exterior, preserves interior visibility, and restores exact prior state', () => {
+test('laboratory view keeps real garden scenery, hides exterior structure, and restores exact prior state', () => {
   const model = createPavilion();
   try {
     const lab = model.laboratory;
@@ -171,7 +171,11 @@ test('laboratory view hides the exterior, preserves interior visibility, and res
     interiorFeature.visible = false;
     roof.visible = false;
     model.landscape.visible = false;
+    model.ground.visible = false;
     model.panda.visible = false;
+    const hiddenGrass = model.landscape.getObjectByName('细草叶');
+    hiddenGrass.visible = false;
+    const originalChildren = [...model.root.children];
     const before = visibility(model.root);
     const controller = createLaboratoryView(model);
 
@@ -186,8 +190,12 @@ test('laboratory view hides the exterior, preserves interior visibility, and res
     assert.ok(!shown.some((name) => name.startsWith('前侧 W 形斜柱')));
     assert.ok(!shown.some((name) => name.startsWith('后侧 W 形斜柱')));
     assert.ok(!shown.includes('LoomOS Rooftop Panda'));
-    assert.ok(!shown.includes('草坪地面'));
-    assert.ok(!shown.includes('廊亭下沥青路面'));
+    assert.ok(shown.includes('草坪地面'), 'actual lawn is visible through the glazing');
+    assert.ok(shown.includes('树带树冠'));
+    assert.ok(shown.includes('右侧主路'));
+    assert.ok(shown.includes('廊亭下沥青路面'));
+    assert.deepEqual(model.root.children, originalChildren, 'no duplicated scenery or backdrop');
+    assert.equal(hiddenGrass.visible, false, 'fallback-hidden grass instances stay hidden');
     assert.equal(svgHalo.visible, false, 'SVG-only hidden halo remains hidden inside laboratory');
     assert.equal(interiorFeature.visible, false, 'originally hidden interior children stay hidden');
     assert.equal(
@@ -223,6 +231,8 @@ test('laboratory view hides the exterior, preserves interior visibility, and res
 
 test('laboratory view resolves cloned SVG-compatible roots and does not dispose shared model resources', () => {
   const model = createPavilion();
+  model.landscape.visible = false;
+  model.ground.visible = false;
   const clone = model.root.clone(true);
   try {
     const cloneModel = { root: clone };
@@ -235,7 +245,13 @@ test('laboratory view resolves cloned SVG-compatible roots and does not dispose 
     view.setActive(true);
     assert.equal(clone.getObjectByName('建筑').visible, true);
     assert.equal(cloneLab.visible, true);
+    assert.equal(clone.getObjectByName('草坪与园林').visible, true);
+    assert.equal(clone.getObjectByName('地面与铺装').visible, true);
+    assert.equal(model.landscape.visible, false, 'clone controller must not alter source scenery');
+    assert.equal(model.ground.visible, false);
     view.dispose();
+    assert.equal(clone.getObjectByName('草坪与园林').visible, false);
+    assert.equal(clone.getObjectByName('地面与铺装').visible, false);
     assert.equal(disposeCount, 0, 'visibility controller never disposes model resources');
     assert.equal(model.laboratory.visible, true, 'cloned controller does not mutate source model');
     assert.equal(PAVILION.roofBodyTop > GLASS_ROOM.ceilingY, true);

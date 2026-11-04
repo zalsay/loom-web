@@ -282,3 +282,17 @@ test('only the two supported table variants are accepted', () => {
   assert.throws(() => createLaboratoryTableExhibits({ variant: 2 }), RangeError);
   assert.throws(() => createLaboratoryTableExhibits({ variant: -1 }), RangeError);
 });
+
+test('exhibit materials distinguish optical glass, plastics and conductive metals', () => {
+  const assembly = createLaboratoryTableExhibits();
+  try {
+    const mats = [...resources(assembly).materials];
+    const lens = mats.find((m) => m.name === '蓝黑传感器镜片');
+    assert.equal(lens.isMeshPhysicalMaterial, true);
+    assert.ok(lens.clearcoat > 0 && lens.roughness < 0.25);
+    assert.ok(mats.find((m) => m.name === '黄铜触点').metalness >= 0.7);
+    assert.ok(mats.find((m) => m.name === '安全黄积木').metalness <= 0.02);
+  } finally {
+    dispose(assembly);
+  }
+});
