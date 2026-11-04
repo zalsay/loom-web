@@ -21,6 +21,7 @@ description: 逆向拆解一条视频是怎么做出来的——逐镜头判断�
 先跑 `rea-video --help`。没装就按 `references/setup.md` 安装（需要 ffmpeg、Python ≥ 3.10）。
 
 VLM（能看图的多模态模型）建议配，不强制，配置方法也在 `references/setup.md`。没配也照常跑，不要因此中止：
+
 - 你自己能看图：你就是这次的"VLM"，按下面的「看图复核并入」做。
 - 你看不了图：遵守 `references/review.md` 的「看不了图时的规则」，回复末尾一句话建议配置 VLM。
 
@@ -82,16 +83,16 @@ rea-video summary out/ref/breakdown.json      # 用并入后的结果写回复
 
 ## 参考文件
 
-| 文件 | 什么时候看 |
-|---|---|
-| `references/setup.md` | 安装、配置 VLM |
-| `references/review.md` | 看图复核：融合规则、看不了图、原片判 AI、平台转码 |
-| `references/taxonomy.md` | 10 类画面、AI 加工、判断要点速查、易混对照 |
-| `references/audio.md` | 声音复核 |
-| `references/materials.md` | 真实素材复核 |
-| `references/output-template.md` | 交付格式 |
-| `references/remake.md` | 复刻、对接 capsule-cinema |
-| `references/memory.md` | 记住纠正和偏好 |
+| 文件                            | 什么时候看                                        |
+| ------------------------------- | ------------------------------------------------- |
+| `references/setup.md`           | 安装、配置 VLM                                    |
+| `references/review.md`          | 看图复核：融合规则、看不了图、原片判 AI、平台转码 |
+| `references/taxonomy.md`        | 10 类画面、AI 加工、判断要点速查、易混对照        |
+| `references/audio.md`           | 声音复核                                          |
+| `references/materials.md`       | 真实素材复核                                      |
+| `references/output-template.md` | 交付格式                                          |
+| `references/remake.md`          | 复刻、对接 capsule-cinema                         |
+| `references/memory.md`          | 记住纠正和偏好                                    |
 
 ## 5. 不要做的事
 
