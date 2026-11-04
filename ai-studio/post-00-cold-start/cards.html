@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第 0 篇冷启动黑白卡（去 AI 味口语版）</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: #e5e4df;
+        font-family:
+          'PingFang SC',
+          'Hiragino Sans GB',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        padding: 32px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+      }
+
+      .card {
+        width: 414px;
+        height: 552px;
+        background: #faf9f6;
+        color: #171716;
+        padding: 40px 34px 30px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card--dark {
+        background: #141413;
+        color: #faf9f6;
+      }
+
+      /* Cover */
+      .cover-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-bottom: 18px;
+      }
+
+      .cover-title {
+        font-size: 50px;
+        font-weight: 600;
+        line-height: 1.34;
+        letter-spacing: -0.015em;
+      }
+
+      .cover-title span {
+        display: block;
+      }
+
+      /* Inner pages: pure conversational text, one breath per line */
+      .flow {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 22px;
+        padding-bottom: 8px;
+      }
+
+      .p {
+        font-size: 16.5px;
+        font-weight: 400;
+        line-height: 1.82;
+        color: #2b2a28;
+      }
+
+      .p strong {
+        font-weight: 600;
+        color: #111110;
+      }
+
+      .quote-line {
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.5;
+        color: #111110;
+        margin: 5px 0;
+      }
+
+      .punct-tight {
+        display: inline-block;
+        margin-right: -0.38em;
+      }
+
+      .ask-block {
+        padding-top: 18px;
+        border-top: 1px solid #dedcd5;
+      }
+
+      .page-foot {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        font-family: 'SF Mono', 'Menlo', ui-monospace, monospace;
+        font-size: 11.5px;
+        color: #a3a099;
+        letter-spacing: 0.06em;
+      }
+
+      .card--dark .page-foot {
+        color: #6e6c67;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- P1: 暖白底黑字封面 -->
+    <section class="card" id="card-01-cover">
+      <div class="cover-wrap">
+        <h1 class="cover-title">
+          <span>7岁女儿说</span>
+          <span>想要个机器人</span>
+          <span>我真被问住了</span>
+        </h1>
+      </div>
+      <div class="page-foot">1/4</div>
+    </section>
+
+    <!-- P2: 内页一（大白话聊两难） -->
+    <section class="card" id="card-02-dilemma">
+      <div class="flow">
+        <div class="p">
+          昨晚写完作业，她突然跑来问我：
+          <div class="quote-line">
+            “爸爸，我想要个机器人<span class="punct-tight">。</span>”
+          </div>
+          手还在那比划，想要四条腿会走的那种。
+        </div>
+
+        <p class="p">
+          我一下不知道怎么接这话。<br />
+          买个现成玩具吧，<strong>玩两天准得吃灰；</strong><br />
+          报个拼搭班吧，看了一圈都是发张图照着拼。
+        </p>
+
+        <p class="p">
+          可要是带她自己做，我又怕两种结局：<br />
+          要么我没忍住全替她干了，她在旁边干看着；<br />
+          要么弄五分钟卡住了，直接哭着不干了。
+        </p>
+      </div>
+      <div class="page-foot">2/4</div>
+    </section>
+
+    <!-- P3: 内页二（大白话聊担忧） -->
+    <section class="card" id="card-03-reflection">
+      <div class="flow">
+        <p class="p">
+          以前小孩说这种话，<br />
+          大人夸句“想象力真棒”，打个哈哈就过去了。<br />
+          因为大人自己也不知道从哪下手。
+        </p>
+
+        <p class="p">
+          但这阵子天天用 AI，我突然换了个念头：<br />
+          照着图纸一步步干活的事，AI 比人快多了；<br />
+          小孩随口冒出来的这些<strong>奇奇怪怪的想法，</strong><br />
+          <strong>反而是最难得的。</strong>
+        </p>
+
+        <p class="p">
+          我真怕我随口一句<strong>“等你长大再学”</strong>，<br />
+          她当真了，以后再也不跟我提了。
+        </p>
+      </div>
+      <div class="page-foot">3/4</div>
+    </section>
+
+    <!-- P4: 内页三（留悬念引发好奇与关注追更） -->
+    <section class="card" id="card-04-action">
+      <div class="flow">
+        <p class="p">
+          昨晚脑子一热，我已经先答应她了：<br />
+          <strong>这周末在家开工，不买现成玩具，也不找图纸。</strong>
+        </p>
+
+        <p class="p">
+          可话刚说出口，我自己先犯愁了——<br />
+          一个刚上一年级的 7 岁小孩，从零开始，<br />
+          到底怎么做出她想要的机器狗？<br />
+          我这两天正在琢磨一个没试过的办法，<br />
+          准备周末陪她真刀真枪试一回。
+        </p>
+
+        <div class="ask-block">
+          <p class="p">
+            <strong>你们猜这事能成，还是五分钟就翻车？</strong><br />
+            有经验的爸妈来评论区给我支支招，<br />
+            <strong>想看周末现场结果的，关注蹲个后续。</strong>
+          </p>
+        </div>
+      </div>
+      <div class="page-foot">4/4</div>
+    </section>
+
+    <!-- 备选黑底白字封面 -->
+    <section class="card card--dark" id="card-01-cover-dark">
+      <div class="cover-wrap">
+        <h1 class="cover-title">
+          <span>7岁女儿说</span>
+          <span>想要个机器人</span>
+          <span>我真被问住了</span>
+        </h1>
+      </div>
+      <div class="page-foot">1/4</div>
+    </section>
+  </body>
+</html>
