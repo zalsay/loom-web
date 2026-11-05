@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第 2 篇：女儿手绘稿与脑海想法拆解（黑白卡 5 页完整版）</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: #e5e4df;
+        font-family:
+          'PingFang SC',
+          'Hiragino Sans GB',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        padding: 32px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+      }
+
+      .card {
+        width: 414px;
+        height: 552px;
+        background: #faf9f6;
+        color: #171716;
+        padding: 38px 34px 28px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card--dark {
+        background: #141413;
+        color: #faf9f6;
+      }
+
+      /* Cover */
+      .cover-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-bottom: 14px;
+      }
+
+      .cover-title {
+        font-size: 42px;
+        font-weight: 600;
+        line-height: 1.34;
+        letter-spacing: -0.015em;
+      }
+
+      .cover-title span {
+        display: block;
+      }
+
+      .cover-badge-wrap {
+        margin-top: 22px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .cover-badge-img {
+        width: 130px;
+        height: auto;
+        mix-blend-mode: multiply;
+      }
+
+      .cover-badge-text {
+        font-size: 13px;
+        color: #7d7a72;
+        line-height: 1.5;
+        border-left: 2px solid #dedcd5;
+        padding-left: 10px;
+      }
+
+      /* Inner flow */
+      .flow {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 16px;
+        padding-bottom: 6px;
+      }
+
+      .p {
+        font-size: 15.5px;
+        font-weight: 400;
+        line-height: 1.8;
+        color: #2b2a28;
+      }
+
+      .p strong {
+        font-weight: 600;
+        color: #111110;
+      }
+
+      .quote-line {
+        font-size: 19px;
+        font-weight: 600;
+        line-height: 1.45;
+        color: #111110;
+        margin: 4px 0;
+      }
+
+      .punct-tight {
+        display: inline-block;
+        margin-right: -0.38em;
+      }
+
+      /* Image frames */
+      .full-sketch-frame {
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e5e3dc;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        background: #fff;
+      }
+
+      .full-sketch-frame img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .detail-crop-wrap {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin: 6px 0;
+      }
+
+      .detail-crop-frame {
+        width: 140px;
+        height: 100px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #e5e3dc;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .detail-crop-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .detail-desc {
+        flex: 1;
+        font-size: 14.5px;
+        line-height: 1.7;
+        color: #383632;
+      }
+
+      .ask-block {
+        padding-top: 16px;
+        border-top: 1px solid #dedcd5;
+      }
+
+      .page-foot {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        font-family: 'SF Mono', 'Menlo', ui-monospace, monospace;
+        font-size: 11.5px;
+        color: #a3a099;
+        letter-spacing: 0.06em;
+      }
+
+      .card--dark .page-foot {
+        color: #6e6c67;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- P1: 封面 -->
+    <section class="card" id="card-01-cover">
+      <div class="cover-wrap">
+        <h1 class="cover-title">
+          <span>7岁女儿交图纸了</span>
+          <span>她画的机器狗</span>
+          <span>我真看愣了</span>
+        </h1>
+        <div class="cover-badge-wrap">
+          <img
+            class="cover-badge-img"
+            src="../images/daughter-drawing-dog.png"
+            alt="手绘小狗剪影"
+          />
+          <div class="cover-badge-text">
+            7岁小孩脑海里的<br />
+            机器狗设计图
+          </div>
+        </div>
+      </div>
+      <div class="page-foot">1/5</div>
+    </section>
+
+    <!-- P2: 实物全貌展出 -->
+    <section class="card" id="card-02-full-sketch">
+      <div class="flow">
+        <div class="p">
+          昨晚答应带她自己做机器人，<br />
+          顺手给她一张白纸：<strong>“先去画出你想做的样子。”</strong><br />
+          今天放学一进门，她郑重其事地交到我手里：
+        </div>
+
+        <div class="full-sketch-frame">
+          <img
+            src="../images/daughter-drawing-full.png"
+            alt="女儿亲手画的机器狗与操控台设计图"
+          />
+        </div>
+
+        <p class="p">
+          折痕还在，铅笔道还清清楚楚。<br />
+          我本来以为小孩就是随手涂鸦，<br />
+          <strong>仔细一看上面的细节，我真被震撼到了。</strong>
+        </p>
+      </div>
+      <div class="page-foot">2/5</div>
+    </section>
+
+    <!-- P3: 拆解细节一（左边的小狗） -->
+    <section class="card" id="card-03-dog-detail">
+      <div class="flow">
+        <div class="quote-line">
+          “爸爸，你看它耳朵还在动<span class="punct-tight">！</span>”
+        </div>
+
+        <div class="detail-crop-wrap">
+          <div class="detail-crop-frame">
+            <img src="../images/daughter-drawing-dog.png" alt="小狗特写" />
+          </div>
+          <div class="detail-desc">
+            <strong>左边是四腿机器狗：</strong><br />
+            方脑袋上挂着两只大耳朵，<br />
+            左侧画了三道波浪线（说在叫唤和扑棱）；<br />
+            方块身子上有两个小方框，<br />
+            “那是装电池和开关的窗户”。
+          </div>
+        </div>
+
+        <p class="p">
+          在她眼里，机器人不需要金属感外壳，<br />
+          但<strong>必须有表情、能走路、会回应她。</strong>
+        </p>
+      </div>
+      <div class="page-foot">3/5</div>
+    </section>
+
+    <!-- P4: 拆解细节二（右边最震撼的构图） -->
+    <section class="card" id="card-04-girl-detail">
+      <div class="flow">
+        <div class="quote-line">
+          右边最让我吃惊的细节：
+        </div>
+
+        <div class="detail-crop-wrap">
+          <div class="detail-crop-frame">
+            <img src="../images/daughter-drawing-girl.png" alt="女儿操控台特写" />
+          </div>
+          <div class="detail-desc">
+            右边扎马尾、笑眯眯坐凳子上的，<br />
+            <strong>正是她自己！</strong><br />
+            双手握着长摇杆，正在操控台前操作。
+          </div>
+        </div>
+
+        <p class="p">
+          我才彻底看明白：<br />
+          <strong>她要的根本不是摆在桌上的现成玩具，</strong><br />
+          <strong>而是一个由她亲自操控、能一起玩的伙伴！</strong>
+        </p>
+      </div>
+      <div class="page-foot">4/5</div>
+    </section>
+
+    <!-- P5: 承诺与周末开工悬念 -->
+    <section class="card" id="card-05-action">
+      <div class="flow">
+        <p class="p">
+          “设计图”都郑重其事交到我手里了，<br />
+          <strong>这回当爹的真推不掉了。</strong>
+        </p>
+
+        <p class="p">
+          不买流水线套件，不找图纸按部就班，<br />
+          怎么带 7 岁小孩，用硬纸箱、舵机和生活零件，<br />
+          把她画的四腿狗真正做出来？<br />
+          这两天正在偷偷拆解方案，<strong>这周末正式开工！</strong>
+        </p>
+
+        <div class="ask-block">
+          <p class="p">
+            <strong>你们猜周末我们能不能做出第一只能走的原型？</strong><br />
+            想看周末现场真实动手、是成了还是翻车的，<br />
+            <strong>点个关注蹲周末开工实况！</strong>
+          </p>
+        </div>
+      </div>
+      <div class="page-foot">5/5</div>
+    </section>
+
+    <!-- 备选黑底封面 -->
+    <section class="card card--dark" id="card-01-cover-dark">
+      <div class="cover-wrap">
+        <h1 class="cover-title">
+          <span>7岁女儿交图纸了</span>
+          <span>她画的机器狗</span>
+          <span>我真看愣了</span>
+        </h1>
+      </div>
+      <div class="page-foot">1/5</div>
+    </section>
+  </body>
+</html>

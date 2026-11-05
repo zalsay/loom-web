@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>第 0 篇冷启动黑白卡（含女儿手绘设计图版）</title>
+    <title>第 1 篇：提出想要机器人（黑白卡 4 页完整版）</title>
     <style>
       * {
         box-sizing: border-box;
@@ -32,7 +32,7 @@
         height: 552px;
         background: #faf9f6;
         color: #171716;
-        padding: 38px 34px 28px;
+        padding: 40px 34px 30px;
         display: flex;
         flex-direction: column;
         position: relative;
@@ -64,43 +64,20 @@
         display: block;
       }
 
-      /* Cover with sketch illustration */
-      .cover-sketch-wrap {
-        margin-top: 24px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-
-      .cover-sketch-img {
-        width: 140px;
-        height: auto;
-        mix-blend-mode: multiply;
-        opacity: 0.92;
-      }
-
-      .cover-sketch-label {
-        font-size: 13px;
-        color: #7d7a72;
-        line-height: 1.5;
-        border-left: 2px solid #dedcd5;
-        padding-left: 10px;
-      }
-
       /* Inner pages: pure conversational text, one breath per line */
       .flow {
         flex: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 18px;
-        padding-bottom: 6px;
+        gap: 20px;
+        padding-bottom: 8px;
       }
 
       .p {
         font-size: 16px;
         font-weight: 400;
-        line-height: 1.8;
+        line-height: 1.82;
         color: #2b2a28;
       }
 
@@ -110,11 +87,11 @@
       }
 
       .quote-line {
-        font-size: 19px;
+        font-size: 19.5px;
         font-weight: 600;
-        line-height: 1.45;
+        line-height: 1.5;
         color: #111110;
-        margin: 4px 0;
+        margin: 5px 0;
       }
 
       .punct-tight {
@@ -122,33 +99,8 @@
         margin-right: -0.38em;
       }
 
-      /* Sketch card styling */
-      .sketch-frame {
-        width: 100%;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid #e5e3dc;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-        background: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .sketch-frame img {
-        width: 100%;
-        height: auto;
-        display: block;
-      }
-
-      .sketch-caption {
-        font-size: 14.5px;
-        line-height: 1.68;
-        color: #45433f;
-      }
-
       .ask-block {
-        padding-top: 16px;
+        padding-top: 18px;
         border-top: 1px solid #dedcd5;
       }
 
@@ -168,7 +120,7 @@
     </style>
   </head>
   <body>
-    <!-- P1: 暖白底黑字封面（经典纯文字版） -->
+    <!-- P1: 暖白底黑字封面 -->
     <section class="card" id="card-01-cover">
       <div class="cover-wrap">
         <h1 class="cover-title">
@@ -177,125 +129,85 @@
           <span>我真被问住了</span>
         </h1>
       </div>
-      <div class="page-foot">1/5</div>
+      <div class="page-foot">1/4</div>
     </section>
 
-    <!-- P1-备选: 带手绘小狗插画封面 -->
-    <section class="card" id="card-01-cover-sketch">
-      <div class="cover-wrap">
-        <h1 class="cover-title">
-          <span>7岁女儿说</span>
-          <span>想要个机器人</span>
-          <span>我真被问住了</span>
-        </h1>
-        <div class="cover-sketch-wrap">
-          <img
-            class="cover-sketch-img"
-            src="../images/daughter-drawing-dog.png"
-            alt="女儿手绘小狗"
-          />
-          <div class="cover-sketch-label">
-            她递给我的<br />手绘机器狗
-          </div>
-        </div>
-      </div>
-      <div class="page-foot">1/5</div>
-    </section>
-
-    <!-- P2: 女儿手绘设计图（实物证据） -->
-    <section class="card" id="card-02-sketch">
+    <!-- P2: 内页一（两难与反思） -->
+    <section class="card" id="card-02-dilemma">
       <div class="flow">
         <div class="p">
-          昨晚写完作业，她突然跑过来：
+          昨晚写完作业，她突然跑来问我：
           <div class="quote-line">
             “爸爸，我想要个机器人<span class="punct-tight">。</span>”
           </div>
-          说完把她画的“设计图”递到我手里：
+          手还在那比划，想要四条腿会走的那种。
         </div>
 
-        <div class="sketch-frame">
-          <img
-            src="../images/daughter-drawing-full.png"
-            alt="女儿手绘的机器狗与操控台设计图"
-          />
-        </div>
-
-        <div class="p sketch-caption">
-          左边四条腿小狗，耳朵扑棱扑棱；<br />
-          右边扎马尾的是她自己，坐操作台前控制。<br />
-          <strong>看她一脸认真的样，原本糊弄的话硬是咽回去了。</strong>
-        </div>
-      </div>
-      <div class="page-foot">2/5</div>
-    </section>
-
-    <!-- P3: 内页二（大白话聊两难） -->
-    <section class="card" id="card-03-dilemma">
-      <div class="flow">
         <p class="p">
-          接过图纸，我一下不知道怎么接这话。<br /><br />
+          我一下不知道怎么接这话。<br />
           买个现成玩具吧，<strong>玩两天准得吃灰；</strong><br />
-          报个拼搭班吧，看了一圈都是发张图照着拼。
+          报个拼搭班吧，看了一圈都是发张图照着拼。<br />
+          带她自己做吧，又怕最后全是大人代劳，<br />
+          或者弄五分钟卡住了，直接哭着不干了。
         </p>
 
         <p class="p">
-          可要是带她自己做，我又怕两种结局：<br />
-          要么我没忍住全替她干了，她在旁边干看着；<br />
-          要么弄五分钟卡住了，直接哭着不干了。
+          以前遇到这种话，大人大多打个哈哈就过去了。<br />
+          但我真怕随口一句<strong>“等你长大再学”</strong>，<br />
+          把她心里这点<strong>难得的好奇心给浇灭了。</strong>
         </p>
       </div>
-      <div class="page-foot">3/5</div>
+      <div class="page-foot">2/4</div>
     </section>
 
-    <!-- P4: 内页三（大白话聊担忧） -->
-    <section class="card" id="card-04-reflection">
+    <!-- P3: 内页二（决定动手与第一道题） -->
+    <section class="card" id="card-03-decision">
       <div class="flow">
         <p class="p">
-          以前小孩说这种话，<br />
-          大人夸句“想象力真棒”，打个哈哈就过去了。<br />
-          因为大人自己也不知道从哪下手。
+          照着图纸干活的事，AI 已经比人快太多了；<br />
+          小孩随口冒出来的这些奇奇怪怪的想法，<br />
+          <strong>反而是最珍贵的。</strong>
         </p>
 
         <p class="p">
-          但这阵子天天用 AI，我突然换了个念头：<br />
-          照着图纸一步步干活的事，AI 比人快多了；<br />
-          小孩随口冒出来的这些<strong>奇奇怪怪的想法，</strong><br />
-          <strong>反而是最难得的。</strong>
+          昨晚脑子一热，我当场跟她说：<br />
+          <strong>“这次咱们不买玩具，也不找图纸照着拼，自己做！”</strong>
         </p>
 
         <p class="p">
-          我真怕我随口一句<strong>“等你长大再学”</strong>，<br />
-          她当真了，以后再也不跟我提了。
+          但要动手，总得先知道它长什么样。<br />
+          我顺手抽出一张白纸递给她：<br />
+          <strong>“动手前，你先去把你脑海里的机器人画出来。”</strong><br />
+          画好了，爸爸就陪你正式开工。
         </p>
       </div>
-      <div class="page-foot">4/5</div>
+      <div class="page-foot">3/4</div>
     </section>
 
-    <!-- P5: 内页四（留悬念引发好奇与关注追更） -->
-    <section class="card" id="card-05-action">
+    <!-- P4: 内页三（留悬念引发好奇与关注蹲后续） -->
+    <section class="card" id="card-04-action">
       <div class="flow">
-        <p class="p">
-          昨晚脑子一热，我已经先答应她了：<br />
-          <strong>这周末在家开工，不买现成玩具，也不找图纸。</strong>
-        </p>
-
         <p class="p">
           可话刚说出口，我自己先犯愁了——<br />
-          一个刚上一年级的 7 岁小孩，从零开始，<br />
-          到底怎么做出她想要的机器狗？<br />
-          我这两天正在琢磨一个没试过的办法，<br />
-          准备周末陪她真刀真枪试一回。
+          一个刚上一年级的 7 岁小孩，<br />
+          脑子里到底装的是个什么样的机器人？<br />
+          <strong>她能画得出来吗？还是五分钟就画翻车了？</strong>
+        </p>
+
+        <p class="p">
+          说实话，我心里一点底都没有，<br />
+          正在偷偷琢磨如果真画出来了，到底该怎么带她做。
         </p>
 
         <div class="ask-block">
           <p class="p">
-            <strong>你们猜这事能成，还是五分钟就翻车？</strong><br />
+            <strong>你们家娃提过什么让你头皮发麻的要求？</strong><br />
             有经验的爸妈来评论区给我支支招，<br />
-            <strong>想看周末现场结果的，关注蹲个后续。</strong>
+            <strong>想看女儿今晚交出什么“草图”的，关注蹲下篇！</strong>
           </p>
         </div>
       </div>
-      <div class="page-foot">5/5</div>
+      <div class="page-foot">4/4</div>
     </section>
 
     <!-- 备选黑底白字封面 -->
@@ -307,7 +219,7 @@
           <span>我真被问住了</span>
         </h1>
       </div>
-      <div class="page-foot">1/5</div>
+      <div class="page-foot">1/4</div>
     </section>
   </body>
 </html>
