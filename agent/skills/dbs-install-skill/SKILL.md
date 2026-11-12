@@ -14,6 +14,7 @@ metadata:
 
     - 不交出：Skill 内容修改、项目规则文件迁移、为未安装的 Agent 新建目录、覆盖或删除真实目录
 ---
+
 # dbs-install-skill：多端 Skill 安装与同步
 
 把任意包含 `SKILL.md` 的 Skill 源目录，或包含多个 Skill 子目录的集合目录，安装到本机已经存在的 Agent。

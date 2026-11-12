@@ -20,7 +20,6 @@ description: 更新官方 dbskill，并保留其他 Skill 与用户存档。用�
 ## 执行步骤
 
 1. 判断 dbskill 的安装渠道。两种渠道可能同时存在，只更新实际检测到的渠道：
-
    - **Claude Code 插件**：本 Skill 所在路径包含 `/.claude/plugins/`，或 `claude plugin list` 的输出中有以 `@dontbesilent-skills` 结尾的插件。
    - **Skills CLI**：`~/.agents/skills/`、`~/.claude/skills/` 或其他 Agent 的 Skill 目录中存在 `dbs` 等官方 Skill，且它们不在 `/.claude/plugins/` 下。
 
@@ -42,7 +41,6 @@ description: 更新官方 dbskill，并保留其他 Skill 与用户存档。用�
    两种渠道都检测不到时，按这个命令更新。
 
 4. 清理已下线的官方旧入口。名单与官方历史版本指纹在本 Skill 的 [references/retired-skills.json](references/retired-skills.json)：
-
    - **Claude Code 插件渠道**：`claude plugin list` 中以 `@dontbesilent-skills` 结尾、且名称在名单里的插件，逐个执行 `claude plugin uninstall <名称>@dontbesilent-skills`。
    - **本地 Skill 目录**：解析本 Skill 所在目录的绝对路径，运行其中的 `scripts/cleanup_retired_skills.py`（macOS 与 Linux 用 `python3`，Windows 用 `python` 或 `py`）。脚本只移除失效链接和指向官方旧版本的链接；与官方旧版本完全一致的目录移到 `~/.dbs/retired-skills/<时间>/` 备份；其余同名项保留并说明原因。
    - 当前环境没有 Python 时跳过脚本，在回复中列出名单里的名称，请用户自行检查各 Agent 的 Skill 目录。

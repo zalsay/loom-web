@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#dbe3d2" />
+    <title>织界·农场 AI-Lab 3D 规划 — Loom OS</title>
+    <link rel="icon" href="./favicon.svg" />
+    <link rel="stylesheet" href="./farm.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.js",
+          "three/addons/": "./vendor/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="canvas-container" aria-label="织界农场 3D 交互场景"></div>
+
+    <!-- 顶部状态与导航 -->
+    <header class="top-bar">
+      <div class="brand-badge">
+        <h1>织界 · 农场 AI-Lab</h1>
+        <span class="sub">专属 3m×3m 种植区与共用控制室</span>
+      </div>
+      <nav class="nav-links">
+        <a href="./world.html" class="nav-btn">织界 · AiLab ↗</a>
+        <a href="./" class="nav-btn">返回主页 ↗</a>
+      </nav>
+    </header>
+
+    <!-- 左下角交互面板 HUD -->
+    <aside class="hud-panel" aria-label="场景交互与视角控制器">
+      <h2>
+        <span>场景导览与设备</span>
+        <small
+          style="
+            font-size: 11px;
+            color: #4ade80;
+            background: #224227;
+            padding: 2px 6px;
+            border-radius: 4px;
+          "
+          >在线</small
+        >
+      </h2>
+
+      <div class="section-label">视角导览</div>
+      <div class="view-buttons">
+        <button class="btn-ctrl active" data-view="overview">全景鸟瞰</button>
+        <button class="btn-ctrl" data-view="control-room">走进控制室</button>
+        <button class="btn-ctrl" data-view="agent-screen">Agent 交互大屏</button>
+        <button class="btn-ctrl" data-view="plan">3m×3m 规划俯视</button>
+      </div>
+
+      <div class="section-label">孩子专属地块 (3m × 3m)</div>
+      <div class="plot-chips" id="plot-buttons">
+        <button class="plot-chip" data-plot="1">01 晨晨·番茄</button>
+        <button class="plot-chip" data-plot="2">02 浩浩·向日葵</button>
+        <button class="plot-chip" data-plot="3">03 悠悠·草莓架</button>
+        <button class="plot-chip" data-plot="4">04 乐乐·南瓜藤</button>
+        <button class="plot-chip" data-plot="5">05 糖糖·遮阳生菜</button>
+        <button class="plot-chip" data-plot="6">06 新试验留白</button>
+      </div>
+
+      <div class="section-label">通道穿梭运输车 (乐高拼搭)</div>
+      <div class="plot-chips" id="rover-buttons">
+        <button
+          class="plot-chip rover-btn"
+          data-rover="0"
+          style="border-color: #ef9a9a; background: #fff0f0; color: #b71c1c"
+        >
+          🚚 01号 果蔬运输车
+        </button>
+        <button
+          class="plot-chip rover-btn"
+          data-rover="1"
+          style="border-color: #90caf9; background: #f0f7ff; color: #0d47a1"
+        >
+          🚜 02号 巡检补给车
+        </button>
+      </div>
+
+      <div class="section-label">农场环境与设施联动</div>
+      <div class="toggles">
+        <label class="toggle-label">
+          <span>微喷滴灌水流粒子</span>
+          <input type="checkbox" id="toggle-drip" checked />
+        </label>
+        <label class="toggle-label">
+          <span>光照模式</span>
+          <select
+            id="select-light"
+            style="
+              padding: 2px 6px;
+              border-radius: 4px;
+              border: 1px solid #c8d5be;
+              background: #fdfdfd;
+              font-size: 11px;
+            "
+          >
+            <option value="day">自然日光 (晴天)</option>
+            <option value="dusk">傍晚黄昏 (暖金)</option>
+            <option value="night">夜间实验 (暖光大屏)</option>
+          </select>
+        </label>
+        <label class="toggle-label">
+          <span>自动平滑慢速旋转</span>
+          <input type="checkbox" id="toggle-autorotate" />
+        </label>
+      </div>
+    </aside>
+
+    <!-- 右侧详情卡片 (点击地块或控制室内设备展开) -->
+    <section id="info-card" class="info-card hidden" aria-live="polite">
+      <div class="info-header">
+        <div>
+          <h3 id="card-title" class="info-title">地块详情</h3>
+          <div id="card-sub" class="info-subtitle">专属空间与项目状态</div>
+        </div>
+        <button id="card-close" class="close-btn" title="关闭">×</button>
+      </div>
+
+      <div id="card-stats" class="stat-grid">
+        <div class="stat-item">
+          <div id="stat-1-val" class="stat-val">42%</div>
+          <div id="stat-1-lbl" class="stat-lbl">土壤湿度</div>
+        </div>
+        <div class="stat-item">
+          <div id="stat-2-val" class="stat-val">22.4℃</div>
+          <div id="stat-2-lbl" class="stat-lbl">地温</div>
+        </div>
+        <div class="stat-item">
+          <div id="stat-3-val" class="stat-val">7.2h</div>
+          <div id="stat-3-lbl" class="stat-lbl">累计日照</div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-lbl">孩子与动手装置</div>
+        <div id="card-device" class="info-block-text">DIY重力储水桶 + 渗灌毛细管</div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-lbl">真实问题与探究闭环</div>
+        <div id="card-question" class="info-block-text question-highlight">
+          “周末没人来，水到底能不能滴整整两天？”
+        </div>
+      </div>
+    </section>
+
+    <div class="hint-pill">左键拖拽旋转 · 滚轮缩放 · 点击地块或控制室内设备查看详情</div>
+
+    <script type="module" src="./js/farm.js"></script>
+  </body>
+</html>

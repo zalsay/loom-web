@@ -16,19 +16,19 @@
 
 任务 JSON 字段：
 
-| 字段 | 用途 |
-| --- | --- |
-| id | 稳定唯一任务 ID，允许英文、数字、下划线和连字符 |
-| owner | 老板身份说明；接收人 ID 要实际核实 |
-| assignee | 员工身份说明与已核实的飞书 ID |
-| goal / deliverables / acceptance | 目标、交付物数组、验收标准数组 |
-| due / timezone | 可协商期限与时区；due 可以是“待协商” |
-| materials | 员工可访问的资料链接或摘要数组 |
-| feedback | 回填渠道、完成标记与求助方式 |
-| authorization | 自动派单、答疑、调整和通知的明确授权范围 |
-| doc_token / doc_url | 已核实文档 token 或 URL；纯文字任务可省略 |
-| mode | text / on_demand / automatic |
-| state | 初始只能是 draft；送达与验收由证据推动状态转换 |
+| 字段                             | 用途                                            |
+| -------------------------------- | ----------------------------------------------- |
+| id                               | 稳定唯一任务 ID，允许英文、数字、下划线和连字符 |
+| owner                            | 老板身份说明；接收人 ID 要实际核实              |
+| assignee                         | 员工身份说明与已核实的飞书 ID                   |
+| goal / deliverables / acceptance | 目标、交付物数组、验收标准数组                  |
+| due / timezone                   | 可协商期限与时区；due 可以是“待协商”            |
+| materials                        | 员工可访问的资料链接或摘要数组                  |
+| feedback                         | 回填渠道、完成标记与求助方式                    |
+| authorization                    | 自动派单、答疑、调整和通知的明确授权范围        |
+| doc_token / doc_url              | 已核实文档 token 或 URL；纯文字任务可省略       |
+| mode                             | text / on_demand / automatic                    |
+| state                            | 初始只能是 draft；送达与验收由证据推动状态转换  |
 
 `register` 创建后不覆盖任务。修改内容使用 `revise --task-file`，保留修订历史；不得改任务 ID、原负责人或文档绑定，转交应另建任务。范围或授权修订先经老板确认。
 

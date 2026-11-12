@@ -30,8 +30,10 @@
           height="100"
       /></a>
       <nav class="desktop-nav" aria-label="主导航">
-        <a href="#possibilities">能做什么</a><a href="./create.html">创建我的空间</a
-        ><a href="#runtime">怎么使用</a><a href="#start">如何试用</a>
+        <a href="#possibilities">能做什么</a><a href="./world.html">织界·AiLab</a
+        ><a href="./farm.html" class="nav-farm-link">织界·农场</a
+        ><a href="./create.html">创建我的空间</a><a href="#runtime">怎么使用</a
+        ><a href="#start">如何试用</a>
       </nav>
       <div class="header-actions">
         <a
@@ -51,33 +53,68 @@
       </div>
     </header>
     <nav class="mobile-nav" id="mobile-nav" aria-label="移动导航" hidden>
-      <a href="#possibilities">能做什么</a><a href="./create.html">创建我的空间</a
+      <a href="#possibilities">能做什么</a><a href="./world.html">织界·AiLab</a
+      ><a href="./farm.html">织界·农场 ↗</a><a href="./create.html">创建我的空间</a
       ><a href="#runtime">怎么使用</a><a href="#start">如何试用</a
       ><a href="https://github.com/zalsay/loom-os">项目代码 ↗</a>
     </nav>
     <main id="main">
       <section class="hero wrap" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <a class="release-pill" href="#progress"
-            ><span class="status-dot"></span>测试中 · 0.1.1<span class="pill-arrow">↗</span></a
-          >
-          <p class="eyebrow">给小设备准备的一套应用系统</p>
-          <h1 id="hero-title">让小设备，<br />有自己的<span class="serif-accent">应用。</span></h1>
-          <p class="hero-description">
-            Loom OS 让 Mosaico 这样的小设备，<br />也能像手机一样，点图标打开小工具。<br />目前还在测试，欢迎先来了解一下。
-          </p>
-          <div class="hero-actions">
-            <a class="button primary" href="#possibilities">看看能做什么 <span>↗</span></a
-            ><a class="text-link" href="#start">了解怎么试用 <span>↗</span></a>
+          <div class="hero-carousel-nav" role="tablist" aria-label="主题介绍切换">
+            <button
+              class="hero-carousel-tab active"
+              id="hero-tab-0"
+              role="tab"
+              aria-selected="true"
+              aria-controls="hero-carousel-content"
+              data-hero-slide="0"
+            >
+              <span class="tab-dot"></span>
+              <span class="tab-title">01 织界 · AiLab</span>
+            </button>
+            <button
+              class="hero-carousel-tab"
+              id="hero-tab-1"
+              role="tab"
+              aria-selected="false"
+              aria-controls="hero-carousel-content"
+              data-hero-slide="1"
+            >
+              <span class="tab-dot"></span>
+              <span class="tab-title">02 织界 · 农场</span>
+            </button>
           </div>
-          <div class="hero-footnote">
-            <span class="woven-lines" aria-hidden="true"></span>
-            <p>读一页文字，调一下设置。<br /><span>从身边用得上的小工具开始。</span></p>
+          <div id="hero-carousel-content" class="hero-carousel-content" aria-live="polite">
+            <a id="hero-pill" class="release-pill" href="#progress"
+              ><span class="status-dot"></span><span id="hero-pill-text">测试中 · 0.1.1</span
+              ><span class="pill-arrow">↗</span></a
+            >
+            <p id="hero-eyebrow" class="eyebrow">给小设备准备的一套应用系统</p>
+            <h1 id="hero-title">
+              让小设备，<br />有自己的<span class="serif-accent">应用。</span>
+            </h1>
+            <p class="hero-description">
+              Loom OS 让 Mosaico 这样的小设备，<br />也能像手机一样，点图标打开小工具。<br />目前还在测试，欢迎先来了解一下。
+            </p>
+            <div class="hero-actions">
+              <a id="hero-action-primary" class="button primary" href="#possibilities"
+                ><span>看看能做什么</span> <span>↗</span></a
+              ><a id="hero-action-secondary" class="text-link" href="#start"
+                ><span>了解怎么试用</span> <span>↗</span></a
+              >
+            </div>
+            <div class="hero-footnote">
+              <span class="woven-lines" aria-hidden="true"></span>
+              <p id="hero-footnote-text">
+                读一页文字，调一下设置。<br /><span>从身边用得上的小工具开始。</span>
+              </p>
+            </div>
           </div>
         </div>
         <div class="world-stage" id="world-stage">
           <div class="world-topline">
-            <span><i></i>织界空间</span><span>拖动看看，拉近看看</span>
+            <span><i></i>织界 · AiLab</span><span>拖动转一转 · 或进入农场</span>
           </div>
           <iframe
             id="world-frame"
@@ -91,11 +128,15 @@
           </div>
           <div class="world-bottom">
             <div>
-              <span class="world-coordinate">来织界空间逛一逛。</span
-              ><small><a href="./create.html">创建我的空间，按喜欢的样子布置 ↗</a></small>
+              <span class="world-coordinate" id="world-coordinate">来织界空间逛一逛。</span>
+              <small
+                ><a id="world-sublink" href="./create.html"
+                  >创建我的空间，按喜欢的样子布置 ↗</a
+                ></small
+              >
             </div>
-            <button class="world-enter" id="world-enter" aria-label="进入织界空间">
-              <span>进入织界空间</span><b>↗</b>
+            <button class="world-enter" id="world-enter" aria-label="进入 织界·AiLab">
+              <span id="world-enter-text">进入 织界·AiLab</span><b>↗</b>
             </button>
           </div>
           <div class="world-overlay-controls" hidden>

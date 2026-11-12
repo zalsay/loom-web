@@ -7,9 +7,9 @@
 
 ## 一、关联资产
 
-| 资产类型 | 存放位置 | 说明 |
-| :--- | :--- | :--- |
-| **空间与3D展厅** | `/Volumes/RC500/dev/loom-web/web/` | Loom Web 的 WebGL/3D 空间、展馆、升降桌与熊猫顶层雕塑工程 |
-| **LoomOS 宣传工作台** | `/Volumes/RC500/dev/loom-os/copis/宣传计划/` | 织界 LoomOS 官方宣传总工作台（Mosaico 实机纪录、首批笔记 A1~A4、账号视觉等） |
-| **品牌与视觉素材** | `/Volumes/RC500/dev/loom-os/copis/宣传计划/账号视觉/` | 织界 Logo、头像、主页背景与徽章资产 |
-| **自动化发布工具** | `/Users/yingzhang/.local/bin/mcc` | macOS 桌面自动化工具，支持 Chrome 观察、点击、选择文件与表单填写 |
+| 资产类型              | 存放位置                                              | 说明                                                                         |
+| :-------------------- | :---------------------------------------------------- | :--------------------------------------------------------------------------- |
+| **空间与3D展厅**      | `/Volumes/RC500/dev/loom-web/web/`                    | Loom Web 的 WebGL/3D 空间、展馆、升降桌与熊猫顶层雕塑工程                    |
+| **LoomOS 宣传工作台** | `/Volumes/RC500/dev/loom-os/copis/宣传计划/`          | 织界 LoomOS 官方宣传总工作台（Mosaico 实机纪录、首批笔记 A1~A4、账号视觉等） |
+| **品牌与视觉素材**    | `/Volumes/RC500/dev/loom-os/copis/宣传计划/账号视觉/` | 织界 Logo、头像、主页背景与徽章资产                                          |
+| **自动化发布工具**    | `/Users/yingzhang/.local/bin/mcc`                     | macOS 桌面自动化工具，支持 Chrome 观察、点击、选择文件与表单填写             |

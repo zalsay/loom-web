@@ -1,0 +1,368 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #dbe3d2;
+  color: #233527;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    sans-serif;
+  user-select: none;
+}
+
+#canvas-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#canvas-container > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 嵌入模式：在官网主页等嵌入 iframe 时隐藏外围控制面板 */
+body.embedded .top-bar,
+body.embedded .hud-panel,
+body.embedded .info-card,
+body.embedded .hint-pill {
+  display: none !important;
+}
+
+/* 顶部品牌与返回导航 */
+.top-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.brand-badge {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.brand-badge h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2d4530;
+  letter-spacing: 0.5px;
+}
+
+.brand-badge .sub {
+  font-size: 12px;
+  color: #637b67;
+  border-left: 1px solid #ccd8cb;
+  padding-left: 8px;
+}
+
+.nav-links {
+  pointer-events: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.nav-btn {
+  text-decoration: none;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  color: #2d4530;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* 控制面板 HUD (左下角) */
+.hud-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+}
+
+.hud-panel h2 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3321;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6d8471;
+  margin: 10px 0 6px 0;
+  letter-spacing: 0.5px;
+}
+
+.view-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.btn-ctrl {
+  background: #f1f4ed;
+  border: 1px solid #d4decb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #28442c;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.btn-ctrl:hover {
+  background: #e2ebd9;
+  border-color: #a8be9b;
+}
+
+.btn-ctrl.active {
+  background: #395c3e;
+  border-color: #395c3e;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.plot-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.plot-chip {
+  background: #edf1e6;
+  border: 1px solid #c8d5be;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: #314b35;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.plot-chip:hover {
+  background: #d9e5cf;
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #334d37;
+  cursor: pointer;
+}
+
+.toggle-label input {
+  cursor: pointer;
+}
+
+/* 信息弹窗卡片 (右侧) */
+.info-card {
+  position: absolute;
+  top: 76px;
+  right: 20px;
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.09);
+  z-index: 10;
+  transition:
+    opacity 0.25s,
+    transform 0.25s;
+}
+
+.info-card.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e1e9db;
+  padding-bottom: 10px;
+}
+
+.info-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a301d;
+}
+
+.info-subtitle {
+  font-size: 12px;
+  color: #557058;
+  margin-top: 2px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #7b947f;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #1a301d;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stat-item {
+  background: #f2f6ee;
+  border-radius: 8px;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #27452b;
+}
+
+.stat-lbl {
+  font-size: 10px;
+  color: #6a826e;
+  margin-top: 2px;
+}
+
+.info-block {
+  margin-bottom: 10px;
+}
+
+.info-block-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: #58745c;
+  margin-bottom: 3px;
+}
+
+.info-block-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #2d4531;
+  background: #fafbfa;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 3px solid #638c67;
+}
+
+.question-highlight {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+/* 底部操作提示 */
+.hint-pill {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 11.5px;
+  color: #4b664f;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@media (max-width: 640px) {
+  .hud-panel {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+  .info-card {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+  .hint-pill {
+    display: none;
+  }
+}

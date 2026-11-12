@@ -194,7 +194,13 @@ function setWorld(open) {
     previousFocus?.focus({ preventScroll: true });
   }
 }
-enter.addEventListener('click', () => setWorld(true));
+enter.addEventListener('click', () => {
+  if (currentHeroSlide === 1) {
+    location.href = './farm.html';
+  } else {
+    setWorld(true);
+  }
+});
 close.addEventListener('click', () => setWorld(false));
 frame.tabIndex = -1;
 window.addEventListener('message', (event) => {
@@ -241,3 +247,145 @@ window.addEventListener('message', (event) => {
       '<span>暂时没打开，请再试一次。</span><a class="text-link" href="./world.html">重新打开看看 ↗</a>';
   }
 });
+
+// 首页主题介绍轮播：0 = 织界·AiLab，1 = 织界·农场
+const heroSlides = [
+  {
+    pillText: '测试中 · 0.1.1',
+    pillHref: '#progress',
+    eyebrow: '给小设备准备的一套应用系统 · AILAB',
+    title: '让小设备，<br />有自己的<span class="serif-accent">应用。</span>',
+    description:
+      'Loom OS 让 Mosaico 这样的小设备，<br />也能像手机一样，点图标打开小工具。<br />目前还在测试，欢迎先来了解一下。',
+    primaryText: '看看能做什么',
+    primaryHref: '#possibilities',
+    secondaryText: '了解怎么试用',
+    secondaryHref: '#start',
+    footnote: '读一页文字，调一下设置。<br /><span>从身边用得上的小工具开始。</span>',
+    frameSrc: './world.html?embedded=1',
+    topline: '织界 · AiLab',
+    worldCoord: '来织界空间逛一逛。',
+    worldSublinkText: '创建我的空间，按喜欢的样子布置 ↗',
+    worldSublinkHref: './create.html',
+  },
+  {
+    pillText: '新企划 · 农场 AI-lab',
+    pillHref: './farm.html',
+    eyebrow: '给孩子的想法找一块真实的土地 · FARM',
+    title: '找一块土地，<br />做真正有用的<span class="serif-accent">装置。</span>',
+    description:
+      '每个孩子拥有 3m×3m 专属种植区，共用控制室与 G 老师 AI 中枢。<br />自动运输小车在田垄间自主巡航，每次回来都能接着上次做。',
+    primaryText: '进入 3D 农场场景',
+    primaryHref: './farm.html',
+    secondaryText: '查看宣传规划',
+    secondaryHref: './copis/宣传计划/00-策略与规划/农场AI-lab系列宣传计划-lv2.md',
+    footnote:
+      '现场遇到问题 → G 老师分析 → 孩子动手尝试。<br /><span>同一个地块与作品，记录整整一季的变化。</span>',
+    frameSrc: './farm.html?embedded=1',
+    topline: '织界 · 农场',
+    worldCoord: '来织界农场看一看。',
+    worldSublinkText: '3m×3m专属种植试验区与控制室 ↗',
+    worldSublinkHref: './farm.html',
+  },
+];
+
+let currentHeroSlide = 0;
+let heroCarouselTimer = null;
+const heroContent = $('#hero-carousel-content');
+const heroTabs = document.querySelectorAll('.hero-carousel-tab');
+
+function switchHeroSlide(index) {
+  if (!heroContent) return;
+  currentHeroSlide = index;
+
+  heroTabs.forEach((tab, i) => {
+    const active = i === index;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+
+  heroContent.classList.add('switching');
+  setTimeout(() => {
+    const data = heroSlides[index];
+    const pillText = $('#hero-pill-text');
+    const pill = $('#hero-pill');
+    const eyebrow = $('#hero-eyebrow');
+    const title = $('#hero-title');
+    const desc = $('.hero-description');
+    const primary = $('#hero-action-primary');
+    const secondary = $('#hero-action-secondary');
+    const footnoteText = $('#hero-footnote-text');
+
+    if (pillText) pillText.textContent = data.pillText;
+    if (pill) pill.href = data.pillHref;
+    if (eyebrow) eyebrow.textContent = data.eyebrow;
+    if (title) title.innerHTML = data.title;
+    if (desc) desc.innerHTML = data.description;
+    if (primary) {
+      primary.href = data.primaryHref;
+      const sp = primary.querySelector('span');
+      if (sp) sp.textContent = data.primaryText;
+    }
+    if (secondary) {
+      secondary.href = data.secondaryHref;
+      const sp = secondary.querySelector('span');
+      if (sp) sp.textContent = data.secondaryText;
+    }
+    if (footnoteText) footnoteText.innerHTML = data.footnote;
+
+    // 同步 3D 舞台 iframe 场景、标头及右下角单一进入按钮
+    if (frame && !isWorldOpen && frame.getAttribute('src') !== data.frameSrc) {
+      frame.setAttribute('src', data.frameSrc);
+      const toplineLabel = $('.world-topline span:first-child');
+      if (toplineLabel) {
+        toplineLabel.innerHTML = `<i></i>${data.topline}`;
+      }
+    }
+
+    const worldCoord = $('#world-coordinate');
+    const worldSublink = $('#world-sublink');
+    const enterText = $('#world-enter-text');
+    if (worldCoord) worldCoord.textContent = data.worldCoord;
+    if (worldSublink) {
+      worldSublink.textContent = data.worldSublinkText;
+      worldSublink.href = data.worldSublinkHref;
+    }
+    if (enterText) enterText.textContent = `进入 ${data.topline}`;
+    if (enter) enter.setAttribute('aria-label', `进入 ${data.topline}`);
+
+    heroContent.dataset.active = String(index);
+    heroContent.classList.remove('switching');
+  }, 160);
+}
+
+function startHeroCarousel() {
+  stopHeroCarousel();
+  heroCarouselTimer = setInterval(() => {
+    switchHeroSlide((currentHeroSlide + 1) % heroSlides.length);
+  }, 6500);
+}
+
+function stopHeroCarousel() {
+  if (heroCarouselTimer) {
+    clearInterval(heroCarouselTimer);
+    heroCarouselTimer = null;
+  }
+}
+
+heroTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const idx = parseInt(tab.dataset.heroSlide, 10);
+    switchHeroSlide(idx);
+    startHeroCarousel();
+  });
+});
+
+const heroCopy = $('.hero-copy');
+if (heroCopy) {
+  heroCopy.addEventListener('pointerenter', stopHeroCarousel);
+  heroCopy.addEventListener('pointerleave', startHeroCarousel);
+  heroCopy.addEventListener('focusin', stopHeroCarousel);
+  heroCopy.addEventListener('focusout', startHeroCarousel);
+}
+
+startHeroCarousel();

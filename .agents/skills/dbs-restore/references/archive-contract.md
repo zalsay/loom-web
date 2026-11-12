@@ -37,11 +37,11 @@ frontmatter 字段名（`status`、`title`、`source_skill`、`next_skill`）和
 }
 ```
 
-| mode | 存档根目录 |
-|---|---|
-| `default` | `~/.dbs/` |
+| mode      | 存档根目录               |
+| --------- | ------------------------ |
+| `default` | `~/.dbs/`                |
 | `project` | 当前工作目录下的 `.dbs/` |
-| `custom` | `root` 字段指定的目录 |
+| `custom`  | `root` 字段指定的目录    |
 
 自定义示例：
 
@@ -82,12 +82,12 @@ YAML frontmatter 加 Markdown 正文。
 
 ```yaml
 ---
-slug: {项目名}
-timestamp: {ISO 8601，带时区，例如 2026-05-01T14:23:15+08:00}
-title: {标题原文}
-source_skill: {对话中主要使用的 Skill；多个用英文逗号分隔}
-status: {in-progress | resolved | abandoned}
-next_skill: {用户已确认的下一步 Skill，可以为空}
+slug: { 项目名 }
+timestamp: { ISO 8601，带时区，例如 2026-05-01T14:23:15+08:00 }
+title: { 标题原文 }
+source_skill: { 对话中主要使用的 Skill；多个用英文逗号分隔 }
+status: { in-progress | resolved | abandoned }
+next_skill: { 用户已确认的下一步 Skill，可以为空 }
 ---
 ```
 
@@ -99,11 +99,11 @@ python3 -c "from datetime import datetime; print(datetime.now().astimezone().iso
 
 `status` 的取值与对用户展示的中文：
 
-| 取值 | 含义 | 展示 |
-|---|---|---|
+| 取值          | 含义                         | 展示   |
+| ------------- | ---------------------------- | ------ |
 | `in-progress` | 诊断还没结束，下次回来要接着 | 进行中 |
-| `resolved` | 问题已诊断完成，结论已确定 | 已结论 |
-| `abandoned` | 用户决定放弃这个方向 | 已放弃 |
+| `resolved`    | 问题已诊断完成，结论已确定   | 已结论 |
+| `abandoned`   | 用户决定放弃这个方向         | 已放弃 |
 
 不确定时默认 `in-progress`。
 

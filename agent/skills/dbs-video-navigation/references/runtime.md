@@ -29,14 +29,26 @@ python3 scripts/navigation.py preset-save my-blue style.json --default
 ```json
 {
   "schema_version": 1,
-  "source": {"subtitles": "input.srt", "sha256": "从 prepare 输出取得的真实 SHA256"},
-  "target": {"width": 1920, "height": 2560, "nav_height": 280, "fps": "30000/1001"},
+  "source": { "subtitles": "input.srt", "sha256": "从 prepare 输出取得的真实 SHA256" },
+  "target": { "width": 1920, "height": 2560, "nav_height": 280, "fps": "30000/1001" },
   "duration": 60,
   "coverage": [5, 60],
   "subtitle_warnings_reviewed": false,
   "segments": [
-    {"chapter": "opening", "title": "开始之前：理清问题", "question": "哪些问题需要先解决？", "start": 5, "end": 20},
-    {"chapter": "platform", "title": "第一部分：选择平台", "question": "如何选择适合自己的平台？", "start": 20, "end": 60}
+    {
+      "chapter": "opening",
+      "title": "开始之前：理清问题",
+      "question": "哪些问题需要先解决？",
+      "start": 5,
+      "end": 20
+    },
+    {
+      "chapter": "platform",
+      "title": "第一部分：选择平台",
+      "question": "如何选择适合自己的平台？",
+      "start": 20,
+      "end": 60
+    }
   ]
 }
 ```

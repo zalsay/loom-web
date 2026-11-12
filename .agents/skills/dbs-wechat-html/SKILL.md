@@ -90,15 +90,23 @@ metadata:
 ```html
 <!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>文章标题</title>
-</head>
-<body style="max-width:740px;margin:0 auto;padding:24px 22px;background-color:#ffffff;">
-  <p style="margin:12px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;font-size:16px;line-height:1.82;color:#2b2b2b;">正文段落</p>
-  <p style="margin:20px 0;padding:13px 16px;border-left:3px solid #111111;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;font-size:16px;line-height:1.82;font-weight:700;color:#222222;">重点内容</p>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>文章标题</title>
+  </head>
+  <body style="max-width:740px;margin:0 auto;padding:24px 22px;background-color:#ffffff;">
+    <p
+      style="margin:12px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;font-size:16px;line-height:1.82;color:#2b2b2b;"
+    >
+      正文段落
+    </p>
+    <p
+      style="margin:20px 0;padding:13px 16px;border-left:3px solid #111111;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;font-size:16px;line-height:1.82;font-weight:700;color:#222222;"
+    >
+      重点内容
+    </p>
+  </body>
 </html>
 ```
 
@@ -159,12 +167,12 @@ metadata:
 
 参数优先级最高。
 
-| 参数 | 行为 |
-|---|---|
-| `--style <id>` | 只生成指定风格 |
-| `--recommend` | 自动判断并生成 1 个最合适风格 |
-| `--preview` | 生成 6 个推荐风格 + 总览页 |
-| `--all` | 生成全部 15 个风格 + 总览页 |
+| 参数           | 行为                          |
+| -------------- | ----------------------------- |
+| `--style <id>` | 只生成指定风格                |
+| `--recommend`  | 自动判断并生成 1 个最合适风格 |
+| `--preview`    | 生成 6 个推荐风格 + 总览页    |
+| `--all`        | 生成全部 15 个风格 + 总览页   |
 
 如果用户同时给了自然语言和参数，以参数为准。
 
@@ -174,34 +182,34 @@ metadata:
 
 ### 默认推荐 6 个
 
-| style id | 风格 | 适合 |
-|---|---|---|
-| `minimal` | 极简黑白 | 默认款、方法论、诊断报告 |
-| `medium` | Medium Essay | 长文观点、个人文章 |
-| `stripe` | Stripe Docs | 工具说明、教程、产品文档 |
-| `wired` | WIRED Feature | 科技观点、AI、产品发布 |
-| `ft` | FT Analysis | 商业分析、市场判断、对标研究 |
-| `course` | 课程讲义 | 课程、教程、学习笔记 |
+| style id  | 风格          | 适合                         |
+| --------- | ------------- | ---------------------------- |
+| `minimal` | 极简黑白      | 默认款、方法论、诊断报告     |
+| `medium`  | Medium Essay  | 长文观点、个人文章           |
+| `stripe`  | Stripe Docs   | 工具说明、教程、产品文档     |
+| `wired`   | WIRED Feature | 科技观点、AI、产品发布       |
+| `ft`      | FT Analysis   | 商业分析、市场判断、对标研究 |
+| `course`  | 课程讲义      | 课程、教程、学习笔记         |
 
 ### 完整风格池
 
-| style id | 风格 |
-|---|---|
-| `minimal` | 极简黑白 |
-| `medium` | Medium Essay |
-| `wired` | WIRED Feature |
-| `verge` | The Verge Briefing |
-| `stripe` | Stripe Docs |
-| `apple` | Apple Newsroom |
-| `ft` | FT Analysis |
-| `linear` | Linear Changelog |
-| `github` | GitHub README |
-| `notion` | Notion Memo |
-| `magazine` | Magazine Feature |
-| `editorial` | Editorial Column |
-| `newspaper` | Newspaper Report |
-| `course` | 课程讲义 |
-| `event` | 活动公告 |
+| style id    | 风格               |
+| ----------- | ------------------ |
+| `minimal`   | 极简黑白           |
+| `medium`    | Medium Essay       |
+| `wired`     | WIRED Feature      |
+| `verge`     | The Verge Briefing |
+| `stripe`    | Stripe Docs        |
+| `apple`     | Apple Newsroom     |
+| `ft`        | FT Analysis        |
+| `linear`    | Linear Changelog   |
+| `github`    | GitHub README      |
+| `notion`    | Notion Memo        |
+| `magazine`  | Magazine Feature   |
+| `editorial` | Editorial Column   |
+| `newspaper` | Newspaper Report   |
+| `course`    | 课程讲义           |
+| `event`     | 活动公告           |
 
 ---
 
@@ -209,23 +217,23 @@ metadata:
 
 根据用户描述选择风格：
 
-| 用户说法 | 选择 |
-|---|---|
-| 默认、稳、干净、简洁、商业方法论、诊断报告 | `minimal` |
-| 长文、随笔、个人观点、Medium | `medium` |
-| 科技、AI、前沿、产品发布、有冲击力 | `wired` |
-| 年轻、热点、资讯评论、The Verge | `verge` |
-| 工具说明、教程、产品文档、操作指南、Stripe | `stripe` |
-| 正式公告、品牌稿、产品介绍、Apple | `apple` |
-| 商业分析、财经、市场判断、对标、FT | `ft` |
-| 版本更新、更新日志、changelog、Linear | `linear` |
-| 开源、README、安装说明、GitHub | `github` |
-| 备忘录、内部总结、项目复盘、Notion | `notion` |
-| 杂志、人物稿、品牌故事、专题 | `magazine` |
-| 专栏、手记、创作者随笔 | `editorial` |
-| 报道、调查、严肃分析、报纸 | `newspaper` |
-| 课程、学习笔记、讲义 | `course` |
-| 活动、招募、转化、通知 | `event` |
+| 用户说法                                   | 选择        |
+| ------------------------------------------ | ----------- |
+| 默认、稳、干净、简洁、商业方法论、诊断报告 | `minimal`   |
+| 长文、随笔、个人观点、Medium               | `medium`    |
+| 科技、AI、前沿、产品发布、有冲击力         | `wired`     |
+| 年轻、热点、资讯评论、The Verge            | `verge`     |
+| 工具说明、教程、产品文档、操作指南、Stripe | `stripe`    |
+| 正式公告、品牌稿、产品介绍、Apple          | `apple`     |
+| 商业分析、财经、市场判断、对标、FT         | `ft`        |
+| 版本更新、更新日志、changelog、Linear      | `linear`    |
+| 开源、README、安装说明、GitHub             | `github`    |
+| 备忘录、内部总结、项目复盘、Notion         | `notion`    |
+| 杂志、人物稿、品牌故事、专题               | `magazine`  |
+| 专栏、手记、创作者随笔                     | `editorial` |
+| 报道、调查、严肃分析、报纸                 | `newspaper` |
+| 课程、学习笔记、讲义                       | `course`    |
+| 活动、招募、转化、通知                     | `event`     |
 
 如果匹配到多个，优先使用更具体的那个。
 
@@ -251,18 +259,18 @@ metadata:
 
 ### 支持元素
 
-| Markdown | HTML |
-|---|---|
+| Markdown                | HTML                                   |
+| ----------------------- | -------------------------------------- |
 | 文稿开头的首个 `# 标题` | 默认只写入 `<head><title>`，不进入正文 |
-| 后续出现的 `# 标题` | 降级为 `<h2>标题</h2>` |
-| `## 标题` | `<h2>标题</h2>` |
-| `### 标题` | `<h3>标题</h3>` |
-| 普通段落 | `<p>内容</p>` |
-| `> 引用` | `<blockquote>引用</blockquote>` |
-| `- 列表项` | `<ul><li>列表项</li></ul>` |
-| `**重点**` | `<strong>重点</strong>` |
-| `` `代码` `` | `<code>代码</code>` |
-| `---` | `<hr>` |
+| 后续出现的 `# 标题`     | 降级为 `<h2>标题</h2>`                 |
+| `## 标题`               | `<h2>标题</h2>`                        |
+| `### 标题`              | `<h3>标题</h3>`                        |
+| 普通段落                | `<p>内容</p>`                          |
+| `> 引用`                | `<blockquote>引用</blockquote>`        |
+| `- 列表项`              | `<ul><li>列表项</li></ul>`             |
+| `**重点**`              | `<strong>重点</strong>`                |
+| `` `代码` ``            | `<code>代码</code>`                    |
+| `---`                   | `<hr>`                                 |
 
 ### 转换细节
 

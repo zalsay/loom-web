@@ -140,6 +140,57 @@ button[hidden],
 .hero-copy {
   padding-top: 6px;
 }
+.hero-carousel-nav {
+  display: inline-flex;
+  gap: 8px;
+  background: #e7eedf;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid #cedbc4;
+  margin-bottom: 22px;
+}
+.hero-carousel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #5c6e59;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.hero-carousel-tab .tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8fa688;
+  transition: background 0.2s ease;
+}
+.hero-carousel-tab:hover {
+  color: #243d22;
+}
+.hero-carousel-tab.active {
+  background: #ffffff;
+  color: #1e391b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+}
+.hero-carousel-tab.active .tab-dot {
+  background: #397a33;
+}
+.hero-carousel-content {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.hero-carousel-content.switching {
+  opacity: 0;
+  transform: translateY(4px);
+}
 .release-pill {
   display: inline-flex;
   gap: 9px;
@@ -341,6 +392,25 @@ button[hidden],
   line-height: 1;
   border-left: 1px solid #dfe5d7;
   padding-left: 10px;
+}
+.world-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.world-enter-farm {
+  text-decoration: none;
+  color: #1e3923;
+  background: #eaf2e3eb;
+  border-color: #cadbbf;
+}
+.world-enter-farm:hover {
+  background: #f4faee;
+  color: #132b17;
+}
+.nav-farm-link {
+  color: #275930 !important;
+  font-weight: 500;
 }
 .world-corner {
   position: absolute;

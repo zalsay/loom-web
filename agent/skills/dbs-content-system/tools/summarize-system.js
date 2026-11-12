@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
 const root = path.resolve(process.cwd());
 
@@ -17,7 +17,9 @@ function walkFiles(dir) {
 }
 
 function isContentMarkdown(file) {
-  return path.extname(file).toLowerCase() === ".md" && path.basename(file).toLowerCase() !== "readme.md";
+  return (
+    path.extname(file).toLowerCase() === '.md' && path.basename(file).toLowerCase() !== 'readme.md'
+  );
 }
 
 function countContentMarkdownFiles(dir) {
@@ -35,10 +37,10 @@ function countBySubdir(dir) {
 }
 
 const summary = {
-  totalUnits: countContentMarkdownFiles(path.join(root, "02-内容单元库")),
-  unitBreakdown: countBySubdir(path.join(root, "02-内容单元库")),
-  themeMaps: countContentMarkdownFiles(path.join(root, "05-主题地图")),
-  assemblies: countContentMarkdownFiles(path.join(root, "06-选题装配")),
+  totalUnits: countContentMarkdownFiles(path.join(root, '02-内容单元库')),
+  unitBreakdown: countBySubdir(path.join(root, '02-内容单元库')),
+  themeMaps: countContentMarkdownFiles(path.join(root, '05-主题地图')),
+  assemblies: countContentMarkdownFiles(path.join(root, '06-选题装配')),
   totalFolders: walkFiles(root).filter((file) => false).length,
 };
 
