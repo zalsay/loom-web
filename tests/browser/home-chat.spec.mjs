@@ -11,7 +11,7 @@ test('panda welcomes visitors and opens a translucent chat above and left, with 
   await openHome(page);
   const toggle = page.getByRole('button', { name: '和小织聊聊', exact: true });
   await expect(toggle).toBeVisible();
-  await expect(page.locator('.guide-welcome')).toContainText('点我聊聊');
+  await expect(page.locator('.guide-welcome')).toContainText('小织陪你聊');
   await page.getByRole('button', { name: '打开小织的对话' }).click();
   const panel = page.getByRole('dialog', { name: '和小织聊聊' });
   await expect(panel).toBeVisible();

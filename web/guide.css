@@ -36,23 +36,6 @@
   background: radial-gradient(ellipse, #314b3b38, #516b4820 42%, transparent 70%);
   transform: scale(var(--panda-shadow-scale, 1));
 }
-.guide-toggle-label {
-  position: absolute;
-  bottom: 0;
-  left: 12px;
-  right: 12px;
-  padding: 7px 10px;
-  border: 1px solid #ffffffb3;
-  border-radius: 24px;
-  color: #314c3a;
-  background: #eff4e6e8;
-  box-shadow: 0 3px 12px #24342d0c;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-}
-.guide-toggle-label > span {
-  margin-left: 8px;
-}
 .guide-fallback {
   position: absolute;
   inset: 28px 0 30px;
@@ -360,12 +343,6 @@
   .guide-toggle canvas {
     width: 114px;
     height: 128px;
-  }
-  .guide-toggle-label {
-    left: 0;
-    right: 0;
-    padding: 7px 5px;
-    font-size: 10px;
   }
   .guide-ground {
     left: 16px;
