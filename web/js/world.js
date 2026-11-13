@@ -425,10 +425,11 @@ async function init() {
   window.addEventListener('message', (event) => {
     if (event.source !== parent || event.origin !== location.origin) return;
     if (event.data?.type === 'loom-world-mode') {
+      const wasInteractive = interactive;
       interactive = !!event.data.interactive;
       controls.enabled = interactive;
       document.body.classList.toggle('interactive', interactive);
-      if (!interactive) {
+      if (!interactive && wasInteractive) {
         controls.autoRotate = false;
         $('#autorotate').checked = false;
         setView('perspective', false);
@@ -452,7 +453,7 @@ async function init() {
     readySent = false;
   function animate(time) {
     requestAnimationFrame(animate);
-    if (!visible || document.hidden) return;
+    if ((!visible && readySent) || document.hidden) return;
     if (compatibilityMode && time - lastDraw < 160) return;
     controls.update();
     const atmosphereChanged = atmosphere.update(time);

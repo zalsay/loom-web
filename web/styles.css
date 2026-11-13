@@ -331,6 +331,9 @@ button[hidden],
   inset: 0;
   pointer-events: none;
 }
+.world-stage iframe[aria-hidden='true'] {
+  opacity: 0;
+}
 .world-topline {
   position: absolute;
   top: 25px;
@@ -463,6 +466,9 @@ button[hidden],
 }
 .world-stage.is-open iframe {
   pointer-events: auto;
+}
+.world-stage.is-open iframe[aria-hidden='true'] {
+  pointer-events: none;
 }
 .world-stage.is-open .world-topline,
 .world-stage.is-open .world-bottom,

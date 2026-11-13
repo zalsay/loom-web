@@ -148,9 +148,50 @@ mobileMenuBreakpoint.addEventListener('change', (event) => {
   if (!event.matches) setMobileMenu(false);
 });
 const stage = $('#world-stage'),
-  frame = $('#world-frame'),
   enter = $('#world-enter'),
   close = $('#world-close');
+const sceneFrames = [...stage.querySelectorAll('iframe[data-scene]')];
+const sceneLoading = $('#world-loading');
+const sceneLoadingMarkup = sceneLoading.innerHTML;
+let frame = sceneFrames[0];
+let stageVisible = true;
+
+function syncSceneFrames() {
+  sceneFrames.forEach((sceneFrame) => {
+    const active = sceneFrame === frame;
+    sceneFrame.setAttribute('aria-hidden', String(!active));
+    sceneFrame.inert = !active;
+    sceneFrame.tabIndex = active && isWorldOpen ? 0 : -1;
+    sceneFrame.contentWindow?.postMessage(
+      { type: 'loom-world-mode', interactive: active && isWorldOpen },
+      location.origin,
+    );
+    sceneFrame.contentWindow?.postMessage(
+      {
+        type: 'loom-world-visibility',
+        visible: active && !document.hidden && (isWorldOpen || stageVisible),
+      },
+      location.origin,
+    );
+  });
+}
+function loadScene(sceneFrame) {
+  if (!sceneFrame.hasAttribute('src') && sceneFrame.dataset.src)
+    sceneFrame.src = sceneFrame.dataset.src;
+}
+function updateSceneLoading() {
+  sceneLoading.classList.toggle('loaded', frame.dataset.ready === 'true');
+  if (frame.dataset.ready === 'error') {
+    const link = document.createElement('a');
+    link.className = 'text-link';
+    link.href = new URL(frame.src).pathname;
+    link.textContent = '暂时没打开，点击重新打开 ↗';
+    sceneLoading.replaceChildren(link);
+  } else if (frame.dataset.ready !== 'true') {
+    sceneLoading.innerHTML = sceneLoadingMarkup;
+  }
+}
+
 let isWorldOpen = false,
   previousFocus,
   previousScrollY = 0;
@@ -181,7 +222,9 @@ function setWorld(open) {
   backgroundElements.forEach((element) => {
     element.inert = open;
   });
-  frame.contentWindow?.postMessage({ type: 'loom-world-mode', interactive: open }, location.origin);
+  syncSceneFrames();
+  if (open) stopHeroCarousel();
+  else startHeroCarousel();
   if (open) {
     stage.setAttribute('role', 'dialog');
     stage.setAttribute('aria-modal', 'true');
@@ -204,9 +247,23 @@ enter.addEventListener('click', () => {
 close.addEventListener('click', () => setWorld(false));
 frame.tabIndex = -1;
 window.addEventListener('message', (event) => {
-  if (event.source !== frame.contentWindow || event.origin !== location.origin) return;
-  if (event.data?.type === 'loom-world-ready') $('#world-loading').classList.add('loaded');
-  if (event.data?.type === 'loom-world-close') setWorld(false);
+  if (event.origin !== location.origin) return;
+  const sourceFrame = sceneFrames.find((item) => item.contentWindow === event.source);
+  if (!sourceFrame) return;
+  if (event.data?.type === 'loom-world-ready') {
+    sourceFrame.dataset.ready = 'true';
+    // Preload the other scene after the first render, without reloading either document.
+    sceneFrames.forEach(loadScene);
+    syncSceneFrames();
+    updateSceneLoading();
+    startHeroCarousel();
+  }
+  if (event.data?.type === 'loom-world-close' && sourceFrame === frame) setWorld(false);
+  if (event.data?.type === 'loom-world-error') {
+    sourceFrame.dataset.ready = 'error';
+    stopHeroCarousel();
+    if (sourceFrame === frame) updateSceneLoading();
+  }
 });
 document.addEventListener('keydown', (event) => {
   if (isWorldOpen) {
@@ -222,30 +279,22 @@ document.addEventListener('keydown', (event) => {
     setMobileMenu(false, { restoreFocus: true });
   }
 });
-frame.addEventListener('load', () =>
-  frame.contentWindow?.postMessage(
-    { type: 'loom-world-mode', interactive: isWorldOpen },
-    location.origin,
-  ),
-);
+sceneFrames.forEach((sceneFrame) => {
+  sceneFrame.addEventListener('load', syncSceneFrames);
+});
 new IntersectionObserver(
   (entries) => {
-    frame.contentWindow?.postMessage(
-      { type: 'loom-world-visibility', visible: isWorldOpen || entries[0].isIntersecting },
-      location.origin,
-    );
+    stageVisible = entries[0].isIntersecting;
+    syncSceneFrames();
+    if (stageVisible) startHeroCarousel();
+    else stopHeroCarousel();
   },
   { rootMargin: '200px' },
 ).observe(stage);
-window.addEventListener('message', (event) => {
-  if (
-    event.source === frame.contentWindow &&
-    event.origin === location.origin &&
-    event.data?.type === 'loom-world-error'
-  ) {
-    $('#world-loading').innerHTML =
-      '<span>暂时没打开，请再试一次。</span><a class="text-link" href="./world.html">重新打开看看 ↗</a>';
-  }
+document.addEventListener('visibilitychange', () => {
+  syncSceneFrames();
+  if (document.hidden) stopHeroCarousel();
+  else startHeroCarousel();
 });
 
 // 首页主题介绍轮播：0 = 织界·AiLab，1 = 织界·农场
@@ -262,7 +311,6 @@ const heroSlides = [
     secondaryText: '了解怎么使用',
     secondaryHref: '#start',
     footnote: '读一页文字，调一下设置。<br /><span>从身边用得上的小工具开始。</span>',
-    frameSrc: './world.html?embedded=1',
     topline: '织界 · AiLab',
     worldCoord: '来织界空间逛一逛。',
     worldSublinkText: '创建我的空间，按喜欢的样子布置 ↗',
@@ -281,7 +329,6 @@ const heroSlides = [
     secondaryHref: './world.html',
     footnote:
       '现场遇到问题 → G 老师分析 → 孩子动手尝试。<br /><span>同一个地块与作品，记录整整一季的变化。</span>',
-    frameSrc: './farm.html?embedded=1',
     topline: '织界 · 农场',
     worldCoord: '来织界农场看一看。',
     worldSublinkText: '看看种植区与共用控制室 ↗',
@@ -291,12 +338,20 @@ const heroSlides = [
 
 let currentHeroSlide = 0;
 let heroCarouselTimer = null;
+let heroTransitionTimer = null;
+const carouselHolds = new Set();
 const heroContent = $('#hero-carousel-content');
 const heroTabs = document.querySelectorAll('.hero-carousel-tab');
 
 function switchHeroSlide(index) {
-  if (!heroContent) return;
+  if (!heroContent || isWorldOpen || !heroSlides[index]) return;
+  stopHeroCarousel();
+  if (heroTransitionTimer !== null) clearTimeout(heroTransitionTimer);
   currentHeroSlide = index;
+  frame = sceneFrames[index];
+  loadScene(frame);
+  syncSceneFrames();
+  updateSceneLoading();
 
   heroTabs.forEach((tab, i) => {
     const active = i === index;
@@ -305,7 +360,8 @@ function switchHeroSlide(index) {
   });
 
   heroContent.classList.add('switching');
-  setTimeout(() => {
+  heroTransitionTimer = setTimeout(() => {
+    heroTransitionTimer = null;
     const data = heroSlides[index];
     const pillText = $('#hero-pill-text');
     const pill = $('#hero-pill');
@@ -333,14 +389,8 @@ function switchHeroSlide(index) {
     }
     if (footnoteText) footnoteText.innerHTML = data.footnote;
 
-    // 同步 3D 舞台 iframe 场景、标头及右下角单一进入按钮
-    if (frame && !isWorldOpen && frame.getAttribute('src') !== data.frameSrc) {
-      frame.setAttribute('src', data.frameSrc);
-      const toplineLabel = $('.world-topline span:first-child');
-      if (toplineLabel) {
-        toplineLabel.innerHTML = `<i></i>${data.topline}`;
-      }
-    }
+    const toplineLabel = $('.world-topline span:first-child');
+    if (toplineLabel) toplineLabel.innerHTML = `<i></i>${data.topline}`;
 
     const worldCoord = $('#world-coordinate');
     const worldSublink = $('#world-sublink');
@@ -355,37 +405,60 @@ function switchHeroSlide(index) {
 
     heroContent.dataset.active = String(index);
     heroContent.classList.remove('switching');
+    startHeroCarousel();
   }, 160);
 }
 
 function startHeroCarousel() {
   stopHeroCarousel();
-  heroCarouselTimer = setInterval(() => {
+  if (
+    isWorldOpen ||
+    document.hidden ||
+    !stageVisible ||
+    carouselHolds.size ||
+    heroTransitionTimer !== null ||
+    stage.contains(document.activeElement) ||
+    $('.hero-copy')?.contains(document.activeElement) ||
+    sceneFrames.some((item) => item.dataset.ready !== 'true')
+  )
+    return;
+  heroCarouselTimer = setTimeout(() => {
+    heroCarouselTimer = null;
     switchHeroSlide((currentHeroSlide + 1) % heroSlides.length);
   }, 6500);
 }
 
 function stopHeroCarousel() {
-  if (heroCarouselTimer) {
-    clearInterval(heroCarouselTimer);
+  if (heroCarouselTimer !== null) {
+    clearTimeout(heroCarouselTimer);
     heroCarouselTimer = null;
   }
 }
 
 heroTabs.forEach((tab) => {
   tab.addEventListener('click', () => {
-    const idx = parseInt(tab.dataset.heroSlide, 10);
+    const idx = Number(tab.dataset.heroSlide);
     switchHeroSlide(idx);
-    startHeroCarousel();
   });
 });
 
-const heroCopy = $('.hero-copy');
-if (heroCopy) {
-  heroCopy.addEventListener('pointerenter', stopHeroCarousel);
-  heroCopy.addEventListener('pointerleave', startHeroCarousel);
-  heroCopy.addEventListener('focusin', stopHeroCarousel);
-  heroCopy.addEventListener('focusout', startHeroCarousel);
+for (const element of [$('.hero-copy'), stage]) {
+  if (!element) continue;
+  element.addEventListener('pointerenter', () => {
+    carouselHolds.add(element);
+    stopHeroCarousel();
+  });
+  element.addEventListener('pointerleave', () => {
+    carouselHolds.delete(element);
+    startHeroCarousel();
+  });
+  element.addEventListener('focusin', stopHeroCarousel);
+  element.addEventListener('focusout', () => {
+    // Wait for the next focus target before deciding whether to resume.
+    queueMicrotask(() => {
+      if (!element.contains(document.activeElement)) startHeroCarousel();
+    });
+  });
 }
 
 startHeroCarousel();

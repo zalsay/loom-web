@@ -122,9 +122,21 @@
           </div>
           <iframe
             id="world-frame"
+            data-scene="world"
+            aria-hidden="false"
             src="./world.html?embedded=1"
             title="织界空间，可以转动和拉近看"
             loading="eager"
+            allow="fullscreen"
+          ></iframe>
+          <iframe
+            id="farm-frame"
+            data-scene="farm"
+            data-src="./farm.html?embedded=1"
+            aria-hidden="true"
+            tabindex="-1"
+            inert
+            title="织界农场，可以转动和拉近看"
             allow="fullscreen"
           ></iframe>
           <div class="world-loading" id="world-loading">

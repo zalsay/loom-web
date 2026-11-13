@@ -18,6 +18,8 @@ let targetCameraPos = null;
 let targetControlsLookAt = null;
 let isTransitioning = false;
 let pointerStart = null;
+let sceneVisible = true;
+let readySent = false;
 const clock = new THREE.Clock();
 
 // 预设视角坐标 (针对农场 3m×3m 布局与 8m×5m 控制室精心标定)
@@ -359,7 +361,8 @@ function setupUI() {
 function animate() {
   requestAnimationFrame(animate);
 
-  const dt = clock.getDelta();
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if ((!sceneVisible && readySent) || document.hidden) return;
 
   // 更新乐高拼搭自动运输小车巡航
   if (!reducedMotion.matches && farmSceneData?.rovers) {
@@ -389,7 +392,24 @@ function animate() {
   }
 
   renderer.render(scene, camera);
+  if (!readySent) {
+    readySent = true;
+    if (embedded) parent.postMessage({ type: 'loom-world-ready' }, location.origin);
+  }
 }
 
 // 启动
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('message', (event) => {
+  if (!embedded || event.source !== parent || event.origin !== location.origin) return;
+  if (event.data?.type === 'loom-world-visibility') sceneVisible = !!event.data.visible;
+  if (event.data?.type === 'loom-world-mode' && controls)
+    controls.enabled = !!event.data.interactive;
+});
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    init();
+  } catch (error) {
+    console.error(error);
+    if (embedded) parent.postMessage({ type: 'loom-world-error' }, location.origin);
+  }
+});
