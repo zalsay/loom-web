@@ -207,8 +207,10 @@ function requireWritePolicy(request, config) {
 async function readJson(request, maximumBytes) {
   const contentType = request.headers.get('content-type') || '';
   if (!/^application\/json(?:\s*;|$)/i.test(contentType)) fail(415, 'json_required');
-  if (!request.body) fail(400, 'invalid_json');
-  const reader = request.body.getReader();
+  // Makers shadows request.body with parsed JSON; use the native stream to retain byte limits.
+  const body = Reflect.get(Request.prototype, 'body', request);
+  if (!body) fail(400, 'invalid_json');
+  const reader = body.getReader();
   const chunks = [];
   let size = 0;
   try {

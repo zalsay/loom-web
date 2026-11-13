@@ -132,6 +132,46 @@ test('session bootstrap is same-origin, signed, HttpOnly and does not expose own
   assert.equal(session.headers.get('cache-control'), 'private, no-store, max-age=0');
 });
 
+test('EdgeOne parsed body getter preserves raw JSON validation and session bootstrap', async (t) => {
+  // Makers adds this legacy getter to a real Request; text/json and its native stream remain intact.
+  const edgeoneRequest = (body) => {
+    const value = request('/api/v1/session/bootstrap', { method: 'POST', body });
+    Object.defineProperty(value, 'body', {
+      get: () => JSON.parse(body),
+      configurable: true,
+      enumerable: true,
+    });
+    return value;
+  };
+  await t.test('creates a signed visitor and accepts its cookie on the next request', async () => {
+    const { app } = createServer();
+    const response = await app.handle(edgeoneRequest('{}'));
+    assert.equal(response.status, 200);
+    assert.equal((await payload(response)).state, 'ready');
+    const cookie = response.headers.get('set-cookie')?.split(';')[0];
+    assert.match(cookie, /^loom-visitor=v1\.k1\.[^.]+\./);
+    const session = await app.handle(request('/api/v1/session', { cookie }));
+    assert.equal((await payload(session)).state, 'ready');
+  });
+  await t.test('rejects malformed JSON as a client error', async () => {
+    const { app } = createServer();
+    const response = await app.handle(edgeoneRequest('{'));
+    assert.equal(response.status, 400);
+    assert.equal((await payload(response)).error.code, 'invalid_json');
+  });
+  await t.test('enforces the raw byte limit even when parsed JSON is small', async () => {
+    const { app } = createServer({ config: { maxJsonBytes: 16 } });
+    const response = await app.handle(edgeoneRequest('{}' + ' '.repeat(20)));
+    assert.equal(response.status, 413);
+    assert.equal((await payload(response)).error.code, 'request_too_large');
+  });
+  await t.test('continues to reject forged identity fields', async () => {
+    const { app } = createServer();
+    const response = await app.handle(edgeoneRequest('{"ownerId":"forged"}'));
+    assert.equal(response.status, 400);
+  });
+});
+
 test('production requires HTTPS and emits only the __Host- Secure cookie', async () => {
   const { app } = createServer({ production: true });
   const result = await bootstrap(app, { base: 'https://loom.example' });
