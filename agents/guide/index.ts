@@ -1,5 +1,5 @@
-import { getEdgeRuntimeApp } from '../../server/edge-runtime.mjs';
+import { getEdgeRuntimeApp, toAgentWebRequest } from '../../server/edge-runtime.mjs';
 
 export async function onRequest(context) {
-  return getEdgeRuntimeApp().handle(context.request, { makers: context });
+  return getEdgeRuntimeApp().handle(toAgentWebRequest(context.request), { makers: context });
 }
