@@ -234,7 +234,7 @@ test('manual edit makes a previously streamed proposal stale', async ({ page }) 
     page,
     proposalEvents(turn, [{ op: 'set_environment', patch: { skyPreset: 'dusk' } }]),
   );
-  await expect(page.locator('#conversation')).toContainText('你已继续编辑');
+  await expect(page.locator('#conversation')).toContainText('你已经调整了空间');
   await expect(page.locator('#sky-preset')).toHaveValue('soft-afternoon');
   await expect(page.locator('#doors-open')).toBeChecked();
   expect(mock.ackRequests).toHaveLength(0);
@@ -285,7 +285,7 @@ test('failed acknowledgement survives reload and opening a local copy without re
   page.once('dialog', (dialog) => dialog.accept());
   await page.locator('.library-group').first().locator('.library-item button').first().click();
   await expect(page.locator('#retry-agent-ack')).toBeVisible();
-  await expect(page.locator('#notice')).toContainText('不会重复应用操作');
+  await expect(page.locator('#notice')).toContainText('不会重复修改');
   await page.waitForFunction(async () => {
     const { createDraftStore } = await import('/js/editor/persistence.js');
     const store = await createDraftStore();
@@ -339,13 +339,13 @@ test('recovered turn status is queried explicitly and unknown local state can be
   await page.reload();
   await expect(page.locator('#renderer-loading')).toBeHidden({ timeout: 45_000 });
   await expect(page.locator('#agent-send')).toBeDisabled();
-  await expect(page.locator('#conversation')).toContainText('清除此提示不会停止旧任务');
+  await expect(page.locator('#conversation')).toContainText('关闭提示不会停止上次的任务');
   await page.getByRole('button', { name: '查询上次任务状态' }).click();
-  await expect(page.locator('#conversation')).toContainText('服务端没有可确认的任务状态');
+  await expect(page.locator('#conversation')).toContainText('暂时查不到这次任务的进度');
   expect(mock.statusRequests).toHaveLength(1);
   expect(mock.statusRequests[0].conversationId).toBe('conv_test_123456');
   expect(await page.evaluate(() => sessionStorage.getItem('loom-test-agent-starts'))).toBeNull();
-  await page.getByRole('button', { name: '清除此恢复提示' }).click();
+  await page.getByRole('button', { name: '关闭这条提示' }).click();
   await expect(page.locator('#agent-send')).toBeEnabled();
   await expect
     .poll(async () => {
@@ -376,7 +376,7 @@ test('a disconnected turn is retained and status recovery never starts a second 
   expect(await page.evaluate(() => sessionStorage.getItem('loom-test-agent-starts'))).toBe('1');
 
   await page.getByRole('button', { name: '查询上次任务状态' }).click();
-  await expect(page.locator('#conversation')).toContainText('服务端没有可确认的任务状态');
+  await expect(page.locator('#conversation')).toContainText('暂时查不到这次任务的进度');
   expect(mock.statusRequests).toHaveLength(1);
   expect(mock.statusRequests[0].turnId).toBe(turn.turnId);
   expect(mock.statusRequests[0].conversationId).toBe('conv_test_123456');
@@ -388,7 +388,7 @@ test('a 401 invalidates the local agent and cloud session', async ({ page }) => 
   await page.locator('[data-add="garden.lamp"]').click();
   mock.failSave401 = true;
   await page.locator('#save-scene').click();
-  await expect(page.locator('#notice')).toContainText('浏览器身份已失效');
+  await expect(page.locator('#notice')).toContainText('访问凭证已失效');
   await expect(page.locator('#save-scene')).toBeDisabled();
   await expect(page.locator('#agent-prompt')).toBeDisabled();
 });
@@ -436,7 +436,7 @@ test('an inaccessible cloud space drops its stale agent recovery state before co
 
   await page.reload();
   await expect(page.locator('#renderer-loading')).toBeHidden({ timeout: 45_000 });
-  await expect(page.locator('#notice')).toContainText('本地内容已保留为新副本');
+  await expect(page.locator('#notice')).toContainText('内容已保留为新副本');
   await expect(page.locator('#retry-agent-ack')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '查询上次任务状态' })).toHaveCount(0);
   await page.locator('#save-scene').click();

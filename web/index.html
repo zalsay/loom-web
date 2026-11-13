@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f3f4ee" />
     <meta
       name="description"
-      content="Loom OS，让 Mosaico 这样的小设备拥有自己的应用。了解它能做什么、目前的试用进展，也可以逛逛首页的织界空间。"
+      content="Loom OS，让 Mosaico 这样的小设备拥有自己的应用。了解它能做什么、如何使用，也可以逛逛织界空间。"
     />
     <meta property="og:title" content="Loom OS — 让小设备，有自己的应用。" />
     <meta
@@ -17,6 +17,10 @@
     <title>Loom OS — 让小设备，有自己的应用。</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./guide.css" />
+    <script type="importmap">
+      { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
@@ -33,7 +37,7 @@
         <a href="#possibilities">能做什么</a><a href="./world.html">织界·AiLab</a
         ><a href="./farm.html" class="nav-farm-link">织界·农场</a
         ><a href="./create.html">创建我的空间</a><a href="#runtime">怎么使用</a
-        ><a href="#start">如何试用</a>
+        ><a href="#start">开始使用</a>
       </nav>
       <div class="header-actions">
         <a
@@ -55,7 +59,7 @@
     <nav class="mobile-nav" id="mobile-nav" aria-label="移动导航" hidden>
       <a href="#possibilities">能做什么</a><a href="./world.html">织界·AiLab</a
       ><a href="./farm.html">织界·农场 ↗</a><a href="./create.html">创建我的空间</a
-      ><a href="#runtime">怎么使用</a><a href="#start">如何试用</a
+      ><a href="#runtime">怎么使用</a><a href="#start">开始使用</a
       ><a href="https://github.com/zalsay/loom-os">项目代码 ↗</a>
     </nav>
     <main id="main">
@@ -87,7 +91,7 @@
           </div>
           <div id="hero-carousel-content" class="hero-carousel-content" aria-live="polite">
             <a id="hero-pill" class="release-pill" href="#progress"
-              ><span class="status-dot"></span><span id="hero-pill-text">测试中 · 0.1.1</span
+              ><span class="status-dot"></span><span id="hero-pill-text">认识 Loom OS</span
               ><span class="pill-arrow">↗</span></a
             >
             <p id="hero-eyebrow" class="eyebrow">给小设备准备的一套应用系统</p>
@@ -95,13 +99,13 @@
               让小设备，<br />有自己的<span class="serif-accent">应用。</span>
             </h1>
             <p class="hero-description">
-              Loom OS 让 Mosaico 这样的小设备，<br />也能像手机一样，点图标打开小工具。<br />目前还在测试，欢迎先来了解一下。
+              Loom OS 让 Mosaico 这样的小设备，<br />也能像手机一样，点图标打开小工具。<br />从阅读文字、调整设置开始。
             </p>
             <div class="hero-actions">
               <a id="hero-action-primary" class="button primary" href="#possibilities"
                 ><span>看看能做什么</span> <span>↗</span></a
               ><a id="hero-action-secondary" class="text-link" href="#start"
-                ><span>了解怎么试用</span> <span>↗</span></a
+                ><span>了解怎么使用</span> <span>↗</span></a
               >
             </div>
             <div class="hero-footnote">
@@ -190,7 +194,7 @@
               ><span
                 ><strong>保存内容，连接设备</strong
                 ><small
-                  >应用可以保存内容、设置定时任务。使用传感器需要设备支持，目前还在完善。</small
+                  >应用可以保存内容、设置定时任务。传感器等功能需确认设备是否支持。</small
                 ></span
               ><b>↗</b>
             </button>
@@ -206,7 +210,7 @@
               <span class="feature-number">03</span
               ><span
                 ><strong>更新出问题，可以退回</strong
-                ><small>新版本先试运行。启动失败时，回到上一个可用版本。</small></span
+                ><small>更新后如果无法启动，可以恢复到更新前。</small></span
               ><b>↗</b>
             </button>
             <a
@@ -300,7 +304,7 @@
             </div>
           </div>
           <p class="runtime-note">
-            网页阅读器可以先显示自带的文字。联网读取、传感器和智能功能还在完善，实际能用哪些，要看设备支持情况。
+            网页阅读器可显示自带的文字。联网读取、传感器和智能功能是否可用，请查看使用说明和设备支持情况。
           </p>
         </div>
       </section>
@@ -308,57 +312,57 @@
       <section class="progress-section section wrap" id="progress">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">03 / 目前做到哪一步了</p>
-            <h2>还在测试，一步步做好。</h2>
+            <p class="eyebrow">03 / 使用指南</p>
+            <h2>开始之前，先了解这些。</h2>
           </div>
           <a
             class="text-link"
-            href="https://github.com/zalsay/loom-os/blob/main/Loom-OS-Development-Plan.md"
+            href="https://github.com/zalsay/loom-os#readme"
             target="_blank"
             rel="noopener noreferrer"
-            >查看详细进展 <span>↗</span></a
+            >查看使用说明 <span>↗</span></a
           >
         </div>
         <div class="progress-banner">
-          <span class="release-label"><i></i>当前版本</span><strong>0.1.1</strong
-          ><span>测试版本 · 仍在完善</span
+          <span class="release-label"><i></i>适用设备</span><strong>Mosaico</strong
+          ><span>先确认设备，再按说明安装</span
           ><a
-            href="https://github.com/zalsay/loom-os#当前进度"
+            href="https://github.com/zalsay/loom-os#运行环境"
             target="_blank"
             rel="noopener noreferrer"
-            >看看最新消息 ↗</a
+            >查看设备要求 ↗</a
           >
         </div>
         <div class="progress-grid">
           <article>
-            <span class="progress-status complete">电脑上的测试已通过</span>
-            <h3>基本功能，先在电脑上试过。</h3>
-            <p>打开应用、安装更新和失败后恢复等流程，已通过电脑上的测试。</p>
+            <span class="progress-status complete">应用管理</span>
+            <h3>了解应用怎么使用。</h3>
+            <p>先了解应用的打开、关闭和更新方式，熟悉常用操作。</p>
           </article>
           <article>
-            <span class="progress-status pending">设备上的测试还没完成</span>
-            <h3>接下来，在 Mosaico 上试一试。</h3>
-            <p>这些功能在 Mosaico 上能不能正常使用，还需要继续测试。</p>
+            <span class="progress-status pending">安装前准备</span>
+            <h3>确认设备与安装条件。</h3>
+            <p>准备一台 Mosaico，核对设备要求，并备份已有内容。</p>
           </article>
           <article>
-            <span class="progress-status adapter">部分功能还在完善</span>
-            <h3>联网和智能功能，还在完善。</h3>
-            <p>传感器、联网和智能功能能否使用，还要看设备支持和开发进度。</p>
+            <span class="progress-status adapter">设备功能</span>
+            <h3>按设备支持情况选择。</h3>
+            <p>传感器、联网和智能功能是否可用，请以使用说明和设备支持情况为准。</p>
           </article>
         </div>
       </section>
 
       <section class="start-section wrap" id="start">
         <div class="start-intro">
-          <p class="eyebrow">想亲手试一试？</p>
-          <h2>先看看说明，<br />再动手试一试。</h2>
-          <p>现在更适合愿意动手的体验者。<br />需要一台 Mosaico，安装时还要参考说明。</p>
+          <p class="eyebrow">从这里开始</p>
+          <h2>准备好设备，<br />跟着说明开始。</h2>
+          <p>需要一台符合要求的 Mosaico。<br />安装前，请先备份内容并阅读说明。</p>
           <a
             class="button primary"
             href="https://github.com/zalsay/loom-os#readme"
             target="_blank"
             rel="noopener noreferrer"
-            >查看试用说明 <span>↗</span></a
+            >查看使用说明 <span>↗</span></a
           >
         </div>
         <div class="start-steps">
@@ -410,7 +414,7 @@
           <div class="developer-content">
             <div class="code-window">
               <div class="code-toolbar">
-                <div role="tablist" aria-label="开发示例">
+                <div role="tablist" aria-label="应用示例">
                   <button
                     id="code-lua"
                     class="active"
@@ -459,14 +463,14 @@
                 ><button id="copy-clone" aria-label="复制下载命令">▣</button>
               </div>
               <p>
-                应用代码对应 main.lua；应用信息对应 manifest.json，用来填写名称、版本和需要的权限。
+                应用代码对应 main.lua；应用信息对应 manifest.json，用来填写应用信息和需要的权限。
               </p>
               <a
                 class="text-link"
                 href="https://github.com/zalsay/loom-os#readme"
                 target="_blank"
                 rel="noopener noreferrer"
-                >阅读开发文档 <span>↗</span></a
+                >查看制作说明 <span>↗</span></a
               >
             </div>
           </div>
@@ -502,7 +506,84 @@
         ><a href="#main">回到顶部 ↑</a>
       </div>
     </footer>
+    <aside class="panda-guide" data-renderer="fallback" aria-label="熊猫向导">
+      <button
+        class="guide-welcome"
+        type="button"
+        aria-label="打开小织的对话"
+        aria-controls="guide-panel"
+      >
+        <span>嗨，欢迎来到织界！</span><strong>点我聊聊 <span>↘</span></strong>
+      </button>
+      <section
+        id="guide-panel"
+        class="guide-panel"
+        role="dialog"
+        aria-labelledby="guide-title"
+        hidden
+      >
+        <header class="guide-header">
+          <div class="guide-avatar" aria-hidden="true">✳</div>
+          <div>
+            <h2 id="guide-title">和小织聊聊</h2>
+            <p>陪你发现织界里的小趣味</p>
+          </div>
+          <button id="guide-close" type="button" aria-label="收起对话">×</button>
+        </header>
+        <div
+          id="guide-messages"
+          class="guide-messages"
+          role="log"
+          aria-label="对话记录"
+          aria-live="polite"
+          aria-relevant="additions text"
+        >
+          <article class="guide-message guide-message--assistant">
+            <span class="guide-message-name">小织</span>
+            <p>你好呀，我是小织。想逛逛农场，还是布置一个自己的空间？我们边聊边发现。</p>
+          </article>
+          <nav class="guide-places" aria-label="去织界逛逛">
+            <a href="./farm.html">去农场 ↗</a><a href="./create.html">创建空间 ↗</a>
+          </nav>
+        </div>
+        <div class="guide-suggestions" aria-label="可以这样问">
+          <button type="button" data-question="织界农场里有什么？">农场里有什么？</button
+          ><button type="button" data-question="怎么创建自己的空间？">想创建自己的空间</button>
+        </div>
+        <form id="guide-form" class="guide-form">
+          <label class="guide-input-label" for="guide-input">想和小织聊什么？</label>
+          <div class="guide-compose">
+            <textarea
+              id="guide-input"
+              rows="2"
+              maxlength="2000"
+              placeholder="想问什么，都可以说说…"
+              enterkeyhint="send"
+            ></textarea
+            ><button id="guide-send" type="submit" aria-label="发送消息">↑</button
+            ><button id="guide-stop" type="button" aria-label="停止回复" hidden>■</button>
+          </div>
+          <p id="guide-status" class="guide-status" role="status">
+            小织的回答供参考，请别发送个人隐私。
+          </p>
+        </form>
+      </section>
+      <button
+        id="guide-toggle"
+        class="guide-toggle"
+        type="button"
+        aria-label="和小织聊聊"
+        aria-expanded="false"
+        aria-controls="guide-panel"
+      >
+        <span class="guide-ground" aria-hidden="true"></span>
+        <span class="guide-fallback" aria-hidden="true">🐼</span>
+        <canvas data-panda-canvas aria-hidden="true" width="280" height="310"></canvas>
+        <span class="guide-toggle-label">小织陪你聊 <span aria-hidden="true">↗</span></span>
+      </button>
+    </aside>
     <div id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="./js/home.js"></script>
+    <script type="module" src="./js/home-guide.js"></script>
   </body>
 </html>

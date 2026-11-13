@@ -82,13 +82,16 @@ function describeError(error) {
   if (error.status === 401) {
     session = null;
     refreshStatus();
-    return '浏览器身份已失效。草稿仍在本地；请先导出备份，再刷新建立新身份。旧云端空间不能自动找回。';
+    return '这个浏览器的访问凭证已失效。草稿仍在本地，请先导出备份再刷新。原来保存的空间无法自动找回。';
   }
-  if (error.status === 404) return '找不到这份空间，或它不属于当前浏览器。草稿没有被覆盖。';
+  if (error.status === 404)
+    return '无法打开这份空间，请确认使用的是保存它的浏览器。当前草稿已保留。';
   if (error.status === 413) return '内容太大，请减少物件或缩短描述后再试。';
-  if (error.status === 429) return '请求过于频繁或额度已用完。请稍后再试，草稿已保留。';
-  if (error.status === 503) return '云端服务尚未配置或暂时不可用。可以继续本地编辑和导出备份。';
-  return error.message || '操作没有完成，草稿已保留。';
+  if (error.status === 429) return '操作太频繁或可用额度已用完。请稍后再试，草稿已保留。';
+  if (error.status === 503) return '暂时无法连接云端。可以继续在这里编辑和导出备份。';
+  return /[\p{Script=Han}]/u.test(error.message || '')
+    ? error.message
+    : '操作没有完成，请稍后再试。草稿已保留。';
 }
 
 function refreshStatus() {
@@ -98,7 +101,7 @@ function refreshStatus() {
     : saving
       ? '正在保存…'
       : conflict
-        ? '存在云端分支 · 草稿已保留'
+        ? '发现另一份修改 · 草稿已保留'
         : dirty
           ? session
             ? '本地草稿 · 尚未同步'
@@ -116,11 +119,11 @@ function refreshStatus() {
   $('#agent-status').textContent = activeTurn
     ? '正在设计…你可以随时停止。'
     : pendingAck
-      ? '上一组修改已应用，待确认同步；请先重试确认。'
+      ? '修改已放进草稿，但助手还未收到确认。请点击“重试确认修改”。'
       : recoveredTurn
-        ? '上次助手任务尚未确认；先查询状态或清除此本地提示。'
+        ? '上次的助手任务还没有确认结果。可以查询进度或关闭提示。'
         : !session
-          ? '当前为本地编辑模式。'
+          ? '可以在这个浏览器里布置空间和导出备份。'
           : !session.agentEnabled
             ? '助手尚未启用。仍可手动布置、保存和导出。'
             : !savedRevision
@@ -374,7 +377,7 @@ function updateRecoveredTurnControls() {
     turnRecoveryPanel.className = 'message assistant-message';
     const description = document.createElement('p');
     description.textContent =
-      '发现上次未确认完成的助手任务。这里只查询服务端状态，不会重新调用模型或应用提案。清除此提示不会停止旧任务；手动发起新任务可能重复计费。';
+      '上次的助手任务还没有确认结果。查询进度不会重新发送任务，也不会改动草稿。关闭提示不会停止上次的任务；重新发送可能另行计费。';
     const query = document.createElement('button');
     query.type = 'button';
     query.textContent = '查询上次任务状态';
@@ -385,7 +388,7 @@ function updateRecoveredTurnControls() {
       query.disabled = true;
       try {
         if (!turn.conversationId) {
-          addMessage('这项任务在建立会话前中断，没有可查询的服务端记录。可以安全清除此恢复提示。');
+          addMessage('上次连接中断，没有留下可查询的任务记录。可以关闭这条提示。');
           return;
         }
         const targetGeneration = loadGeneration;
@@ -403,15 +406,16 @@ function updateRecoveredTurnControls() {
         )
           return;
         const labels = {
-          running: '服务端仍记录为运行中。不会自动继续读取或应用结果。',
-          proposal_ready: '服务端记录有完整提案，但不会自动应用。请检查当前草稿后自行决定下一步。',
-          applied: '服务端已确认这组修改。当前草稿不会因查询而改变。',
-          failed: '服务端记录该任务已失败；本地草稿保持不变。',
-          cancel_requested: '服务端记录已请求停止；迟到结果不会由此查询应用。',
-          unknown: '服务端没有可确认的任务状态；本地草稿保持不变。',
+          running: '记录显示，助手还在处理。这里不会自动接收结果或修改草稿。',
+          proposal_ready:
+            '助手已生成修改建议，这里不会自动应用。请先检查草稿，再决定是否重新提出要求。',
+          applied: '这组修改已确认。查询进度不会改变当前草稿。',
+          failed: '助手未能完成这次任务，草稿保持原样。',
+          cancel_requested: '停止请求已送达。查询进度不会应用之后返回的结果。',
+          unknown: '暂时查不到这次任务的进度，草稿保持原样。',
         };
         if (result.turnId !== turn.turnId || !Object.hasOwn(labels, result.status))
-          throw new Error('助手任务状态响应无效。');
+          throw new Error('暂时无法确认任务进度，请稍后再查。');
         addMessage(labels[result.status]);
         if (
           result.status === 'applied' &&
@@ -434,7 +438,7 @@ function updateRecoveredTurnControls() {
     });
     const clear = document.createElement('button');
     clear.type = 'button';
-    clear.textContent = '清除此恢复提示';
+    clear.textContent = '关闭这条提示';
     clear.addEventListener('click', () => {
       const turn = recoveredTurn;
       if (!turn) return;
@@ -442,7 +446,7 @@ function updateRecoveredTurnControls() {
       updateRecoveredTurnControls();
       persistDraft();
       refreshStatus();
-      addMessage('已清除本地任务恢复提示；不会更改服务端任务或当前场景。');
+      addMessage('提示已关闭。上次的任务和当前草稿没有改变。');
     });
     turnRecoveryPanel.append(description, query, clear);
     $('#conversation').append(turnRecoveryPanel);
@@ -459,7 +463,7 @@ function updatePendingAckRetryButton() {
     retryAckButton = document.createElement('button');
     retryAckButton.type = 'button';
     retryAckButton.id = 'retry-agent-ack';
-    retryAckButton.textContent = '重试同步已应用修改的确认';
+    retryAckButton.textContent = '重试确认修改';
     retryAckButton.addEventListener('click', async () => {
       const acknowledgement = pendingAck;
       if (!acknowledgement) return;
@@ -525,7 +529,7 @@ function renderDocument({ preserveCamera = true } = {}) {
   try {
     renderer?.setScene(history.scene, { preserveCamera });
   } catch {
-    showNotice('场景预览暂时没有更新。数据仍在草稿中，请导出后尝试刷新。', 'error');
+    showNotice('空间画面暂时没有更新。修改仍在草稿中，请先导出备份再刷新。', 'error');
   }
   renderer?.setSelection(selectedId);
 }
@@ -585,7 +589,7 @@ function loadScene(
     try {
       history.restore(historySnapshot);
     } catch {
-      showNotice('场景已恢复，但旧撤销记录无法恢复。');
+      showNotice('空间已恢复，之前的撤销记录暂时无法找回。');
     }
   }
   spaceId = id;
@@ -619,10 +623,10 @@ function loadScene(
   if (recovered)
     showNotice(
       pendingAck
-        ? '已打开本地副本；有一项修改已应用但尚未确认，可安全重试确认，不会重复应用操作。'
+        ? '已打开草稿副本。有一项修改还需确认，可以重试，不会重复修改。'
         : pendingSave
-          ? '已打开本地副本；保留了与此空间和场景匹配的保存尝试，重试会使用相同幂等标识。'
-          : '已恢复本地副本。云端分支未被覆盖；保存前可在“我的空间”中检查版本。',
+          ? '已打开草稿副本。可以继续保存，不会重复创建同一条保存记录。'
+          : '草稿副本已恢复。云端内容仍保留，保存前可以到“我的空间”查看。',
     );
 }
 
@@ -673,8 +677,8 @@ async function saveScene() {
     conflict = Boolean(result.siblings?.length || result.siblingRevisions?.length);
     showNotice(
       conflict
-        ? '版本已保存，同时发现另一个分支。两份内容都已保留，可在“我的空间”中选择。'
-        : '云端版本已保存。当前浏览器下次可以继续打开。',
+        ? '空间已保存，也发现了另一份修改。两份内容都已保留，可在“我的空间”中选择。'
+        : '空间已保存到云端，下次可用这个浏览器继续打开。',
       'success',
     );
   } catch (error) {
@@ -857,7 +861,7 @@ async function runTurn(prompt) {
             data.baseDraftVersion !== turn.baseDraftVersion
           ) {
             turn.terminalFailure = true;
-            throw new Error('助手返回的编辑实例或版本不匹配，未应用修改。');
+            throw new Error('这份建议与当前空间不一致，未作修改。');
           }
           turn.proposal = data;
         }
@@ -870,15 +874,15 @@ async function runTurn(prompt) {
             data.baseDraftVersion !== turn.baseDraftVersion
           ) {
             turn.terminalFailure = true;
-            throw new Error('助手提案不完整，未应用修改。');
+            throw new Error('助手的修改建议不完整，草稿保持原样。');
           }
           if (history.version !== turn.baseDraftVersion || spaceId !== turn.spaceId) {
             turn.terminalFailure = true;
-            throw new Error('你已继续编辑，助手的旧提案没有应用。请基于当前草稿重新描述。');
+            throw new Error('你已经调整了空间，助手之前的建议没有应用。请按当前草稿重新描述。');
           }
           if (!apply(proposal.operations)) {
             turn.terminalFailure = true;
-            throw new Error('提案未通过场景校验，草稿保持原样。');
+            throw new Error('这份建议暂时无法用于当前空间，草稿保持原样。');
           }
           turn.applied = true;
           reply.textContent = '已应用到当前草稿。你可以继续调整、撤销，或点击“保存到云端”。';
@@ -888,14 +892,14 @@ async function runTurn(prompt) {
     });
     if (!turn.applied && activeTurn === turn)
       reply.textContent =
-        '连接已结束，但没有收到完整可应用的提案。草稿保留；不会自动重新发起可能计费的任务。';
+        '连接已断开，尚未收到完整的修改建议。草稿已保留；为避免再次计费，不会自动重新发送。';
   } catch (error) {
     if (!turn.applied && [400, 401, 404].includes(error.status)) turn.terminalFailure = true;
     if (turn.applied)
-      reply.textContent = '修改已应用到草稿。后续连接中断没有回滚或重复应用，可以撤销或保存。';
+      reply.textContent = '修改已放进草稿。连接断开后修改仍然保留，你可以撤销或保存。';
     else
       reply.textContent = turn.controller.signal.aborted
-        ? '已停止接收。迟到结果不会应用；服务商仍可能对已经运行的任务计费。'
+        ? '已停止接收结果，之后返回的修改不会应用。服务商仍可能对已开始的任务计费。'
         : describeError(error);
   } finally {
     if (activeTurn === turn) activeTurn = null;
@@ -919,7 +923,7 @@ function stopTurn() {
   activeTurn = null;
   recoveredTurn = turnSummary(turn);
   updateRecoveredTurnControls();
-  showNotice('已停止本地接收，并请求服务端取消任务；服务商仍可能继续处理并计费。');
+  showNotice('已停止接收结果，并发送取消请求。服务商仍可能继续处理并计费。');
   if (turn.conversationId) {
     requestJSON(`/api/v1/spaces/${turn.spaceId}/agent/turns/${turn.turnId}/cancel`, {
       method: 'POST',
@@ -988,7 +992,7 @@ async function openLibrary() {
       libraryRow(
         local,
         draft.scene.title,
-        `${new Date(draft.updatedAt).toLocaleString()} · 独立本地记录（保留原空间关联）`,
+        `${new Date(draft.updatedAt).toLocaleString()} · 本地草稿`,
         () =>
           loadScene(draft.scene, {
             id: draft.spaceId,
@@ -1005,10 +1009,10 @@ async function openLibrary() {
     }
     if (!drafts.length) local.append(document.createTextNode('还没有可恢复的本地草稿。'));
   } catch {
-    local.append(document.createTextNode('本地存储不可读，请导出当前草稿。'));
+    local.append(document.createTextNode('暂时无法读取这个浏览器里的草稿，请先导出当前内容。'));
   }
   if (!session) return;
-  const cloud = libraryGroup('当前匿名身份的云端版本');
+  const cloud = libraryGroup('已保存的空间');
   try {
     const spaces = await requestCollection('/api/v1/spaces', 'spaces');
     for (const space of spaces) {
@@ -1019,11 +1023,11 @@ async function openLibrary() {
         versions.map((revision) => revision.parentRevisionId).filter(Boolean),
       );
       const heads = versions.filter((revision) => !parents.has(revision.revisionId));
-      for (const revision of versions) {
+      for (const [index, revision] of versions.entries()) {
         libraryRow(
           cloud,
           space.title || '未命名空间',
-          `${revision.revisionId.slice(0, 18)}…${!parents.has(revision.revisionId) ? (heads.length > 1 ? ' · 并列分支' : ' · 当前分支') : ' · 历史版本'}`,
+          `${!parents.has(revision.revisionId) ? (heads.length > 1 ? '另一份修改' : '最近保存') : '较早保存'} · 保存记录 ${index + 1}`,
           async () => {
             const targetGeneration = loadGeneration;
             const saved = await requestJSON(
@@ -1041,7 +1045,7 @@ async function openLibrary() {
       }
     }
     if (!spaces.length)
-      cloud.append(document.createTextNode('还没有云端版本，点击“保存到云端”留下第一份。'));
+      cloud.append(document.createTextNode('还没有已保存的空间，点击“保存到云端”留下第一份。'));
   } catch (error) {
     cloud.append(document.createTextNode(describeError(error)));
   }
@@ -1180,13 +1184,18 @@ function bindEvents() {
     const file = event.target.files[0];
     if (!file) return;
     try {
-      if (file.size > 256 * 1024) throw new Error('文件超过 256 KiB，请减少场景内容后重试。');
+      if (file.size > 256 * 1024) throw new Error('文件太大，请选择不超过 256 KB 的空间备份。');
       const scene = validateSceneDocument(JSON.parse(await file.text()));
       if (!confirm('将导入为一个新副本，现有草稿保留。继续吗？')) return;
       loadScene(scene);
-      showNotice('已导入为本地新副本。不会认领原身份或覆盖旧云端空间。', 'success');
+      showNotice('已导入为新副本，原来的空间和草稿仍然保留。', 'success');
     } catch (error) {
-      showNotice(describeError(error), 'error');
+      showNotice(
+        error instanceof SyntaxError || error instanceof TypeError
+          ? '这份文件无法导入。请选择从织界导出的空间备份，现有草稿已保留。'
+          : describeError(error),
+        'error',
+      );
     } finally {
       event.target.value = '';
     }
@@ -1338,7 +1347,7 @@ function bindEvents() {
       $('#copy-share').hidden = false;
       $('#revoke-share').hidden = false;
       $('#confirm-share').hidden = true;
-      $('#share-message').textContent = '快照已公开。复制链接即可分享。';
+      $('#share-message').textContent = '分享链接已创建，复制链接即可邀请别人来看看。';
     } catch (error) {
       const message = describeError(error);
       if (loadGeneration === targetGeneration && spaceId === targetSpace)
@@ -1401,7 +1410,7 @@ async function initialize() {
     ['#glass-material', 'pavilion.glass'],
   ]) {
     $(selector).replaceChildren(
-      new Option('母版原色', ''),
+      new Option('原有颜色', ''),
       ...TEMPLATE_TARGETS[targetId].materialIds.map((id) => new Option(MATERIALS[id].label, id)),
     );
   }
@@ -1477,27 +1486,25 @@ async function initialize() {
         if (!selectedIsTabDraft) {
           showNotice(
             !draftLeaseAvailable
-              ? '此浏览器不能检测重复标签页，已安全复制为新的本地记录；再次打开时可能继续创建独立副本。'
+              ? '草稿已另存为新副本。这个浏览器无法区分重复打开的页面，再次打开时可能生成其他副本。'
               : forkedBecauseRecordWasOpen
-                ? '检测到另一个标签页正在使用这份草稿，已复制为独立分支。'
+                ? '这份草稿已在另一个页面打开，这里为你保留了一份独立副本。'
                 : tabStorageAvailable
-                  ? '已将最近的本地草稿复制为独立分支。其他本地与云端分支可在“我的空间”打开。'
-                  : '标签页恢复标记不可用，已打开最近的本地草稿副本；可在“我的空间”选择其他本地分支。',
+                  ? '已打开最近草稿的独立副本。其他草稿和已保存的空间，可在“我的空间”中打开。'
+                  : '已打开最近的草稿副本。若不是你要的内容，可在“我的空间”选择其他草稿。',
           );
         } else if (pendingAck) {
           showNotice('草稿已恢复；有一项修改已应用但尚未确认，可在对话区安全重试确认。');
         } else if (recoveredTurn) {
-          showNotice('发现上次尚未确认完成的助手任务。不会自动重新调用模型；当前草稿已恢复。');
+          showNotice('草稿已恢复。上次的助手任务还没有确认结果，不会自动重新发送。');
         } else {
-          showNotice('已恢复这个标签页的本地草稿。其他本地与云端分支可在“我的空间”打开。');
+          showNotice('已恢复这个页面的草稿。其他草稿和已保存的空间，可在“我的空间”中打开。');
         }
       } else {
         if (!draftLease) void claimDraftLease(draftRecordId);
         rememberDraftRecord();
         if (!tabStorageAvailable)
-          showNotice(
-            '标签页恢复标记不可用。当前编辑仍可使用本地草稿；可在“我的空间”手动选择已有分支。',
-          );
+          showNotice('可以继续编辑，草稿会保存在这个浏览器中。已有草稿可在“我的空间”中打开。');
       }
     } catch {
       localFailure = true;
@@ -1530,7 +1537,7 @@ async function initialize() {
               updatePendingAckRetryButton();
               updateRecoveredTurnControls();
               showNotice(
-                '当前浏览器身份无法访问原云端版本。本地内容已保留为新副本；可以重新保存，但不能认领旧空间。',
+                '这个浏览器已无法打开原来保存的空间。内容已保留为新副本，可以重新保存；原空间的访问权限无法恢复。',
               );
             }
           }
@@ -1553,14 +1560,15 @@ async function initialize() {
       onTransform: ({ id, transform }) => apply([{ op: 'move_object', objectId: id, transform }]),
       onStatus: ({ mode, message }) => {
         $('#render-status').textContent =
-          message || (mode === 'svg' ? '简化画面 · 无实时材质与阴影' : '3D 实时预览');
+          message || (mode === 'svg' ? '简化画面 · 部分细节与阴影不显示' : '空间画面');
       },
     });
     renderDocument({ preserveCamera: false });
     $('#renderer-loading').hidden = true;
   } catch {
-    $('#renderer-loading').textContent = '3D 预览无法打开；仍可用左侧属性编辑并导出数据。';
-    showNotice('此设备无法完成 3D 预览，未改动场景数据。', 'error');
+    $('#renderer-loading').textContent =
+      '空间画面暂时无法打开。仍可在布置面板中调整物件和导出备份。';
+    showNotice('这台设备暂时无法显示空间画面，已有内容未被更改。', 'error');
   }
   persistDraft();
   window.addEventListener('pagehide', (event) => {
@@ -1573,5 +1581,5 @@ async function initialize() {
 
 initialize().catch(() => {
   $('#renderer-loading').textContent = '编辑器未能打开，请刷新重试。';
-  showNotice('编辑器初始化失败。现有本地与云端内容未被覆盖。', 'error');
+  showNotice('空间暂时无法打开，已有草稿和云端内容仍然保留。', 'error');
 });

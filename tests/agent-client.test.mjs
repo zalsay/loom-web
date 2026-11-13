@@ -35,11 +35,11 @@ test('partial or malformed SSE payloads do not become proposals', async () => {
   assert.equal(events.length, 0);
   await assert.rejects(
     readEventStream(sse(['data: broken\n\n']), () => {}),
-    /无法识别/,
+    /无法读取助手的修改建议/,
   );
   await assert.rejects(
     readEventStream(sse(['data: {"data":"oversized"}\n\n']), () => {}, { maxBuffer: 8 }),
-    /上限/,
+    /请缩小修改范围/,
   );
 });
 

@@ -31,12 +31,12 @@ export async function readEventStream(response, onEvent, { signal, maxBuffer = 1
     event = { type: 'message', id: '', data: [] };
     if (next.id && seen.has(next.id)) return;
     if (next.id) seen.add(next.id);
-    if (seen.size > 2048) throw new Error('助手事件过多，已停止读取；草稿已保留。');
+    if (seen.size > 2048) throw new Error('助手返回的内容过多，已停止接收；草稿已保留。');
     let data;
     try {
       data = JSON.parse(next.data.join('\n'));
     } catch {
-      throw new Error('助手返回了无法识别的数据，未应用新的修改。');
+      throw new Error('暂时无法读取助手的修改建议，草稿保持原样。');
     }
     await onEvent({ type: next.type, id: next.id, data });
   };
@@ -51,7 +51,7 @@ export async function readEventStream(response, onEvent, { signal, maxBuffer = 1
     if (field === 'data') {
       event.data.push(content);
       if (event.data.reduce((length, part) => length + part.length, 0) > maxBuffer)
-        throw new Error('助手响应超过安全大小上限。');
+        throw new Error('助手返回的内容太多，请缩小修改范围后再试。');
     }
   };
   try {
@@ -65,7 +65,7 @@ export async function readEventStream(response, onEvent, { signal, maxBuffer = 1
         buffer = buffer.slice(newline + 1);
         await line(current);
       }
-      if (buffer.length > maxBuffer) throw new Error('助手响应超过安全大小上限。');
+      if (buffer.length > maxBuffer) throw new Error('助手返回的内容太多，请缩小修改范围后再试。');
       if (done) break;
     }
     // A partial final frame is not a committed proposal. It is intentionally discarded.

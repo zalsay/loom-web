@@ -8,6 +8,7 @@ const $$ = (s) => document.querySelectorAll(s);
 
 const embedded = new URLSearchParams(location.search).has('embedded');
 if (embedded) document.body.classList.add('embedded');
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 // 状态
 let scene, camera, renderer, controls;
@@ -16,13 +17,14 @@ let raycaster, mouse;
 let targetCameraPos = null;
 let targetControlsLookAt = null;
 let isTransitioning = false;
+let pointerStart = null;
 const clock = new THREE.Clock();
 
 // 预设视角坐标 (针对农场 3m×3m 布局与 8m×5m 控制室精心标定)
 const VIEW_PRESETS = {
   overview: {
-    pos: new THREE.Vector3(18, 16, 22),
-    look: new THREE.Vector3(0, 1.5, -2),
+    pos: new THREE.Vector3(21, 19, 26),
+    look: new THREE.Vector3(0, 0.8, -1.5),
   },
   'control-room': {
     pos: new THREE.Vector3(0, 2.2, -6.8), // 走进控制室内正中
@@ -55,15 +57,15 @@ function init() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.05;
   container.appendChild(renderer.domElement);
 
   // 2. 场景与雾效
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xdbe3d2);
-  scene.fog = new THREE.Fog(0xdbe3d2, 35, 95);
+  scene.background = new THREE.Color(0xe1e5dc);
+  scene.fog = new THREE.Fog(0xe1e5dc, 42, 105);
 
-  // 3. 相机与控制器 (近平面设为 0.5m，大幅提升深度缓冲精度，避免过小近平面带来的精度衰减)
+  // 3. 相机与控制器
   camera = new THREE.PerspectiveCamera(
     42,
     container.clientWidth / container.clientHeight,
@@ -79,7 +81,10 @@ function init() {
   controls.minDistance = 2.0;
   controls.maxDistance = 65;
   controls.target.copy(VIEW_PRESETS.overview.look);
-  if (embedded) {
+  controls.addEventListener('start', () => {
+    isTransitioning = false;
+  });
+  if (embedded && !reducedMotion.matches) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.35;
   }
@@ -90,13 +95,41 @@ function init() {
   // 5. 构筑织界农场 3D 实体场景
   farmSceneData = createFarmScene();
   scene.add(farmSceneData.group);
+  const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  farmSceneData.group.traverse((object) => {
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of materials) {
+      if (material?.map) material.map.anisotropy = anisotropy;
+    }
+  });
+  applyLightingMode('day');
 
   // 6. 光线投射与点击交互
   raycaster = new THREE.Raycaster();
   mouse = new THREE.Vector2();
 
   window.addEventListener('resize', onWindowResize);
-  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  onWindowResize();
+  renderer.domElement.addEventListener('pointerdown', (event) => {
+    pointerStart =
+      event.button === 0 && event.isPrimary ? { x: event.clientX, y: event.clientY } : null;
+  });
+  renderer.domElement.addEventListener('pointermove', (event) => {
+    if (
+      pointerStart &&
+      Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) >= 6
+    )
+      pointerStart = null;
+  });
+  renderer.domElement.addEventListener('pointerup', (event) => {
+    const start = pointerStart;
+    pointerStart = null;
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 6)
+      onPointerDown(event);
+  });
+  renderer.domElement.addEventListener('pointercancel', () => {
+    pointerStart = null;
+  });
 
   setupUI();
 
@@ -105,20 +138,20 @@ function init() {
 }
 
 function setupLights() {
-  hemiLight = new THREE.HemisphereLight(0xf2f7ee, 0x8a9870, 2.4);
+  hemiLight = new THREE.HemisphereLight(0xeaf2fc, 0x72654c, 1.65);
   scene.add(hemiLight);
 
-  sunLight = new THREE.DirectionalLight(0xfff8e7, 3.2);
-  sunLight.position.set(-25, 38, 28);
+  sunLight = new THREE.DirectionalLight(0xffedcf, 2.6);
+  sunLight.position.set(-18, 26, 16);
   sunLight.castShadow = true;
   sunLight.shadow.mapSize.set(2048, 2048);
-  sunLight.shadow.camera.left = -28;
-  sunLight.shadow.camera.right = 28;
-  sunLight.shadow.camera.top = 28;
-  sunLight.shadow.camera.bottom = -28;
+  sunLight.shadow.camera.left = -23;
+  sunLight.shadow.camera.right = 23;
+  sunLight.shadow.camera.top = 23;
+  sunLight.shadow.camera.bottom = -23;
   sunLight.shadow.camera.near = 1;
   sunLight.shadow.camera.far = 100;
-  sunLight.shadow.normalBias = 0.035;
+  sunLight.shadow.normalBias = 0.02;
   sunLight.shadow.bias = -0.0001;
   scene.add(sunLight);
 
@@ -134,37 +167,48 @@ function setupLights() {
 
 function applyLightingMode(mode) {
   if (mode === 'day') {
-    scene.background.set(0xdbe3d2);
-    scene.fog.color.set(0xdbe3d2);
-    sunLight.intensity = 3.2;
-    sunLight.color.set(0xfff8e7);
-    hemiLight.intensity = 2.4;
-    hemiLight.color.set(0xf2f7ee);
-    fillLight.intensity = 0.7;
+    scene.background.set(0xe1e5dc);
+    scene.fog.color.set(0xe1e5dc);
+    sunLight.position.set(-18, 26, 16);
+    sunLight.intensity = 2.6;
+    sunLight.color.set(0xffedcf);
+    hemiLight.intensity = 1.65;
+    hemiLight.color.set(0xeaf2fc);
+    fillLight.intensity = 0.45;
     roomWarmLight.intensity = 2.0;
   } else if (mode === 'dusk') {
-    scene.background.set(0xe8b898);
-    scene.fog.color.set(0xe8b898);
-    sunLight.intensity = 2.5;
-    sunLight.color.set(0xffaa5e);
-    sunLight.position.set(-35, 12, 28);
-    hemiLight.intensity = 1.6;
-    hemiLight.color.set(0xffd1b3);
-    fillLight.intensity = 0.4;
+    scene.background.set(0xd5b9a1);
+    scene.fog.color.set(0xd5b9a1);
+    sunLight.intensity = 2.1;
+    sunLight.color.set(0xffb66e);
+    sunLight.position.set(-28, 10, 16);
+    hemiLight.intensity = 1.1;
+    hemiLight.color.set(0xc2cee4);
+    fillLight.intensity = 0.3;
     roomWarmLight.intensity = 4.5;
   } else if (mode === 'night') {
     scene.background.set(0x0f1c24);
     scene.fog.color.set(0x0f1c24);
-    sunLight.intensity = 0.3;
-    sunLight.color.set(0x6080a0);
-    hemiLight.intensity = 0.5;
-    hemiLight.color.set(0x2a3d4d);
+    sunLight.position.set(-10, 20, -18);
+    sunLight.intensity = 0.45;
+    sunLight.color.set(0x8aafda);
+    hemiLight.intensity = 0.65;
+    hemiLight.color.set(0x6c87a5);
     fillLight.intensity = 0.2;
     roomWarmLight.intensity = 6.0; // 控制室成为夜间明亮的探索灯塔
   }
+  if (farmSceneData?.materials.warmFixture) {
+    farmSceneData.materials.warmFixture.emissiveIntensity = mode === 'day' ? 0.5 : 2.4;
+  }
 }
 
-function smoothMoveCamera(toPos, toLookAt, onComplete) {
+function smoothMoveCamera(toPos, toLookAt) {
+  if (reducedMotion.matches) {
+    camera.position.copy(toPos);
+    controls.target.copy(toLookAt);
+    isTransitioning = false;
+    return;
+  }
   targetCameraPos = toPos.clone();
   targetControlsLookAt = toLookAt.clone();
   isTransitioning = true;
@@ -173,6 +217,7 @@ function smoothMoveCamera(toPos, toLookAt, onComplete) {
 function onWindowResize() {
   const container = $('#canvas-container');
   camera.aspect = container.clientWidth / container.clientHeight;
+  camera.zoom = Math.min(1, camera.aspect / 1.2);
   camera.updateProjectionMatrix();
   renderer.setSize(container.clientWidth, container.clientHeight);
 }
@@ -205,7 +250,7 @@ function handleSelectObject(obj) {
   if (uData.type === 'plot') {
     const p = uData.data;
     $('#card-title').textContent = p.name;
-    $('#card-sub').textContent = `${p.child} · ${p.crop} (${p.stage})`;
+    $('#card-sub').textContent = `${p.child} · ${p.crop} · ${p.stage} · 记录示例`;
     $('#card-stats').style.display = 'grid';
     $('#stat-1-val').textContent = `${p.soilMoisture}%`;
     $('#stat-1-lbl').textContent = '土壤湿度';
@@ -219,23 +264,22 @@ function handleSelectObject(obj) {
     card.classList.remove('hidden');
 
     // 相机平滑推近该地块
-    const plotPos = new THREE.Vector3(p.x, 0, p.z);
     smoothMoveCamera(
       new THREE.Vector3(p.x + 3.8, 3.5, p.z + 4.2),
       new THREE.Vector3(p.x, 0.6, p.z),
     );
   } else if (uData.type === 'lego_rover') {
     $('#card-title').textContent = uData.title;
-    $('#card-sub').textContent = `${uData.child} · 乐高积木拼搭`;
+    $('#card-sub').textContent = `${uData.child} · 记录示例`;
     $('#card-stats').style.display = 'grid';
-    $('#stat-1-val').textContent = uData.speed.split(' ')[0];
-    $('#stat-1-lbl').textContent = '运行速度';
-    $('#stat-2-val').textContent = uData.payload.split(' ')[0];
-    $('#stat-2-lbl').textContent = '当前负重';
+    $('#stat-1-val').textContent = uData.speed.split(' (')[0];
+    $('#stat-1-lbl').textContent = '行驶速度';
+    $('#stat-2-val').textContent = uData.payload.split(' (')[0];
+    $('#stat-2-lbl').textContent = '装载重量';
     $('#stat-3-val').textContent = uData.battery.split(' ')[0];
-    $('#stat-3-lbl').textContent = '续航状态';
+    $('#stat-3-lbl').textContent = '剩余电量';
 
-    $('#card-device').textContent = '乐高双电机越野底盘 + 超声波避障双眼 + 5x5点阵主控';
+    $('#card-device').textContent = '双电机小车，配有避障传感器和点阵显示屏';
     $('#card-question').textContent = `“${uData.question}”`;
     card.classList.remove('hidden');
 
@@ -247,9 +291,9 @@ function handleSelectObject(obj) {
   } else if (uData.type) {
     // 控制室内设备
     $('#card-title').textContent = uData.title;
-    $('#card-sub').textContent = '共用中心控制室核心组件';
+    $('#card-sub').textContent = '农场共用控制室';
     $('#card-stats').style.display = 'none';
-    $('#card-device').textContent = '现场工业级与自动化支持设施';
+    $('#card-device').textContent = '看看农场里的设备及其用途';
     $('#card-question').textContent = uData.desc;
     card.classList.remove('hidden');
   }
@@ -318,7 +362,7 @@ function animate() {
   const dt = clock.getDelta();
 
   // 更新乐高拼搭自动运输小车巡航
-  if (farmSceneData?.rovers) {
+  if (!reducedMotion.matches && farmSceneData?.rovers) {
     farmSceneData.rovers.forEach((r) => r.update(dt));
   }
 
@@ -340,7 +384,7 @@ function animate() {
   controls.update();
 
   // 更新水滴微喷粒子动画
-  if (farmSceneData?.dripSystem) {
+  if (!reducedMotion.matches && farmSceneData?.dripSystem) {
     farmSceneData.dripSystem.update();
   }
 

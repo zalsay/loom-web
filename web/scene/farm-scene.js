@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { farmSurface, farmLeafGeometry, farmInstances, farmRod } from './farm-surfaces.js';
 
 // 尺度规范：1 单位 = 1 米 (1.0 = 1m)
 // 场地核心：6 块 3m x 3m 孩子专属种植试验区，1.2m 砂石工作通道，中央 2.0m 主道
@@ -24,7 +25,7 @@ export const FARM_CONFIG = {
       child: '晨晨 (7岁)',
       crop: '小番茄 (千禧)',
       stage: '开花结果期 (第4周)',
-      device: 'DIY重力储水桶 + 渗灌毛细管',
+      device: '自制储水桶和滴灌水管',
       question: '周末没人来，水到底能不能滴整整两天？',
       soilMoisture: 42,
       soilTemp: 22.4,
@@ -39,7 +40,7 @@ export const FARM_CONFIG = {
       child: '浩浩 (8岁)',
       crop: '矮生油用向日葵',
       stage: '现蕾拔节期 (第5周)',
-      device: '双光敏电阻对日自转支架',
+      device: '随光线转动的支架',
       question: '阴天的时候，花盘还会跟着太阳的方向转吗？',
       soilMoisture: 38,
       soilTemp: 23.1,
@@ -54,12 +55,12 @@ export const FARM_CONFIG = {
       child: '悠悠 (6岁半)',
       crop: '红颜草莓',
       stage: '初果膨大期 (第6周)',
-      device: '三层木构阶梯架 + 离地防虫托盘',
+      device: '三层木架和离地防虫托盘',
       question: '为什么最底下一层的草莓叶子容易发黄？',
       soilMoisture: 45,
       soilTemp: 21.8,
       lightHours: 6.1,
-      status: '告警 · 下层光照不足',
+      status: '留意下层光照',
       x: 4.5,
       z: 0.0,
     },
@@ -69,7 +70,7 @@ export const FARM_CONFIG = {
       child: '乐乐 (7岁)',
       crop: '板栗南瓜',
       stage: '蔓生伸长期 (第3周)',
-      device: '人字形竹木搭架 + 激光反光风车',
+      device: '竹木藤架和反光风车',
       question: '藤蔓往哪个方向爬，结的南瓜能晒到最多太阳？',
       soilMoisture: 50,
       soilTemp: 22.0,
@@ -84,7 +85,7 @@ export const FARM_CONFIG = {
       child: '糖糖 (8岁)',
       crop: '奶油生菜 / 罗莎红',
       stage: '成株采收期 (第5周)',
-      device: '拉绳式滑轮遮阳卷帘 + 光照计',
+      device: '拉绳遮阳帘和光照计',
       question: '中午大太阳拉上网，生菜吃起来真的不会发苦吗？',
       soilMoisture: 55,
       soilTemp: 20.5,
@@ -95,16 +96,16 @@ export const FARM_CONFIG = {
     },
     {
       id: 6,
-      name: '06 · 新实验留白区 (待立案)',
-      child: '开放共创',
-      crop: '春化休整肥沃土壤',
+      name: '06 · 等你来种的一块地',
+      child: '欢迎一起种植',
+      crop: '已整理的土壤',
       stage: '准备阶段',
-      device: '标准土壤多参数综合传感器探针',
-      question: '下一期孩子带来新想法后，立刻在这里动手整地搭架',
+      device: '土壤温湿度传感器',
+      question: '你想在这里种什么？又想做个什么装置？',
       soilMoisture: 35,
       soilTemp: 21.0,
       lightHours: 7.9,
-      status: '待立案 · 随时可用',
+      status: '准备种植',
       x: 4.5,
       z: 5.5,
     },
@@ -115,6 +116,12 @@ export function createFarmScene() {
   const farmGroup = new THREE.Group();
   farmGroup.name = 'ZhijieFarmRoot';
 
+  const soilMap = farmSurface('soil', 3, 3);
+  const woodMap = farmSurface('wood');
+  const grassMap = farmSurface('grass', 80, 80);
+  const gravelMap = farmSurface('gravel');
+  const solarMap = farmSurface('solar');
+
   // 共享材质池
   const materials = {
     soil: new THREE.MeshStandardMaterial({
@@ -123,29 +130,35 @@ export function createFarmScene() {
       metalness: 0.05,
     }),
     soilBedTilled: new THREE.MeshStandardMaterial({
-      color: 0x4a3625,
-      roughness: 0.9,
-      metalness: 0.05,
+      map: soilMap,
+      bumpMap: soilMap,
+      bumpScale: 0.035,
+      roughness: 1,
     }),
     woodCurb: new THREE.MeshStandardMaterial({
-      color: 0x8a6240,
-      roughness: 0.8,
-      metalness: 0.05,
+      map: woodMap,
+      color: 0xbba17d,
+      bumpMap: woodMap,
+      bumpScale: 0.012,
+      roughness: 0.88,
     }),
     grass: new THREE.MeshStandardMaterial({
-      color: 0x729260,
-      roughness: 0.85,
-      metalness: 0.05,
+      map: grassMap,
+      roughness: 1,
+      vertexColors: true,
     }),
     gravelPath: new THREE.MeshStandardMaterial({
-      color: 0xc4b7a1,
-      roughness: 0.92,
-      metalness: 0.02,
+      map: gravelMap,
+      bumpMap: gravelMap,
+      bumpScale: 0.025,
+      roughness: 1,
     }),
     deckWood: new THREE.MeshStandardMaterial({
-      color: 0xa0764e,
-      roughness: 0.7,
-      metalness: 0.1,
+      map: woodMap,
+      color: 0xe3cba9,
+      bumpMap: woodMap,
+      bumpScale: 0.012,
+      roughness: 0.82,
     }),
     darkSteel: new THREE.MeshStandardMaterial({
       color: 0x222629,
@@ -153,17 +166,16 @@ export function createFarmScene() {
       metalness: 0.8,
     }),
     lightTimber: new THREE.MeshStandardMaterial({
-      color: 0xd8ba90,
-      roughness: 0.65,
-      metalness: 0.05,
+      map: woodMap,
+      color: 0xffedcf,
+      roughness: 0.78,
     }),
     glass: new THREE.MeshPhysicalMaterial({
       color: 0xe8f4f8,
       transparent: true,
-      opacity: 0.35,
-      roughness: 0.1,
-      metalness: 0.1,
-      transmission: 0.85,
+      opacity: 0.22,
+      roughness: 0.16,
+      metalness: 0.15,
       ior: 1.5,
       depthWrite: false, // 禁用透明玻璃写入深度缓冲，彻底避免与立柱/内部结构边缘发生 Z-fighting 深度冲突闪烁
     }),
@@ -179,19 +191,17 @@ export function createFarmScene() {
       metalness: 0.85,
     }),
     foliageTomato: new THREE.MeshStandardMaterial({
-      color: 0x2e7d32,
-      roughness: 0.6,
-      metalness: 0.05,
+      color: 0x4b693b,
+      roughness: 0.95,
     }),
     tomatoFruit: new THREE.MeshStandardMaterial({
-      color: 0xd32f2f,
-      roughness: 0.3,
-      metalness: 0.1,
+      color: 0xc4482e,
+      roughness: 0.48,
     }),
     sunflowerPetal: new THREE.MeshStandardMaterial({
-      color: 0xfbc02d,
-      roughness: 0.5,
-      metalness: 0.1,
+      color: 0xf3bf46,
+      roughness: 0.85,
+      side: THREE.DoubleSide,
     }),
     sunflowerCenter: new THREE.MeshStandardMaterial({
       color: 0x3e2723,
@@ -209,9 +219,9 @@ export function createFarmScene() {
       metalness: 0.9,
     }),
     pvCell: new THREE.MeshStandardMaterial({
-      color: 0x1a237e,
-      roughness: 0.2,
-      metalness: 0.9,
+      map: solarMap,
+      roughness: 0.32,
+      metalness: 0.45,
     }),
     whiteAppliance: new THREE.MeshStandardMaterial({
       color: 0xeeeeee,
@@ -258,16 +268,33 @@ export function createFarmScene() {
   };
 
   // 1. 大地基础与场地规划
-  const groundGeo = new THREE.PlaneGeometry(80, 80);
+  const groundGeo = new THREE.PlaneGeometry(180, 180, 64, 64);
+  const groundColors = [];
+  const groundPosition = groundGeo.getAttribute('position');
+  for (let i = 0; i < groundPosition.count; i++) {
+    const x = groundPosition.getX(i),
+      z = groundPosition.getY(i);
+    const tone = 0.91 + 0.055 * Math.sin(x * 0.31) * Math.cos(z * 0.27);
+    groundColors.push(tone, tone, tone * 0.95);
+  }
+  groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(groundColors, 3));
   const ground = new THREE.Mesh(groundGeo, materials.grass);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   farmGroup.add(ground);
 
+  function pathMaterial(width, length) {
+    const material = materials.gravelPath.clone();
+    const map = gravelMap.clone();
+    map.repeat.set(width * 2, length * 2);
+    material.map = material.bumpMap = map;
+    return material;
+  }
+
   // 场地通道网络（围绕与穿插 3m×3m 格子之间，便于孩子走动与乐高小车运输）
   // 通道 1：西侧纵向通道 (x = -2.25m，连接地块01、04与控制室)
   const pathWestGeo = new THREE.PlaneGeometry(1.5, 14);
-  const pathWest = new THREE.Mesh(pathWestGeo, materials.gravelPath);
+  const pathWest = new THREE.Mesh(pathWestGeo, pathMaterial(1.5, 14));
   pathWest.rotation.x = -Math.PI / 2;
   pathWest.position.set(-2.25, 0.015, 2.0);
   pathWest.receiveShadow = true;
@@ -275,7 +302,7 @@ export function createFarmScene() {
 
   // 通道 2：东侧纵向通道 (x = +2.25m，连接地块02、03、05、06与控制室)
   const pathEastGeo = new THREE.PlaneGeometry(1.5, 14);
-  const pathEast = new THREE.Mesh(pathEastGeo, materials.gravelPath);
+  const pathEast = new THREE.Mesh(pathEastGeo, pathMaterial(1.5, 14));
   pathEast.rotation.x = -Math.PI / 2;
   pathEast.position.set(2.25, 0.015, 2.0);
   pathEast.receiveShadow = true;
@@ -283,7 +310,7 @@ export function createFarmScene() {
 
   // 通道 3：中央横向主通道 (z = 2.75m，穿插于第一排与第二排 3m×3m 田块之间，宽 2.4m)
   const pathCrossGeo = new THREE.PlaneGeometry(16, 2.4);
-  const pathCross = new THREE.Mesh(pathCrossGeo, materials.gravelPath);
+  const pathCross = new THREE.Mesh(pathCrossGeo, pathMaterial(16, 2.4));
   pathCross.rotation.x = -Math.PI / 2;
   pathCross.position.set(0, 0.016, 2.75);
   pathCross.receiveShadow = true;
@@ -291,7 +318,7 @@ export function createFarmScene() {
 
   // 通道 4：北侧控制室木露台前坪通道 (z = -3.2m，宽 2.4m)
   const pathNorthGeo = new THREE.PlaneGeometry(16, 2.4);
-  const pathNorth = new THREE.Mesh(pathNorthGeo, materials.gravelPath);
+  const pathNorth = new THREE.Mesh(pathNorthGeo, pathMaterial(16, 2.4));
   pathNorth.rotation.x = -Math.PI / 2;
   pathNorth.position.set(0, 0.016, -3.2);
   pathNorth.receiveShadow = true;
@@ -299,7 +326,7 @@ export function createFarmScene() {
 
   // 通道 5：南侧田块外缘通道 (z = 8.0m，宽 1.8m)
   const pathSouthGeo = new THREE.PlaneGeometry(16, 1.8);
-  const pathSouth = new THREE.Mesh(pathSouthGeo, materials.gravelPath);
+  const pathSouth = new THREE.Mesh(pathSouthGeo, pathMaterial(16, 1.8));
   pathSouth.rotation.x = -Math.PI / 2;
   pathSouth.position.set(0, 0.016, 8.0);
   pathSouth.receiveShadow = true;
@@ -307,7 +334,6 @@ export function createFarmScene() {
 
   // 2. 孩子专属 3m x 3m 种植地块
   const plotInteractables = [];
-  const waterParticlesList = [];
 
   FARM_CONFIG.plots.forEach((pData) => {
     const plotGroup = new THREE.Group();
@@ -359,6 +385,31 @@ export function createFarmScene() {
     curbE.castShadow = true;
     plotGroup.add(curbE);
 
+    // Raised soil rows keep the irrigation lines legible at close range.
+    const ridges = [];
+    for (let row = 0; row < 7; row++) {
+      ridges.push({ position: [-1.05 + row * 0.35, 0.213, 0], scale: [0.1, 0.035, 1.29] });
+    }
+    farmInstances(
+      plotGroup,
+      '耕作土垄',
+      new THREE.SphereGeometry(1, 10, 6),
+      materials.soilBedTilled,
+      ridges,
+    );
+    const cornerCaps = [];
+    for (const x of [-1.43, 1.43])
+      for (const z of [-1.43, 1.43]) {
+        cornerCaps.push({ position: [x, 0.12, z] });
+      }
+    farmInstances(
+      plotGroup,
+      '木框角柱',
+      new THREE.BoxGeometry(0.13, 0.24, 0.13),
+      materials.woodCurb,
+      cornerCaps,
+    );
+
     // 专属标牌与编号（地块铭牌木桩）
     const signStakeGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.9, 8);
     const signStake = new THREE.Mesh(signStakeGeo, materials.woodCurb);
@@ -366,7 +417,7 @@ export function createFarmScene() {
     signStake.castShadow = true;
     plotGroup.add(signStake);
 
-    const signBoardGeo = new THREE.BoxGeometry(0.42, 0.25, 0.025);
+    const signBoardGeo = new THREE.BoxGeometry(0.52, 0.32, 0.035);
     const signBoardMat = new THREE.MeshStandardMaterial({
       color: 0x334433,
       roughness: 0.5,
@@ -375,6 +426,26 @@ export function createFarmScene() {
     signBoard.position.set(-1.25, 0.8, 1.25);
     signBoard.rotation.y = -Math.PI / 6;
     plotGroup.add(signBoard);
+    const labelCanvas = document.createElement('canvas');
+    labelCanvas.width = 256;
+    labelCanvas.height = 160;
+    const label = labelCanvas.getContext('2d');
+    label.fillStyle = '#304439';
+    label.fillRect(0, 0, 256, 160);
+    label.fillStyle = '#f4ebcf';
+    label.font = '600 70px sans-serif';
+    label.textAlign = 'center';
+    label.fillText(String(pData.id).padStart(2, '0'), 128, 83);
+    label.font = '25px sans-serif';
+    label.fillText(['番茄', '向日葵', '草莓', '南瓜', '生菜', '等你来种'][pData.id - 1], 128, 132);
+    const labelMap = new THREE.CanvasTexture(labelCanvas);
+    labelMap.colorSpace = THREE.SRGBColorSpace;
+    const labelFace = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.49, 0.3),
+      new THREE.MeshStandardMaterial({ map: labelMap, roughness: 1 }),
+    );
+    labelFace.position.z = 0.019;
+    signBoard.add(labelFace);
 
     // 专属延时摄影立杆（Time-Lapse Camera Pole，记录发芽、生长、前后对比）
     const cameraPoleGeo = new THREE.CylinderGeometry(0.025, 0.025, 1.8, 8);
@@ -431,7 +502,7 @@ export function createFarmScene() {
     addPlotContents(plotGroup, pData, materials);
 
     farmGroup.add(plotGroup);
-    plotInteractables.push(soilBed);
+    plotInteractables.push(plotGroup);
   });
 
   // 3. 共用控制室 Hub (Modern Eco-Tech Modular Lab)
@@ -441,11 +512,29 @@ export function createFarmScene() {
   controlRoomGroup.position.set(roomConfig.x, 0, roomConfig.z);
 
   // 控制室地台基座（抬高 0.25m，带外伸户外木露台）
-  const deckGeo = new THREE.BoxGeometry(roomConfig.width + 1.6, 0.25, roomConfig.depth + 2.0);
+  const deckGeo = new THREE.BoxGeometry(roomConfig.width + 1.6, 0.21, roomConfig.depth + 2.0);
   const deck = new THREE.Mesh(deckGeo, materials.deckWood);
-  deck.position.set(0, 0.125, 0.5);
+  deck.position.set(0, 0.105, 0.5);
   deck.receiveShadow = true;
   controlRoomGroup.add(deck);
+  const deckBoards = [];
+  for (let i = 0; i < 32; i++) {
+    deckBoards.push({
+      position: [-4.65 + i * 0.3, 0.23, 0.5],
+      color: i % 3 === 0 ? '#e6d6bd' : '#ffffff',
+    });
+  }
+  farmInstances(
+    controlRoomGroup,
+    '露台木板',
+    new THREE.BoxGeometry(0.288, 0.04, 7),
+    materials.deckWood,
+    deckBoards,
+  );
+  const step = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 0.5), materials.deckWood);
+  step.position.set(0, 0.06, 4.22);
+  step.receiveShadow = true;
+  controlRoomGroup.add(step);
 
   // 控制室主体框架（梁柱体系与不重叠围护结构，彻底消除共面闪烁）
   const h = roomConfig.height; // 3.2m
@@ -457,9 +546,9 @@ export function createFarmScene() {
   // 地板（室内木质地坪，置于地台上方，内缩 10cm 杜绝与地台/外墙共面）
   const floorGeo = new THREE.BoxGeometry(w - colSize * 2, 0.02, d - colSize * 2);
   const floorMat = new THREE.MeshStandardMaterial({
-    color: 0xc8aa80,
-    roughness: 0.5,
-    metalness: 0.1,
+    map: woodMap,
+    color: 0xfff2dd,
+    roughness: 0.82,
   });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.position.set(0, 0.26, 0);
@@ -495,12 +584,44 @@ export function createFarmScene() {
   westWall.castShadow = true;
   westWall.receiveShadow = true;
   controlRoomGroup.add(westWall);
+  const cladding = [];
+  for (const side of [-1, 1])
+    for (let i = 0; i < 30; i++) {
+      cladding.push({
+        position: [side * (w / 2 + 0.025), h / 2 + 0.25, -2.32 + i * 0.16],
+        color: i % 4 === 0 ? '#c8b698' : '#eee0c9',
+      });
+    }
+  farmInstances(
+    controlRoomGroup,
+    '外墙竖向木饰面',
+    new THREE.BoxGeometry(0.055, h - 0.08, 0.145),
+    materials.lightTimber,
+    cladding,
+  );
 
   // 南向全景落地玻璃幕墙（嵌于门框立柱间，位置内缩 12cm，设置 depthWrite=false）
   const glassGeo = new THREE.BoxGeometry(w - colSize * 2, h - 0.15, 0.03);
   const frontGlass = new THREE.Mesh(glassGeo, materials.glass);
   frontGlass.position.set(0, h / 2 + 0.25, d / 2 - 0.12);
   controlRoomGroup.add(frontGlass);
+  const glazingBars = [];
+  for (const x of [-2.55, 0, 2.55]) glazingBars.push({ position: [x, h / 2 + 0.25, d / 2 - 0.08] });
+  farmInstances(
+    controlRoomGroup,
+    '玻璃细框',
+    new THREE.BoxGeometry(0.038, h - 0.15, 0.055),
+    materials.darkSteel,
+    glazingBars,
+  );
+  for (const x of [-0.13, 0.13])
+    farmRod(
+      controlRoomGroup,
+      materials.darkSteel,
+      [x, 1.15, d / 2 - 0.01],
+      [x, 1.65, d / 2 - 0.01],
+      0.018,
+    );
 
   // 钢木复合立柱（四角承重柱与中央玻璃门框立柱，独立外包尺寸无共面冲突）
   const colGeo = new THREE.BoxGeometry(colSize, h, colSize);
@@ -529,7 +650,26 @@ export function createFarmScene() {
   const roof = new THREE.Mesh(roofGeo, roofMat);
   roof.position.set(0, h + 0.38, 0); // 底部位于 3.2 + 0.38 - 0.11 = 3.47m
   roof.castShadow = true;
+  roof.receiveShadow = true;
   controlRoomGroup.add(roof);
+  const soffit = new THREE.Mesh(
+    new THREE.BoxGeometry(w + 0.45, 0.045, d + 0.45),
+    materials.lightTimber,
+  );
+  soffit.position.set(0, h + 0.25, 0);
+  controlRoomGroup.add(soffit);
+  materials.warmFixture = new THREE.MeshStandardMaterial({
+    color: 0xffe8bd,
+    emissive: 0xffbc70,
+    emissiveIntensity: 0.5,
+    roughness: 0.5,
+  });
+  const porchLight = new THREE.Mesh(
+    new THREE.BoxGeometry(w - 0.4, 0.028, 0.035),
+    materials.warmFixture,
+  );
+  porchLight.position.set(0, h + 0.22, d / 2 + 0.16);
+  controlRoomGroup.add(porchLight);
 
   // 屋顶光伏支架横梁（将光伏板整体抬高至屋顶表面以上，杜绝斜面穿透屋顶）
   const railMat = new THREE.MeshStandardMaterial({ color: 0x222629, roughness: 0.5 });
@@ -549,6 +689,16 @@ export function createFarmScene() {
       // 抬高至 h + 0.62 (3.82m)，倾角0.12rad下最低点为 3.82 - sin(0.12)*0.475 = 3.76m，高于屋顶 3.59m，彻底无穿透冲突
       pv.position.set(-2.55 + c * 1.7, h + 0.62, -1.2 + r * 1.4);
       pv.rotation.x = 0.12;
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(pvWidth + 0.055, 0.045, pvDepth + 0.055),
+        materials.darkSteel,
+      );
+      frame.position.copy(pv.position);
+      frame.rotation.copy(pv.rotation);
+      frame.position.y -= 0.008;
+      controlRoomGroup.add(frame);
+      pv.position.y += 0.018;
+      pv.castShadow = true;
       controlRoomGroup.add(pv);
     }
   }
@@ -575,6 +725,21 @@ export function createFarmScene() {
   rainTank.position.set(-w / 2 - 0.8, 1.35, -0.6);
   rainTank.castShadow = true;
   controlRoomGroup.add(rainTank);
+  const tankRings = [];
+  for (let i = 0; i < 7; i++)
+    tankRings.push({
+      position: [-w / 2 - 0.8, 0.4 + i * 0.3, -0.6],
+      rotation: [Math.PI / 2, 0, 0],
+    });
+  farmInstances(
+    controlRoomGroup,
+    '雨水桶加强圈',
+    new THREE.TorusGeometry(0.65, 0.018, 5, 24),
+    materials.darkSteel,
+    tankRings,
+  );
+  farmRod(controlRoomGroup, materials.darkSteel, [-4.35, 3.52, -1.8], [-4.8, 3.52, -1.8], 0.045);
+  farmRod(controlRoomGroup, materials.darkSteel, [-4.8, 3.52, -1.8], [-4.8, 2.4, -0.6], 0.045);
 
   // 4. 控制室内部核心设备
   // ----------------------------------------------------
@@ -585,8 +750,8 @@ export function createFarmScene() {
   rackGroup.position.set(-w / 2 + 1.0, 0.25, -d / 2 + 1.1);
   rackGroup.userData = {
     type: 'server_rack',
-    title: '织界边缘 AI 服务器机柜 (42U Edge Node)',
-    desc: '现场本地化运算核心：运行 G 老师视觉分析模型、6个地块延时摄影高画质存储（NAS）、环境时序数据库与离线 Agent 推理集群。断网依然保持自动化照料。',
+    title: '农场电脑机柜',
+    desc: '这里展示用于保存种植照片、环境记录和运行 G 老师的电脑设备，方便回看孩子们的观察。',
   };
 
   const rackFrameGeo = new THREE.BoxGeometry(0.85, 2.2, 0.95);
@@ -626,8 +791,8 @@ export function createFarmScene() {
   agentDeskGroup.position.set(0, 0.25, -0.6);
   agentDeskGroup.userData = {
     type: 'agent_console',
-    title: 'G 老师农场 AI Agent 交互中心',
-    desc: '孩子与 G 老师的研讨工位。大屏呈现“农场 AI-Lab 认知中枢”：作物长势诊断、环境异常预警、自然语言多轮问答记录。孩子现场遇到疑惑，在这里与 G 老师拆解实验。',
+    title: 'G 老师讨论台',
+    desc: '孩子们围坐在这里，看种植记录、聊遇到的问题，再商量下一次怎么尝试。大屏展示了一组讨论记录示例。',
   };
 
   // 弧形/宽幅木作讨论台
@@ -665,6 +830,7 @@ export function createFarmScene() {
   const screenFaceGeo = new THREE.PlaneGeometry(1.82, 0.78);
   const screenCanvas = createAgentScreenTexture();
   const screenTex = new THREE.CanvasTexture(screenCanvas);
+  screenTex.colorSpace = THREE.SRGBColorSpace;
   const screenMat = new THREE.MeshBasicMaterial({ map: screenTex });
   const screenFace = new THREE.Mesh(screenFaceGeo, screenMat);
   screenFace.position.set(0, 1.55, -0.368);
@@ -687,8 +853,8 @@ export function createFarmScene() {
   monitorWallGroup.position.set(w / 2 - 0.25, 0.25, -0.6);
   monitorWallGroup.userData = {
     type: 'surveillance_wall',
-    title: '六地块视觉监测与延时回传大屏',
-    desc: '6路高清延时机位与全景PTZ的实时视觉矩阵。内置目标检测算法，自动标出番茄花朵数、向日葵朝向角、叶片面积扩张率，支撑“整季连续追踪”记录。',
+    title: '种植区观察屏',
+    desc: '六个画面分别对应六块种植区，用来展示如何对比作物的生长变化。这里的画面是观察示意。',
   };
 
   const wallBracketGeo = new THREE.BoxGeometry(0.12, 1.6, 2.6);
@@ -699,6 +865,7 @@ export function createFarmScene() {
   // 6 块监控分屏（模拟 6 个地块画面）
   const cTexCanvas = createCctvTexture();
   const cctvTex = new THREE.CanvasTexture(cTexCanvas);
+  cctvTex.colorSpace = THREE.SRGBColorSpace;
   const cctvMat = new THREE.MeshBasicMaterial({ map: cctvTex });
 
   const cctvFaceGeo = new THREE.PlaneGeometry(2.45, 1.45);
@@ -716,8 +883,8 @@ export function createFarmScene() {
   consoleGroup.position.set(-w / 2 + 1.2, 0.25, 1.1);
   consoleGroup.userData = {
     type: 'hydro_power_light_console',
-    title: '水电光一体化物理调控中心',
-    desc: '农场物理执行层。集成6路微灌电磁分水排阀、压力监测表、光伏逆变电量表、LED光周期补光控制器。支持孩子通过物理旋钮与手柄安全干预水阀。',
+    title: '灌溉与用电控制台',
+    desc: '这里展示水阀、水压表、电量表和补光开关，帮助了解农场怎样供水、用电。网页中可查看设备外观与说明。',
   };
 
   const consoleDeskGeo = new THREE.BoxGeometry(1.6, 0.9, 0.85);
@@ -846,172 +1013,228 @@ export function createFarmScene() {
 
 // 辅助函数：根据地块特色生成作物与装置
 function addPlotContents(plotGroup, pData, mats) {
-  const pid = pData.id;
-
-  if (pid === 1) {
-    // 晨晨的番茄搭架与自动滴灌
-    // 4组人字形竹竿支架
-    for (let i = 0; i < 4; i++) {
-      const stake1 = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.015, 0.015, 1.4, 6),
-        mats.woodCurb,
-      );
-      stake1.rotation.z = 0.2;
-      stake1.position.set(-0.7 + i * 0.45, 0.7, -0.4);
-      plotGroup.add(stake1);
-
-      const stake2 = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.015, 0.015, 1.4, 6),
-        mats.woodCurb,
-      );
-      stake2.rotation.z = -0.2;
-      stake2.position.set(-0.7 + i * 0.45, 0.7, 0.4);
-      plotGroup.add(stake2);
-
-      // 茂密的番茄灌木团
-      const bushGeo = new THREE.SphereGeometry(0.28, 8, 8);
-      const bush = new THREE.Mesh(bushGeo, mats.foliageTomato);
-      bush.position.set(-0.7 + i * 0.45, 0.65, 0);
-      bush.scale.set(0.9, 1.4, 0.9);
-      plotGroup.add(bush);
-
-      // 挂枝小番茄 (红点)
-      for (let t = 0; t < 3; t++) {
-        const tomGeo = new THREE.SphereGeometry(0.038, 8, 8);
-        const tom = new THREE.Mesh(tomGeo, mats.tomatoFruit);
-        tom.position.set(-0.7 + i * 0.45 + (t - 1) * 0.12, 0.5 + t * 0.15, 0.2);
-        plotGroup.add(tom);
-      }
-    }
-  } else if (pid === 2) {
-    // 浩浩的向日葵向光试验
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 3; col++) {
-        const stemH = 1.3 + (row + col) * 0.1;
-        const stem = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.02, 0.02, stemH, 6),
-          mats.foliageTomato,
-        );
-        stem.position.set(-0.8 + col * 0.8, stemH / 2 + 0.1, -0.8 + row * 0.8);
-        plotGroup.add(stem);
-
-        // 花盘金黄花瓣
-        const diskGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.04, 16);
-        const disk = new THREE.Mesh(diskGeo, mats.sunflowerPetal);
-        disk.rotation.x = 0.4;
-        disk.position.set(-0.8 + col * 0.8, stemH + 0.1, -0.8 + row * 0.8);
-        plotGroup.add(disk);
-
-        // 花盘中心深棕色葵花籽盘
-        const center = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.1, 0.1, 0.045, 12),
-          mats.sunflowerCenter,
-        );
-        center.rotation.x = 0.4;
-        center.position.set(-0.8 + col * 0.8, stemH + 0.11, -0.8 + row * 0.8);
-        plotGroup.add(center);
-      }
-    }
-  } else if (pid === 3) {
-    // 悠悠的草莓立体阶梯架 (三层)
-    for (let tier = 0; tier < 3; tier++) {
-      const tierGeo = new THREE.BoxGeometry(2.4, 0.2, 0.6);
-      const tierBox = new THREE.Mesh(tierGeo, mats.woodCurb);
-      tierBox.position.set(0, 0.25 + tier * 0.3, -0.7 + tier * 0.7);
-      plotGroup.add(tierBox);
-
-      // 草莓丛
-      for (let s = 0; s < 5; s++) {
-        const berryFoliage = new THREE.Mesh(
-          new THREE.SphereGeometry(0.14, 6, 6),
-          mats.foliageTomato,
-        );
-        berryFoliage.position.set(-0.9 + s * 0.45, 0.4 + tier * 0.3, -0.7 + tier * 0.7);
-        plotGroup.add(berryFoliage);
-
-        const redBerry = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), mats.tomatoFruit);
-        redBerry.position.set(-0.9 + s * 0.45, 0.32 + tier * 0.3, -0.55 + tier * 0.7);
-        plotGroup.add(redBerry);
-      }
-    }
-  } else if (pid === 4) {
-    // 乐乐的南瓜爬藤与防鸟风车
-    // 地面大南瓜叶片堆与南瓜
-    const leafGroupGeo = new THREE.CylinderGeometry(0.7, 0.9, 0.2, 8);
-    const leafMound = new THREE.Mesh(leafGroupGeo, mats.foliageTomato);
-    leafMound.position.set(0, 0.28, 0);
-    plotGroup.add(leafMound);
-
-    // 橘色大南瓜
-    const pumpkinMat = new THREE.MeshStandardMaterial({ color: 0xf57c00, roughness: 0.5 });
-    const pumpkin = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), pumpkinMat);
-    pumpkin.scale.set(1.2, 0.8, 1.2);
-    pumpkin.position.set(-0.5, 0.3, 0.4);
-    plotGroup.add(pumpkin);
-
-    // 孩子手作彩色小风车 (防鸟试验)
-    const pinPole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.015, 0.015, 1.0, 6),
-      mats.whiteAppliance,
-    );
-    pinPole.position.set(0.8, 0.6, -0.8);
-    plotGroup.add(pinPole);
-
-    const pinwheel = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.08, 4), mats.sunflowerPetal);
-    pinwheel.rotation.x = Math.PI / 2;
-    pinwheel.position.set(0.8, 1.1, -0.8);
-    plotGroup.add(pinwheel);
-  } else if (pid === 5) {
-    // 糖糖的生菜与遮阳网试验
-    // 半幅伸缩黑色遮阳网支架
-    const frameGeo = new THREE.BoxGeometry(2.6, 0.9, 1.3);
-    const wireFrame = new THREE.Mesh(
-      frameGeo,
-      new THREE.MeshBasicMaterial({ color: 0x455a64, wireframe: true }),
-    );
-    wireFrame.position.set(0, 0.65, -0.6);
-    plotGroup.add(wireFrame);
-
-    const shadeNetGeo = new THREE.PlaneGeometry(2.55, 1.25);
-    const shadeMat = new THREE.MeshStandardMaterial({
-      color: 0x1c2833,
-      transparent: true,
-      opacity: 0.82,
-      side: THREE.DoubleSide,
+  const leaves = [],
+    fruits = [];
+  const leafGeo = farmLeafGeometry();
+  const fruitGeo = new THREE.SphereGeometry(1, 12, 8);
+  const leafMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    roughness: 0.95,
+    side: THREE.DoubleSide,
+  });
+  const leaf = (x, y, z, angle, length, width = 1, tilt = -0.25) => {
+    leaves.push({
+      position: [x, y, z],
+      rotation: [tilt, angle, 0],
+      scale: [length * width, length, length],
     });
-    const shadeNet = new THREE.Mesh(shadeNetGeo, shadeMat);
-    shadeNet.rotation.x = Math.PI / 2;
-    shadeNet.position.set(0, 1.1, -0.6);
-    plotGroup.add(shadeNet);
+  };
+  const fruit = (x, y, z, radius, color = '#c4482e', scaleY = 1) => {
+    fruits.push({ position: [x, y, z], scale: [radius, radius * scaleY, radius], color });
+  };
 
-    // 生菜矩阵（球状生菜）
-    for (let gx = 0; gx < 5; gx++) {
-      for (let gz = 0; gz < 5; gz++) {
-        const lettuce = new THREE.Mesh(
-          new THREE.SphereGeometry(0.12, 6, 6),
-          new THREE.MeshStandardMaterial({ color: gz < 3 ? 0x66bb6a : 0x81c784, roughness: 0.7 }),
-        );
-        lettuce.scale.set(1.2, 0.7, 1.2);
-        lettuce.position.set(-0.8 + gx * 0.4, 0.28, -0.8 + gz * 0.4);
-        plotGroup.add(lettuce);
+  if (pData.id === 1) {
+    // Branches and separate leaves replace the original solid green spheres.
+    for (const z of [-0.55, 0.55]) {
+      farmRod(plotGroup, mats.lightTimber, [-1, 0.22, z], [-0.85, 1.65, z], 0.022);
+      farmRod(plotGroup, mats.lightTimber, [1, 0.22, z], [0.85, 1.65, z], 0.022);
+      farmRod(plotGroup, mats.lightTimber, [-0.88, 1.5, z], [0.88, 1.5, z], 0.019);
+      for (let i = 0; i < 3; i++) {
+        const x = -0.65 + i * 0.65;
+        farmRod(plotGroup, mats.foliageTomato, [x, 0.23, z], [x + 0.08, 1.4, z], 0.014);
+        for (let j = 0; j < 7; j++) {
+          const angle = j * 2.399 + i,
+            y = 0.4 + j * 0.135;
+          const dx = Math.cos(angle) * 0.18,
+            dz = Math.sin(angle) * 0.18;
+          farmRod(plotGroup, mats.foliageTomato, [x, y, z], [x + dx, y + 0.08, z + dz], 0.007);
+          leaf(x + dx, y + 0.08, z + dz, angle + 0.8, 0.28, 0.7);
+          leaf(x + dx * 0.5, y + 0.03, z + dz * 0.5, angle - 1, 0.2, 0.7);
+          if (j % 2 === 0) {
+            fruit(x + dx, y - 0.03, z + dz, 0.062, j === 6 ? '#afbd53' : '#c4482e');
+            fruit(x + dx + 0.075, y - 0.085, z + dz, 0.052, '#e7ae62');
+          }
+        }
       }
     }
-  } else if (pid === 6) {
-    // 新试验留白区（整平耕地与工具箱、水壶，等待下一位孩子）
-    const boxMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.4 });
-    const toolBox = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.3), boxMat);
-    toolBox.position.set(-0.8, 0.32, 0.8);
-    plotGroup.add(toolBox);
-
-    // 小铁锹 (孩子工具)
-    const spadeHandle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.015, 0.015, 0.7, 6),
-      mats.lightTimber,
+  } else if (pData.id === 2) {
+    const petals = [],
+      centers = [];
+    for (let row = 0; row < 3; row++)
+      for (let col = 0; col < 3; col++) {
+        const x = -0.8 + col * 0.8,
+          z = -0.8 + row * 0.8;
+        const h = 1.35 + (row + col) * 0.12;
+        farmRod(plotGroup, mats.foliageTomato, [x, 0.22, z], [x, h, z], 0.023);
+        for (let i = 0; i < 4; i++) leaf(x, 0.5 + i * 0.2, z, i * 2.4 + col, 0.37, 0.9, -0.45);
+        // Tilt the flower toward visitors; individually shaped petals surround a raised seed disk.
+        const head = new THREE.Group();
+        head.position.set(x, h, z);
+        head.rotation.set(-0.35, -0.3 + col * 0.12, 0);
+        plotGroup.add(head);
+        for (let petal = 0; petal < 14; petal++) {
+          const a = (petal / 14) * Math.PI * 2;
+          petals.push({
+            position: [Math.cos(a) * 0.19, Math.sin(a) * 0.19, 0],
+            rotation: [0, 0, a - Math.PI / 2],
+            scale: [0.053, 0.13, 0.021],
+          });
+        }
+        farmInstances(head, '向日葵花瓣', fruitGeo, mats.sunflowerPetal, petals.splice(0));
+        const disk = new THREE.Mesh(new THREE.SphereGeometry(0.125, 16, 10), mats.sunflowerCenter);
+        disk.scale.z = 0.32;
+        head.add(disk);
+        for (let i = 0; i < 45; i++) {
+          const a = i * 2.399,
+            r = Math.sqrt(i / 45) * 0.109;
+          centers.push({
+            position: [Math.cos(a) * r, Math.sin(a) * r, 0.033],
+            scale: [0.008, 0.009, 0.008],
+          });
+        }
+        farmInstances(head, '葵花籽', fruitGeo, mats.lightTimber, centers.splice(0));
+      }
+  } else if (pData.id === 3) {
+    for (let tier = 0; tier < 3; tier++) {
+      const y = 0.35 + tier * 0.34,
+        z = 0.8 - tier * 0.75;
+      const tray = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.18, 0.62), mats.woodCurb);
+      tray.position.set(0, y, z);
+      tray.castShadow = true;
+      plotGroup.add(tray);
+      const soil = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.025, 0.47), mats.soilBedTilled);
+      soil.position.set(0, y + 0.1, z);
+      plotGroup.add(soil);
+      for (const x of [-1.02, 1.02])
+        farmRod(plotGroup, mats.lightTimber, [x, 0.21, z], [x, y, z], 0.035);
+      for (let plant = 0; plant < 5; plant++) {
+        const x = -0.9 + plant * 0.45;
+        for (let l = 0; l < 5; l++) leaf(x, y + 0.15, z, l * 2.399 + plant, 0.22, 1.1, -0.4);
+        fruit(x - 0.07, y + 0.07, z + 0.27, 0.044, '#c4482e', 1.4);
+        fruit(x + 0.08, y + 0.12, z + 0.23, 0.035, '#f2b8a3', 1.3);
+      }
+    }
+  } else if (pData.id === 4) {
+    const pumpkinMat = new THREE.MeshStandardMaterial({ color: 0xcf782b, roughness: 0.8 });
+    for (let vine = 0; vine < 3; vine++) {
+      let previous = [-0.8, 0.25, -0.65 + vine * 0.5];
+      for (let i = 0; i < 7; i++) {
+        const x = -0.8 + i * 0.25,
+          z = -0.65 + vine * 0.5 + Math.sin(i * 1.1 + vine) * 0.18;
+        if (i > 0) farmRod(plotGroup, mats.foliageTomato, previous, [x, 0.25, z], 0.014);
+        leaf(x, 0.29, z, i * 2.399, 0.39, 1.25, -0.15);
+        previous = [x, 0.25, z];
+      }
+    }
+    for (const [x, z, radius] of [
+      [-0.7, 0.75, 0.24],
+      [0.55, 0.5, 0.19],
+    ]) {
+      const lobes = [];
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * Math.PI * 2;
+        lobes.push({
+          position: [
+            x + Math.cos(a) * radius * 0.43,
+            0.24 + radius * 0.7,
+            z + Math.sin(a) * radius * 0.43,
+          ],
+          scale: [radius * 0.67, radius * 0.76, radius * 0.67],
+        });
+      }
+      farmInstances(plotGroup, '南瓜瓜棱', fruitGeo, pumpkinMat, lobes);
+      farmRod(
+        plotGroup,
+        mats.woodCurb,
+        [x, 0.24 + radius * 1.4, z],
+        [x + 0.03, 0.34 + radius * 1.4, z],
+        0.028,
+      );
+    }
+    farmRod(plotGroup, mats.lightTimber, [-1, 0.22, -1], [-1, 1.3, -0.6], 0.025);
+    farmRod(plotGroup, mats.lightTimber, [1, 0.22, -1], [1, 1.3, -0.6], 0.025);
+    farmRod(plotGroup, mats.lightTimber, [-1, 1.3, -0.6], [1, 1.3, -0.6], 0.025);
+    farmRod(plotGroup, mats.whiteAppliance, [0.9, 0.2, -0.9], [0.9, 1.55, -0.9], 0.015);
+    const pinwheel = new THREE.Group();
+    pinwheel.position.set(0.9, 1.55, -0.9);
+    for (let i = 0; i < 4; i++) {
+      const blade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.09, 0.2, 3),
+        i % 2 ? mats.tomatoFruit : mats.sunflowerPetal,
+      );
+      const a = (i * Math.PI) / 2;
+      blade.position.set(Math.cos(a) * 0.12, Math.sin(a) * 0.12, 0);
+      blade.rotation.z = a - 0.8;
+      pinwheel.add(blade);
+    }
+    plotGroup.add(pinwheel);
+  } else if (pData.id === 5) {
+    for (const x of [-1.3, 1.3])
+      for (const z of [-1.25, 0.05])
+        farmRod(plotGroup, mats.darkSteel, [x, 0.22, z], [x, 1.16, z], 0.018);
+    for (const z of [-1.25, 0.05])
+      farmRod(plotGroup, mats.darkSteel, [-1.3, 1.16, z], [1.3, 1.16, z], 0.018);
+    // Alpha-tested weave replaces the opaque sheet and diagonal wireframe box.
+    const weave = new Uint8Array(16 * 16 * 4);
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        const solid = x % 4 === 0 || y % 4 === 0;
+        weave.set([255, 255, 255, solid ? 255 : 0], (y * 16 + x) * 4);
+      }
+    const netMap = new THREE.DataTexture(weave, 16, 16);
+    netMap.wrapS = netMap.wrapT = THREE.RepeatWrapping;
+    netMap.repeat.set(25, 12);
+    netMap.needsUpdate = true;
+    const shadeNet = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.6, 1.3),
+      new THREE.MeshStandardMaterial({
+        map: netMap,
+        alphaTest: 0.5,
+        color: 0x687663,
+        side: THREE.DoubleSide,
+        roughness: 1,
+      }),
     );
-    spadeHandle.rotation.z = -0.3;
-    spadeHandle.position.set(-0.5, 0.4, 0.8);
-    plotGroup.add(spadeHandle);
+    shadeNet.rotation.x = -Math.PI / 2;
+    shadeNet.position.set(0, 1.16, -0.6);
+    plotGroup.add(shadeNet);
+    for (let x = 0; x < 5; x++)
+      for (let z = 0; z < 5; z++) {
+        for (let l = 0; l < 9; l++) {
+          leaf(
+            -0.85 + x * 0.42,
+            0.26 + (l > 5 ? 0.05 : 0),
+            -0.85 + z * 0.42,
+            l * 2.399 + x,
+            l > 5 ? 0.13 : 0.2,
+            1.15,
+            l > 5 ? -1 : -0.35,
+          );
+        }
+      }
+  } else {
+    const toolBox = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.3), mats.foliageTomato);
+    toolBox.position.set(-0.8, 0.35, 0.8);
+    toolBox.castShadow = true;
+    plotGroup.add(toolBox);
+    farmRod(plotGroup, mats.darkSteel, [-0.95, 0.5, 0.8], [-0.65, 0.5, 0.8], 0.02);
+    farmRod(plotGroup, mats.lightTimber, [-0.45, 0.27, 0.8], [-0.65, 0.95, 0.8], 0.018);
+    const spade = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), mats.darkSteel);
+    spade.scale.set(0.7, 1.1, 0.12);
+    spade.position.set(-0.43, 0.29, 0.8);
+    plotGroup.add(spade);
   }
+  if (leaves.length) farmInstances(plotGroup, '作物叶片', leafGeo, leafMat, leaves);
+  else {
+    leafGeo.dispose();
+    leafMat.dispose();
+  }
+  if (fruits.length) {
+    const fruitMaterial = mats.tomatoFruit.clone();
+    fruitMaterial.color.set(0xffffff);
+    farmInstances(plotGroup, '成熟与青涩果实', fruitGeo, fruitMaterial, fruits);
+  } else if (![2, 4].includes(pData.id)) fruitGeo.dispose();
 }
 
 // 模拟水流与微喷粒子
@@ -1066,39 +1289,135 @@ function createDripWaterSystem(plots) {
 
 // 场地外围装饰物（果树、围栏、推车）
 function createEnvironmentDetails(farmGroup, mats) {
-  // 果树 4 棵
+  let seed = 36113;
+  const random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const crownGeo = new THREE.SphereGeometry(1, 16, 12);
+  const positions = crownGeo.getAttribute('position');
+  const colors = [];
+  const tone = new THREE.Color();
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i),
+      y = positions.getY(i),
+      z = positions.getZ(i);
+    const r = 1 + 0.07 * Math.sin(x * 19 + z * 11) * Math.cos(y * 17);
+    positions.setXYZ(i, x * r, y * r, z * r);
+    tone.set('#728e4c').lerp(new THREE.Color('#b5c879'), (y + 1) * 0.24);
+    colors.push(tone.r, tone.g, tone.b);
+  }
+  crownGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  crownGeo.computeVertexNormals();
+  const crownMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
+  const crowns = [],
+    leafClusters = [];
   const treeCoords = [
     [-12, -4],
     [-12, 6],
     [12, -4],
     [12, 6],
   ];
-  treeCoords.forEach(([tx, tz]) => {
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 3.2, 8), mats.woodCurb);
-    trunk.position.set(tx, 1.6, tz);
-    trunk.castShadow = true;
-    farmGroup.add(trunk);
-
-    const foliage = new THREE.Mesh(new THREE.SphereGeometry(1.6, 8, 8), mats.foliageTomato);
-    foliage.position.set(tx, 3.8, tz);
-    foliage.castShadow = true;
-    farmGroup.add(foliage);
+  treeCoords.forEach(([tx, tz], treeIndex) => {
+    farmRod(farmGroup, mats.woodCurb, [tx, 0, tz], [tx + 0.12, 3.3, tz - 0.1], 0.17);
+    const mulch = new THREE.Mesh(new THREE.CircleGeometry(1.0, 32), mats.soilBedTilled);
+    mulch.rotation.x = -Math.PI / 2;
+    mulch.position.set(tx, 0.008, tz);
+    farmGroup.add(mulch);
+    for (let lobe = 0; lobe < 7; lobe++) {
+      const a = lobe * 2.399 + treeIndex;
+      const spread = lobe === 6 ? 0.1 : 0.85;
+      const x = tx + Math.cos(a) * spread,
+        z = tz + Math.sin(a) * spread;
+      const y = lobe === 6 ? 4.7 : 3.45 + (lobe % 3) * 0.35;
+      const radius = 0.92 + random() * 0.3;
+      farmRod(farmGroup, mats.woodCurb, [tx + 0.08, 2.1, tz], [x, y, z], 0.055);
+      crowns.push({
+        position: [x, y, z],
+        scale: [radius, radius * 0.84, radius],
+        rotation: [0, a, 0],
+        color: lobe % 2 ? '#d2dbaa' : '#ffffff',
+      });
+      for (let i = 0; i < 23; i++) {
+        const theta = random() * Math.PI * 2,
+          v = random() * 2 - 1;
+        const ring = Math.sqrt(1 - v * v) * radius;
+        leafClusters.push({
+          position: [x + Math.cos(theta) * ring, y + v * radius * 0.8, z + Math.sin(theta) * ring],
+          scale: [0.25, 0.16, 0.22],
+          rotation: [random(), theta, random()],
+        });
+      }
+    }
   });
+  farmInstances(farmGroup, '果树层叠树冠', crownGeo, crownMat, crowns);
+  const leafClusterMat = new THREE.MeshStandardMaterial({ color: 0x819952, roughness: 1 });
+  farmInstances(
+    farmGroup,
+    '树冠叶簇',
+    new THREE.SphereGeometry(1, 7, 5),
+    leafClusterMat,
+    leafClusters,
+  );
 
-  // 农场外围简易木栅栏 (白色农场围栏)
-  const fenceMat = new THREE.MeshStandardMaterial({ color: 0xeeece5, roughness: 0.7 });
-  for (let fx = -14; fx <= 14; fx += 2.5) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 0.1), fenceMat);
-    post.position.set(fx, 0.55, 12);
-    farmGroup.add(post);
+  // Low grass at the margins; keep every existing path and plot free of blades.
+  const grassGeo = new THREE.BufferGeometry();
+  const blade = [];
+  for (let i = 0; i < 3; i++) {
+    const a = i * 2.399;
+    for (const [x, y, z] of [
+      [-0.016, 0, 0],
+      [0.016, 0, 0],
+      [0.05, 0.19 - i * 0.025, 0.035],
+    ]) {
+      blade.push(x * Math.cos(a) - z * Math.sin(a), y, x * Math.sin(a) + z * Math.cos(a));
+    }
   }
-  const railGeo = new THREE.BoxGeometry(29, 0.08, 0.04);
-  const rail1 = new THREE.Mesh(railGeo, fenceMat);
-  rail1.position.set(0, 0.85, 12);
-  farmGroup.add(rail1);
-  const rail2 = new THREE.Mesh(railGeo, fenceMat);
-  rail2.position.set(0, 0.45, 12);
-  farmGroup.add(rail2);
+  grassGeo.setAttribute('position', new THREE.Float32BufferAttribute(blade, 3));
+  grassGeo.computeVertexNormals();
+  const grassMat = new THREE.MeshStandardMaterial({
+    color: 0x899959,
+    side: THREE.DoubleSide,
+    roughness: 1,
+  });
+  const tufts = [];
+  const onPath = (x, z) =>
+    ((Math.abs(x - 2.25) < 0.85 || Math.abs(x + 2.25) < 0.85) && z > -5.1 && z < 9.1) ||
+    (Math.abs(x) < 8.1 &&
+      (Math.abs(z - 2.75) < 1.3 || Math.abs(z + 3.2) < 1.3 || Math.abs(z - 8) < 1));
+  for (let i = 0; i < 8500; i++) {
+    const x = (random() - 0.5) * 32,
+      z = (random() - 0.5) * 29;
+    if (onPath(x, z) || (Math.abs(x) < 5.6 && z < -4.4 && z > -12)) continue;
+    if (FARM_CONFIG.plots.some((p) => Math.abs(x - p.x) < 1.65 && Math.abs(z - p.z) < 1.65))
+      continue;
+    if (treeCoords.some(([tx, tz]) => Math.hypot(x - tx, z - tz) < 0.95)) continue;
+    const size = 0.45 + random() * 0.6;
+    tufts.push({
+      position: [x, 0.005, z],
+      scale: [size, size, size],
+      rotation: [0, random() * Math.PI, 0],
+      color: random() > 0.5 ? '#d8d4a5' : '#ffffff',
+    });
+  }
+  const grass = farmInstances(farmGroup, '草地细叶', grassGeo, grassMat, tufts);
+  grass.castShadow = false;
+
+  const fenceMat = new THREE.MeshStandardMaterial({ color: 0xd8d5bc, roughness: 0.92 });
+  const posts = [],
+    caps = [];
+  for (let fx = -14; fx <= 14; fx += 2.5) {
+    posts.push({ position: [fx, 0.55, 12] });
+    caps.push({ position: [fx, 1.13, 12], rotation: [0, Math.PI / 4, 0] });
+  }
+  farmInstances(farmGroup, '围栏立柱', new THREE.BoxGeometry(0.13, 1.1, 0.13), fenceMat, posts);
+  farmInstances(farmGroup, '围栏柱帽', new THREE.ConeGeometry(0.11, 0.1, 4), fenceMat, caps);
+  for (const y of [0.45, 0.85]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(29, 0.09, 0.05), fenceMat);
+    rail.position.set(0, y, 12);
+    rail.castShadow = true;
+    farmGroup.add(rail);
+  }
 }
 
 // 动态生成 G 老师 Agent 屏幕 Canvas 纹理
@@ -1118,11 +1437,11 @@ function createAgentScreenTexture() {
 
   ctx.fillStyle = '#38bdf8';
   ctx.font = 'bold 26px sans-serif';
-  ctx.fillText('ZHJIE FARM · G 老师农场 AI-Lab 协同中枢', 30, 40);
+  ctx.fillText('织界农场 · G 老师', 30, 40);
 
   ctx.fillStyle = '#4ade80';
   ctx.font = '18px sans-serif';
-  ctx.fillText('● 边缘集群正常 · 6/6 地块在线', 720, 40);
+  ctx.fillText('六块种植区 · 记录示例', 720, 40);
 
   // 左栏：实时数据与提问闭环
   ctx.fillStyle = '#1e293b';
@@ -1130,21 +1449,21 @@ function createAgentScreenTexture() {
 
   ctx.fillStyle = '#f8fafc';
   ctx.font = 'bold 20px sans-serif';
-  ctx.fillText('【孩子问题与实验闭环】', 50, 120);
+  ctx.fillText('孩子的观察与尝试', 50, 120);
 
   ctx.fillStyle = '#94a3b8';
   ctx.font = '16px sans-serif';
   ctx.fillText('晨晨：为什么番茄叶尖周一会卷起来？', 50, 160);
 
   ctx.fillStyle = '#38bdf8';
-  ctx.fillText('G 老师建议：对比 01号地块与05号光照记录，', 50, 200);
-  ctx.fillText('结合土壤湿度传感器读数(42%)排查是否为中午蒸腾过盛。', 50, 230);
+  ctx.fillText('G 老师建议：先对比两块地的光照，', 50, 200);
+  ctx.fillText('再看看土壤湿度，观察中午是否缺水。', 50, 230);
 
   ctx.fillStyle = '#f59e0b';
-  ctx.fillText('现场尝试：下午加装简易纸板遮阳罩观察2天。', 50, 280);
+  ctx.fillText('动手尝试：加一块纸板遮阳，观察两天。', 50, 280);
 
   ctx.fillStyle = '#4ade80';
-  ctx.fillText('复盘结果：新叶舒展，水分维持稳定，验证有效！', 50, 330);
+  ctx.fillText('回来看看：新叶舒展开了，继续记录变化。', 50, 330);
 
   // 右栏：六地块状态微缩图
   ctx.fillStyle = '#1e293b';
@@ -1152,15 +1471,15 @@ function createAgentScreenTexture() {
 
   ctx.fillStyle = '#f8fafc';
   ctx.font = 'bold 20px sans-serif';
-  ctx.fillText('【3m×3m 专属地块综合指标】', 540, 120);
+  ctx.fillText('种植记录示例', 540, 120);
 
   const plotsBrief = [
-    '01 晨晨 · 番茄滴灌：温 22.4℃ 湿 42% [滴灌就绪]',
-    '02 浩浩 · 向日葵：日照 8.5h 追光角 62°',
-    '03 悠悠 · 草莓立体架：湿 45% [提示底层补光]',
-    '04 乐乐 · 南瓜爬藤：长势旺盛 面积扩充 28%',
-    '05 糖糖 · 遮阳生菜：甜度蓄积期 遮阳率 50%',
-    '06 留白地块 · 待立案：土壤肥力指数 A级',
+    '01 晨晨 · 番茄开花了，观察滴灌是否够用',
+    '02 浩浩 · 向日葵含苞了，记录花盘朝向',
+    '03 悠悠 · 草莓开始结果，留意下层光照',
+    '04 乐乐 · 南瓜藤长长了，试着搭个架子',
+    '05 糖糖 · 生菜准备采收，比较遮阳效果',
+    '06 等你来种 · 土壤已整理，带上新想法',
   ];
 
   ctx.font = '15px monospace';
@@ -1209,7 +1528,7 @@ function createCctvTexture() {
 
       ctx.fillStyle = '#22c55e';
       ctx.font = '11px monospace';
-      ctx.fillText(`CROP_DET#${idx} 98%`, x + 40, y + 45);
+      ctx.fillText(`作物观察 ${idx}`, x + 40, y + 45);
 
       // 摄像机编号与 REC 状态
       ctx.fillStyle = '#ef4444';
@@ -1219,7 +1538,7 @@ function createCctvTexture() {
 
       ctx.fillStyle = '#f4f4f5';
       ctx.font = '12px sans-serif';
-      ctx.fillText(`CAM-0${idx} · 3m×3m #${idx}`, x + 30, y + 26);
+      ctx.fillText(`种植区 ${idx} · 观察示意`, x + 30, y + 26);
     }
   }
 
@@ -1427,8 +1746,8 @@ function createLegoRover({
     battery: '88% (锂电+顶面微充)',
     question:
       cargoType === 'fruits'
-        ? '孩子编程控制小车在田埂通道巡线，满载后自动将番茄运回控制室冷藏。'
-        : '沿主横道全天候巡回，随时为各试验田提供备用传感器与管道接头。',
+        ? '怎样让小车把摘下的番茄，稳稳送到控制室？'
+        : '怎样让小车沿着田间小路，把工具送到需要的地方？',
     desc:
       cargoType === 'fruits'
         ? '【晨晨与浩浩的乐高拼搭成果】\n底盘由经典大颗粒积木与双电机减速齿轮箱构成。孩子在 G 老师指导下编写了避障与巡线逻辑，在 3m×3m 田块之间的砂石通道自主往返，把采收的番茄从地头运送到控制室门口。'

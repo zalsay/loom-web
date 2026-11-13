@@ -347,6 +347,38 @@ body.embedded .hint-pill {
 }
 
 @media (max-width: 640px) {
+  #canvas-container {
+    bottom: 44dvh;
+    height: auto;
+  }
+  .top-bar {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .brand-badge {
+    padding: 8px 12px;
+  }
+  .brand-badge h1 {
+    font-size: 13px;
+  }
+  .brand-badge .sub {
+    display: none;
+  }
+  .nav-links {
+    gap: 5px;
+  }
+  .nav-btn {
+    padding: 8px 9px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  body.embedded #canvas-container {
+    bottom: 0;
+    height: 100%;
+  }
   .hud-panel {
     bottom: 12px;
     left: 12px;
@@ -364,5 +396,13 @@ body.embedded .hint-pill {
   }
   .hint-pill {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
   }
 }

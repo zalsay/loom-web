@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { applyOperations, validateSceneDocument } from '../web/js/editor/document.js';
 import { canonicalJson, ImmutableKeyConflictError } from './storage.mjs';
+import { createHomeChat } from './home-chat.mjs';
 
 const NO_STORE = 'private, no-store, max-age=0';
 const MAX_JSON_DEPTH = 64;
@@ -523,6 +524,7 @@ export function createApp({ store, config, provider = null } = {}) {
   const configError = validateConfig(config);
   const activeProvider = agentEnabled(config, provider) ? provider : null;
   const activeTurns = new Map();
+  const homeChat = createHomeChat({ config });
   // Best-effort per-runtime smoothing only: EdgeOne instances do not share this state.
   const softWriteAttempts = new Map();
   const secretUnavailable = () => configError !== null;
@@ -889,10 +891,25 @@ export function createApp({ store, config, provider = null } = {}) {
     });
   }
 
-  async function dispatch(request) {
+  async function dispatch(request, { makers } = {}) {
     const url = new URL(request.url);
     const parts = decodeRoute(url.pathname);
     const method = request.method.toUpperCase();
+
+    if (parts.join('/') === '/guide') {
+      if (method !== 'POST')
+        return jsonResponse(405, { error: { code: 'method_not_allowed' } }, { allow: 'POST' });
+      requireWritePolicy(request, config);
+      const ownerId = requireOwner(request, config);
+      requireConversationId(request);
+      enforceSoftWriteRateLimit(ownerId);
+      const body = await readJson(request, 8192);
+      onlyKeys(body, new Set(['message']), ['message']);
+      if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 2000)
+        fail(400, 'invalid_message');
+      body.message = body.message.trim();
+      return homeChat({ request, body, ownerId, makers });
+    }
 
     if (parts.join('/') === '/space-designer') {
       if (method !== 'POST')
@@ -1273,10 +1290,10 @@ export function createApp({ store, config, provider = null } = {}) {
     return jsonResponse(404, { error: { code: 'not_found' } });
   }
 
-  async function handle(request) {
+  async function handle(request, context) {
     if (secretUnavailable()) return jsonResponse(503, { error: { code: 'server_not_configured' } });
     try {
-      return await dispatch(request);
+      return await dispatch(request, context);
     } catch (error) {
       if (error instanceof ApiError)
         return jsonResponse(error.status, { error: { code: error.code } });

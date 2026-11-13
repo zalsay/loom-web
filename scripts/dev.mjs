@@ -49,6 +49,21 @@ const app = createApp({
   provider: config.agentEnabled ? createChatCompletionsProvider(config) : null,
 });
 const worldWeather = createWorldWeatherHandler();
+// A development-only adapter. Deployed Agents use the native Makers conversation store.
+const chatMessages = new Map();
+const localChatStore = {
+  async getMessages({ conversationId, limit }) {
+    return [...(chatMessages.get(conversationId) || [])].reverse().slice(0, limit);
+  },
+  async appendMessage(message) {
+    const rows = chatMessages.get(message.conversationId) || [];
+    rows.push(message);
+    chatMessages.delete(message.conversationId);
+    chatMessages.set(message.conversationId, rows.slice(-20));
+    if (chatMessages.size > 1000) chatMessages.delete(chatMessages.keys().next().value);
+    return randomBytes(16).toString('hex');
+  },
+};
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -69,7 +84,7 @@ http
     });
     try {
       const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-      if (pathname === '/space-designer' || pathname.startsWith('/api/')) {
+      if (pathname === '/guide' || pathname === '/space-designer' || pathname.startsWith('/api/')) {
         const headers = new Headers();
         for (const [name, value] of Object.entries(request.headers)) {
           if (Array.isArray(value)) for (const entry of value) headers.append(name, entry);
@@ -84,7 +99,17 @@ http
             : {}),
         });
         const output =
-          pathname === '/api/world-weather' ? await worldWeather(input) : await app.handle(input);
+          pathname === '/api/world-weather'
+            ? await worldWeather(input)
+            : await app.handle(input, {
+                makers:
+                  pathname === '/guide'
+                    ? {
+                        conversation_id: input.headers.get('makers-conversation-id'),
+                        store: localChatStore,
+                      }
+                    : undefined,
+              });
         response.statusCode = output.status;
         for (const [name, value] of output.headers)
           if (name !== 'set-cookie') response.setHeader(name, value);

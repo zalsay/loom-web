@@ -8,9 +8,19 @@
 - `cloud-functions/api/v1/[[default]].js` 处理 `/api/v1/*`，使用 Node Cloud Functions。
 - `cloud-functions/api/world-weather.js` 独立处理公开只读 `/api/world-weather`；固定场地的天气/日出日落不依赖身份、Blob 或模型密钥。
 - `agents/space-designer/index.ts` 处理 `/space-designer`，在原生入口独立检查 Cookie/Origin/owner/conversation。前端 POST 后直接消费 SSE，不依赖请求结束后存活的后台进程。
+- `agents/guide/index.ts` 处理首页熊猫的 `/guide` 对话，复用相同的访客和来源校验。服务端通过 Makers 模型网关生成文字，使用原生 `context.store` 保存对话；前端只接收文字事件。
 - `server/` 共享 API、签名、模型适配与存储。生产 Blob SDK 固定在 lockfile；不把这些模块、服务端环境或密钥复制进静态目录。
 - 生产使用 `@edgeone/pages-blob` 命名空间，所有读取经应用鉴权。它不是公开模型/图片 CDN。KV 本期没有启用，不用作权限、锁或预算。
 - 当前 provider adapter 直接请求兼容 Chat Completions 的服务端 URL，默认 JSON object 模式并执行独立校验；不依赖 OpenAI SDK 或沙箱，不声称所有模型支持严格 JSON Schema。`agents.framework` 因未使用框架原生 store/tools 适配而未填；上线前在目标 CLI/平台核验此配置，不能把某一框架名称当装饰配置。
+
+首页向导使用平台通用 store API，不需要指定 Agent 框架，也不需要嵌入模板自带的 iframe 聊天界面。依据 [Makers 会话存储](https://pages.edgeone.ai/zh/document/agents-conversation-storage)及[模型服务](https://pages.edgeone.ai/zh/document/models)：
+
+- 每次 `/guide` 请求携带 6–36 字符的 `Makers-Conversation-Id`，浏览器为当前页面生成 UUID。平台的 `context.conversation_id` 必须与该请求头一致。
+- 路由会话 ID 不是授权凭证。实际存储 ID 由签名访客身份和路由 ID 经服务端 HMAC 派生，避免不同访客读取同一段聊天。最近 20 条完成的消息用于上下文；当前页面收起聊天窗后保留内容，刷新后开始新的对话。
+- 开启 `LOOM_CHAT_ENABLED=true`，配置仅服务端可见的 `AI_GATEWAY_API_KEY`（也接受 `MAKERS_MODELS_KEY`）；`AI_GATEWAY_BASE_URL` 默认 `https://ai-gateway.edgeone.link/v1`，`AI_GATEWAY_MODEL` 默认 `@makers/deepseek-v4-flash`。生产继续要求已有来源、Cookie、入口限流和供应商费用门禁。
+- Makers 模板可能注入以上网关变量，自建项目须在目标环境核对。不要把密钥写入 HTML 或静态脚本。首页开关与 `LOOM_AGENT_ENABLED` 独立，后者仍仅控制空间设计助手。
+- 对话只提供网站介绍和页面引导，不调用设备或场景修改工具。不自动重试发送，上游完整返回后才写入历史；中断或取消时未完成的答案不写入，部分存储失败遗留的单条消息不进入下一轮上下文。实例内同一会话并发返回 409；这不是分布式锁。
+- `npm run dev` 的开发适配器使用有界内存模拟平台 store，重启清空；真实 Makers store 的跨实例持久化须在平台验收。可使用支持原生会话存储的 Makers CLI（官方要求至少 1.6.26）执行 `edgeone makers dev` 联调。正式部署仍需发现根目录 `agents/` 与 `cloud-functions/`。
 
 入口与构建字段依据 [Agents 快速开始](https://pages.edgeone.ai/zh/document/agents-quick-start)、[EdgeOne 配置文档](https://pages.edgeone.ai/zh/document/edgeone-json)。Blob 使用方式依据 [Blob 官方文档](https://pages.edgeone.ai/zh/document/blob-storage)。本地 Node adapter 不替代 EdgeOne 平台运行时验收。
 

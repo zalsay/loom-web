@@ -434,9 +434,9 @@ export async function createSpaceRenderer({
   }
   container.appendChild(renderer.domElement);
   if (mode === 'svg') {
-    onStatus({ mode, message: '当前为简化 SVG 画面；密集草叶和阴影已省略。' });
+    onStatus({ mode, message: '当前显示简化画面，部分草叶和阴影不显示。' });
   } else {
-    onStatus({ mode, message: 'WebGL 3D 画面已就绪。' });
+    onStatus({ mode, message: '空间已打开。' });
   }
 
   const controls = new OrbitControls(camera, renderer.domElement);

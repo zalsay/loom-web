@@ -6,11 +6,11 @@ const features = {
   },
   apis: {
     caption: '保存自己的内容，用上设备支持的功能。',
-    html: `<p class="device-greeting">小应用能做什么？</p><p class="device-subtitle">按需要，使用设备功能。</p><div class="api-rows"><div><span>▣ &nbsp; 保存内容</span><small>各自存放</small></div><div><span>◷ &nbsp; 定时任务</span><small>到时间再执行</small></div><div><span>⌘ &nbsp; 读取传感器</span><small>需要设备支持</small></div><div><span>↗ &nbsp; 联网与智能功能</span><small>还在完善中</small></div></div><p class="device-bottom-note">功能示意</p>`,
+    html: `<p class="device-greeting">小应用能做什么？</p><p class="device-subtitle">按需要，使用设备功能。</p><div class="api-rows"><div><span>▣ &nbsp; 保存内容</span><small>各自存放</small></div><div><span>◷ &nbsp; 定时任务</span><small>到时间再执行</small></div><div><span>⌘ &nbsp; 读取传感器</span><small>需要设备支持</small></div><div><span>↗ &nbsp; 联网与智能功能</span><small>先查看使用说明</small></div></div><p class="device-bottom-note">功能示意</p>`,
   },
   updates: {
-    caption: '新版本启动失败时，可以回到旧版本。',
-    html: `<p class="device-greeting">试试新版本</p><p class="device-subtitle">先试运行，再决定是否使用。</p><div class="update-flow"><div><i>01</i><span>先检查<small>检查更新文件</small></span><b>✓</b></div><div><i>02</i><span>试着启动<small>先运行新版本</small></span><b>↓</b></div><div><i>03</i><span>继续用，或退回<small>启动失败时恢复旧版本</small></span><b>↗</b></div></div><p class="device-bottom-note">更新过程示意</p>`,
+    caption: '更新后如果无法启动，可以恢复到更新前。',
+    html: `<p class="device-greeting">更新应用</p><p class="device-subtitle">启动顺利就继续，遇到问题可恢复。</p><div class="update-flow"><div><i>01</i><span>先检查<small>检查更新文件</small></span><b>✓</b></div><div><i>02</i><span>打开应用<small>启动更新后的应用</small></span><b>↓</b></div><div><i>03</i><span>继续用，或恢复<small>启动失败时恢复到更新前</small></span><b>↗</b></div></div><p class="device-bottom-note">更新过程示意</p>`,
   },
 };
 function activateFeature(key) {
@@ -251,15 +251,15 @@ window.addEventListener('message', (event) => {
 // 首页主题介绍轮播：0 = 织界·AiLab，1 = 织界·农场
 const heroSlides = [
   {
-    pillText: '测试中 · 0.1.1',
+    pillText: '认识 Loom OS',
     pillHref: '#progress',
     eyebrow: '给小设备准备的一套应用系统 · AILAB',
     title: '让小设备，<br />有自己的<span class="serif-accent">应用。</span>',
     description:
-      'Loom OS 让 Mosaico 这样的小设备，<br />也能像手机一样，点图标打开小工具。<br />目前还在测试，欢迎先来了解一下。',
+      'Loom OS 让 Mosaico 这样的小设备，<br />也能像手机一样，点图标打开小工具。<br />从阅读文字、调整设置开始。',
     primaryText: '看看能做什么',
     primaryHref: '#possibilities',
-    secondaryText: '了解怎么试用',
+    secondaryText: '了解怎么使用',
     secondaryHref: '#start',
     footnote: '读一页文字，调一下设置。<br /><span>从身边用得上的小工具开始。</span>',
     frameSrc: './world.html?embedded=1',
@@ -269,22 +269,22 @@ const heroSlides = [
     worldSublinkHref: './create.html',
   },
   {
-    pillText: '新企划 · 农场 AI-lab',
+    pillText: '走进织界农场',
     pillHref: './farm.html',
     eyebrow: '给孩子的想法找一块真实的土地 · FARM',
     title: '找一块土地，<br />做真正有用的<span class="serif-accent">装置。</span>',
     description:
-      '每个孩子拥有 3m×3m 专属种植区，共用控制室与 G 老师 AI 中枢。<br />自动运输小车在田垄间自主巡航，每次回来都能接着上次做。',
-    primaryText: '进入 3D 农场场景',
+      '在这里逛逛孩子们的 3m×3m 种植区，看看共用控制室和 G 老师大屏。<br />跟着田间小车，发现种植中的问题与动手尝试。',
+    primaryText: '进入农场',
     primaryHref: './farm.html',
-    secondaryText: '查看宣传规划',
-    secondaryHref: './copis/宣传计划/00-策略与规划/农场AI-lab系列宣传计划-lv2.md',
+    secondaryText: '逛逛织界实验室',
+    secondaryHref: './world.html',
     footnote:
       '现场遇到问题 → G 老师分析 → 孩子动手尝试。<br /><span>同一个地块与作品，记录整整一季的变化。</span>',
     frameSrc: './farm.html?embedded=1',
     topline: '织界 · 农场',
     worldCoord: '来织界农场看一看。',
-    worldSublinkText: '3m×3m专属种植试验区与控制室 ↗',
+    worldSublinkText: '看看种植区与共用控制室 ↗',
     worldSublinkHref: './farm.html',
   },
 ];

@@ -76,7 +76,7 @@
           <summary>廊亭材质</summary>
           <label class="field"
             >建筑框架<select id="frame-material">
-              <option value="">母版原色</option>
+              <option value="">原有颜色</option>
               <option value="plaster.ivory">象牙白</option>
               <option value="metal.graphite">石墨金属</option>
               <option value="stone.warm-grey">暖灰石材</option>
@@ -84,7 +84,7 @@
           >
           <label class="field"
             >屋顶<select id="roof-material">
-              <option value="">母版原色</option>
+              <option value="">原有颜色</option>
               <option value="plaster.ivory">象牙白</option>
               <option value="metal.graphite">石墨金属</option>
               <option value="stone.warm-grey">暖灰石材</option>
@@ -92,7 +92,7 @@
           >
           <label class="field"
             >玻璃<select id="glass-material">
-              <option value="">母版原色</option>
+              <option value="">原有颜色</option>
               <option value="glass.clear">清透玻璃</option>
               <option value="glass.frosted">磨砂玻璃</option>
             </select></label
@@ -109,7 +109,7 @@
           <label class="field"
             >已添加的物件<select id="object-list" size="4" aria-label="选择物件"></select
           ></label>
-          <p id="objects-empty" class="hint">点上面的组件，放下第一个物件。</p>
+          <p id="objects-empty" class="hint">选一个物件，放进空间。</p>
         </details>
         <section id="object-inspector" hidden aria-label="选中物件属性">
           <div class="inspector-heading">
@@ -198,7 +198,7 @@
           </fieldset>
         </section>
         <div class="file-actions">
-          <button id="import-scene">导入 JSON</button><button id="export-scene">导出备份</button>
+          <button id="import-scene">导入备份</button><button id="export-scene">导出备份</button>
           <input id="import-file" type="file" accept=".json,application/json" hidden />
         </div>
       </aside>
@@ -285,9 +285,9 @@
             ><button id="agent-send" type="submit" class="primary" disabled>发送 ↗</button>
           </div>
         </form>
-        <button id="share-scene" class="share-button" disabled>公开只读分享</button>
+        <button id="share-scene" class="share-button" disabled>分享空间</button>
         <p class="privacy-note">
-          无需注册，当前浏览器就是你的身份。清除 Cookie 后无法找回原云端空间，请定期导出备份。<a
+          无需注册，用这个浏览器管理你保存的空间。清除网站数据后可能无法找回，请定期导出备份。<a
             href="#"
             id="privacy-details"
             >了解保存方式</a
@@ -297,21 +297,23 @@
     </main>
     <dialog id="library-dialog">
       <div class="dialog-heading">
-        <h2>我的空间与版本</h2>
+        <h2>我的空间</h2>
         <button data-close="library-dialog" aria-label="关闭空间列表">关闭</button>
       </div>
-      <p class="hint">本地草稿与云端版本分别保留；多个分支不会自动合并。</p>
+      <p class="hint">
+        这里分别保留此浏览器的草稿和已保存的空间。不同副本可以单独打开，不会自动合并。
+      </p>
       <div id="library-content"></div>
     </dialog>
     <dialog id="share-dialog">
       <div class="dialog-heading">
-        <h2>公开只读分享</h2>
+        <h2>分享空间</h2>
         <button data-close="share-dialog">关闭</button>
       </div>
       <p>
-        任何获得链接的人都能查看和复制快照。只发布你选中的已保存版本，不包含聊天、身份或编辑权限。后续草稿不会改变这份分享。
+        任何获得链接的人都能查看和复制分享内容。分享使用当前打开的空间上次保存的内容，不包含聊天记录或编辑权限。之后继续编辑，不会改变这份分享。
       </p>
-      <button id="confirm-share" class="primary">发布已保存版本</button
+      <button id="confirm-share" class="primary">创建分享链接</button
       ><label class="field" id="share-result" hidden
         >分享链接<input id="share-url" readonly /></label
       ><button id="copy-share" hidden>复制链接</button
@@ -320,27 +322,24 @@
     </dialog>
     <dialog id="privacy-dialog">
       <div class="dialog-heading">
-        <h2>关于匿名保存</h2>
+        <h2>保存与备份</h2>
         <button data-close="privacy-dialog">关闭</button>
       </div>
       <p>
-        本地草稿保存在 IndexedDB；云端版本使用当前浏览器的安全 Cookie
-        确认归属。不采集浏览器指纹，不用 IP 识别你。
+        草稿保存在这个浏览器中。保存到云端后，浏览器里的访问凭证用于打开你的空间。网站不采集浏览器指纹，也不用网络地址识别你。
       </p>
       <p>
-        不同设备或浏览器不会自动同步。清理
-        Cookie、使用无痕窗口、身份过期或更换域名，都可能使原云端空间无法找回。本地存储也可能被浏览器清理。
+        不同设备或浏览器不会自动同步。清除网站数据、使用无痕窗口、访问凭证过期或更换网站地址，都可能使原来保存的空间无法找回。浏览器也可能自动清理本地草稿。
       </p>
       <p>
-        JSON
-        导出是内容备份，不是身份恢复凭证。导入后会创建当前浏览器下的新副本。分享是公开快照，撤销不能收回他人已经下载的内容。
+        导出的备份可以恢复空间内容，但不能恢复原来的访问凭证。导入备份会在当前浏览器中创建新副本。分享内容对获得链接的人公开；撤销分享不能收回他人已经下载的内容。
       </p>
       <p>
-        当前版本尚未提供云端内容删除或账号找回；Cookie
-        到期不会自动删除云端版本。请勿在名称、场景或对话中填写密码、密钥等敏感信息。
+        目前不支持删除云端内容或通过账号找回空间。访问凭证到期后，云端内容不会自动删除。请勿在名称、空间或对话中填写密码、密钥等敏感信息。
       </p>
       <p>
-        启用助手后，当前草稿和描述会发送给配置的模型服务商处理，服务商可能按其政策留存内容。停止只请求取消，不保证服务商停止处理或计费。具体服务商、保留期限和删除渠道须由站点在上线前明确公布。
+        使用助手时，当前草稿和描述会发送给所使用的 AI
+        服务，对方可能按其隐私政策保留内容。点击“停止”会发送取消请求，但对方仍可能继续处理并计费。使用前，请确认所用服务的隐私与费用说明。
       </p>
     </dialog>
     <script type="module" src="./js/editor/app.js"></script>

@@ -127,7 +127,7 @@ test('cleared identity cannot claim old cloud content; local data remains a new 
   await context.clearCookies();
   await page.reload();
   await expect(page.locator('#renderer-loading')).toBeHidden({ timeout: 45_000 });
-  await expect(page.locator('#notice')).toContainText('不能认领旧空间');
+  await expect(page.locator('#notice')).toContainText('原空间的访问权限无法恢复');
   await expect(page.locator('#object-list option')).toHaveCount(1);
   await save(page);
   await page.locator('#open-library').click();
