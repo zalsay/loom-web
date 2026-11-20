@@ -11,6 +11,9 @@ const status = document.querySelector('#guide-status');
 const send = document.querySelector('#guide-send');
 const stop = document.querySelector('#guide-stop');
 const suggestions = document.querySelector('.guide-suggestions');
+const phone = matchMedia('(max-width: 640px), (max-width: 960px) and (max-height: 540px)');
+const welcome = document.querySelector('.guide-welcome');
+let opener = toggle;
 let open = false,
   pending = null,
   mascot = null,
@@ -21,16 +24,20 @@ let open = false,
   lifecycle = 0;
 
 function setOpen(value, { restoreFocus = false } = {}) {
+  if (value && !open) opener = document.activeElement === welcome ? welcome : toggle;
   open = value;
   panel.hidden = !value;
   toggle.setAttribute('aria-expanded', String(value));
+  welcome.setAttribute('aria-expanded', String(value));
   root.classList.toggle('is-open', value);
   mascot?.setEngaged(value);
-  if (value) input.focus({ preventScroll: true });
-  else if (restoreFocus) toggle.focus({ preventScroll: true });
+  mascot?.setPaused(suspended || (open && phone.matches));
+  if (value)
+    (phone.matches ? document.querySelector('#guide-close') : input).focus({ preventScroll: true });
+  else if (restoreFocus) (phone.matches ? opener : toggle).focus({ preventScroll: true });
 }
 toggle.addEventListener('click', () => setOpen(!open));
-document.querySelector('.guide-welcome').addEventListener('click', () => setOpen(true));
+welcome.addEventListener('click', () => setOpen(true));
 document
   .querySelector('#guide-close')
   .addEventListener('click', () => setOpen(false, { restoreFocus: true }));
@@ -167,6 +174,7 @@ async function submit(text) {
     if (
       open &&
       !suspended &&
+      !phone.matches &&
       (document.activeElement === stop || document.activeElement === document.body)
     )
       input.focus({ preventScroll: true });
@@ -189,14 +197,14 @@ suggestions.addEventListener('click', (event) => {
   if (button) {
     input.value = button.dataset.question;
     updateSend();
-    input.focus();
+    if (!phone.matches) input.focus();
   }
 });
 updateSend();
 
 function syncWorld() {
   suspended = document.body.classList.contains('world-open');
-  mascot?.setPaused(suspended);
+  mascot?.setPaused(suspended || (open && phone.matches));
   if (suspended && open) setOpen(false);
 }
 new MutationObserver(syncWorld).observe(document.body, {
@@ -213,7 +221,7 @@ async function loadMascot() {
     mascot = createPandaMascot(document.querySelector('[data-panda-canvas]'));
     root.dataset.renderer = 'webgl';
     mascot.setEngaged(open);
-    mascot.setPaused(suspended);
+    mascot.setPaused(suspended || (open && phone.matches));
   } catch {
     root.dataset.renderer = 'fallback';
   } finally {
@@ -237,6 +245,8 @@ window.addEventListener('pageshow', () => {
   pageActive = true;
   if (!mascot) void loadMascot();
 });
+
+phone.addEventListener('change', () => mascot?.setPaused(suspended || (open && phone.matches)));
 
 function fitKeyboard() {
   const viewport = window.visualViewport;

@@ -187,3 +187,42 @@ test('phone composer stays above the software keyboard', async ({ page }) => {
   expect(input.y + input.height).toBeLessThan(400);
   await expect(page.locator('#guide-send')).toBeVisible();
 });
+
+test('phone sheet preserves draft and reply, keeping controls above a simulated keyboard', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/api/v1/session', (route) => route.fulfill({ json: { state: 'ready' } }));
+  await page.route('**/guide', (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body: 'event: delta\ndata: {"text":"一起去农场吧。"}\n\nevent: done\ndata: {}\n\n',
+    }),
+  );
+  await openHome(page);
+  const welcome = page.locator('.guide-welcome'),
+    input = page.locator('#guide-input');
+  await welcome.click();
+  await expect(input).not.toBeFocused();
+  await expect(page.locator('#guide-toggle')).toBeHidden();
+  await input.fill('去农场');
+  await page.locator('#guide-close').click();
+  await welcome.click();
+  await expect(input).toHaveValue('去农场');
+  await input.focus();
+  await page.evaluate(() => {
+    Object.defineProperty(visualViewport, 'height', { configurable: true, value: 390 });
+    visualViewport.dispatchEvent(new Event('resize'));
+  });
+  for (const id of ['guide-close', 'guide-input', 'guide-send']) {
+    const box = await page.locator(`#${id}`).boundingBox();
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(390);
+  }
+  expect((await page.locator('#guide-messages').boundingBox()).height).toBeGreaterThan(100);
+  await page.locator('#guide-send').click();
+  await expect(page.locator('#guide-status')).toHaveText('回复完成');
+  await page.locator('#guide-close').click();
+  await welcome.click();
+  await expect(page.locator('#guide-messages')).toContainText('一起去农场吧。');
+});
