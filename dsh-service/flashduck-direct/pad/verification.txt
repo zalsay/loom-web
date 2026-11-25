@@ -1,0 +1,26 @@
+Chrome 158.0.8127.88; pinned 4 ESP-Claw GUI assets verified
+PASS scan: ordered / cancellation / unknown / timeout / duplicate (Lua mocks, WASM exit=0)
+PASS left: accepted; WASM exit=0, Lua capability calls=1
+PASS slight-left: accepted; WASM exit=0, Lua capability calls=1
+PASS slight-right: accepted; WASM exit=0, Lua capability calls=1
+PASS right: accepted; WASM exit=0, Lua capability calls=1
+PASS center: accepted; WASM exit=0, Lua capability calls=1
+PASS poll: command_finished; WASM exit=0, Lua capability calls=1
+PASS no-feedback: unknown; WASM exit=0, Lua capability calls=1
+PASS device-failure: failed; WASM exit=0, Lua capability calls=1
+PASS deny-walk: invalid_arguments; WASM exit=0, Lua capability calls=0
+PASS deny-config: invalid_arguments; WASM exit=0, Lua capability calls=0
+PASS bad-id: invalid_request_id; WASM exit=0, Lua capability calls=0
+PASS unauthorized: http_401; WASM exit=0, Lua capability calls=1
+PASS timeout-no-retry: transport_unknown; WASM exit=0, Lua capability calls=1
+PASS malformed: invalid_response; WASM exit=0, Lua capability calls=1
+PASS reject-id: invalid_response; WASM exit=0, Lua capability calls=1
+PASS reject-duck: invalid_response; WASM exit=0, Lua capability calls=1
+PASS reject-direction: invalid_response; WASM exit=0, Lua capability calls=1
+PASS reject-motion: invalid_response; WASM exit=0, Lua capability calls=1
+PASS reject-mode: invalid_response; WASM exit=0, Lua capability calls=1
+PASS reject-status: invalid_response; WASM exit=0, Lua capability calls=1
+PASS loopback-post: accepted; WASM exit=0, Lua capability calls=1
+PASS loopback-get: command_finished; WASM exit=0, Lua capability calls=1
+Loopback Node replay + Lua parse: POST 202 accepted -> GET 200 command_finished, mode=simulation, motionVerified=false
+Passed 23 official GUI WASM executions. HTTP mocked inside WASM; no model, hardware or deployment.

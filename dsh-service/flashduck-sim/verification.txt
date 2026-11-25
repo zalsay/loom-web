@@ -1,0 +1,103 @@
+Actual loopback: POST 202 accepted → GET 200 replied ; WS frames: 1 ; motionVerified: false (Node replay; not WASM network)
+{
+  "browser": "158.0.8127.88",
+  "runtime": "official ESP-Claw WASM, SHA256 checked",
+  "results": [
+    {
+      "name": "left-accepted",
+      "observed": "accepted",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "right-replied",
+      "observed": "replied",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "stop-accepted",
+      "observed": "accepted",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "unknown-state",
+      "observed": "unknown",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "failed-state",
+      "observed": "failed",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "invalid-action",
+      "observed": "invalid_command",
+      "luaCalls": 0,
+      "wasmExit": 0
+    },
+    {
+      "name": "denied",
+      "observed": "http_401",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "bad-json",
+      "observed": "invalid_response",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "wrong-id",
+      "observed": "invalid_response",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "walk-disabled",
+      "observed": "http_403",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "extra-url",
+      "observed": "invalid_command",
+      "luaCalls": 0,
+      "wasmExit": 0
+    },
+    {
+      "name": "motion-claim",
+      "observed": "invalid_response",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "poll-replied",
+      "observed": "replied",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "loopback-replay",
+      "observed": "accepted",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "loopback-poll",
+      "observed": "replied",
+      "luaCalls": 1,
+      "wasmExit": 0
+    },
+    {
+      "name": "loopback-walk-disabled",
+      "observed": "http_403",
+      "luaCalls": 1,
+      "wasmExit": 0
+    }
+  ]
+}
