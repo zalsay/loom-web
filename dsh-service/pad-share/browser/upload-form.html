@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>给当前项目加照片</title>
+<style>body{font:18px/1.55 system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#17251e}h1{font-size:1.55rem}button{padding:.65rem 1rem;font:inherit}img{max-width:100%;max-height:32vh;display:block;margin:1rem 0}img[hidden]{display:none}input{max-width:100%}output{display:block;margin-top:1rem}</style></head>
+<body><h1>给 Pad 上的当前项目加照片</h1><p>请对照 Pad 屏上的项目编号。每次一张，只存进这台 Pad，不发给 G 老师或队友。</p>
+<label>拍照或从相册选择：<input id="pick" type="file" accept="image/*"></label><img id="preview" hidden alt="待传照片预览"><button id="send" disabled>传到 Pad</button><output id="status" role="status" aria-live="polite">还没有选择照片。</output><noscript>请用开启 JavaScript 的浏览器打开此页。</noscript>
+<script>
+'use strict';
+const pick=document.querySelector('#pick'), send=document.querySelector('#send'), preview=document.querySelector('#preview'), statusText=document.querySelector('#status');
+let fileBlob=null, previewUrl='', seq=0, sending=false;
+function reset(){fileBlob=null;send.disabled=true;preview.hidden=true;preview.removeAttribute('src');if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';}
+async function prepare(file){
+  if(file.size>32*1024*1024)throw Error('原图太大，请缩小或导出为 JPEG 后重选。');
+  const allowed=['image/jpeg','image/jpg','image/png','image/webp','image/heic','image/heif','image/avif','image/gif'];
+  if(file.type&&!allowed.includes(file.type.toLowerCase()))throw Error('请选择照片；如果是实况照片或 HEIC，请先导出为 JPEG。');
+  const src=URL.createObjectURL(file), im=new Image();
+  try{
+    await new Promise((ok,no)=>{im.onload=ok;im.onerror=()=>no(Error('手机浏览器不能读取这张照片。请导出 JPEG 后重选。'));im.src=src;});
+    const w=im.naturalWidth,h=im.naturalHeight;if(!w||!h||w*h>60000000)throw Error('分辨率过大或照片不能读取，请先缩小。');
+    const scale=Math.min(1,1600/Math.max(w,h)); const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*scale));c.height=Math.max(1,Math.round(h*scale));const ctx=c.getContext('2d');if(!ctx)throw Error('无法处理这张照片，请换一张。');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);
+    for(const quality of [.82,.65,.45]){const b=await new Promise(ok=>c.toBlob(ok,'image/jpeg',quality));if(b&&b.type==='image/jpeg'&&b.size<=1048576)return b;}
+    throw Error('缩小后仍超过 1 MiB，请裁剪后再试。');
+  }finally{URL.revokeObjectURL(src);}
+}
+pick.onchange=async()=>{const n=++seq;reset();const f=pick.files[0];if(!f){statusText.textContent='还没有选择照片。';return;}statusText.textContent='正在手机上准备照片…';try{const b=await prepare(f);if(seq!==n)return;fileBlob=b;preview.src=previewUrl=URL.createObjectURL(b);preview.hidden=false;send.disabled=false;statusText.textContent='预览无误后，点「传到 Pad」。';}catch(e){if(seq===n)statusText.textContent=e.message;}};
+send.onclick=async()=>{if(!fileBlob||sending)return;sending=true;send.disabled=true;pick.disabled=true;const data=fileBlob;statusText.textContent='正在传输，请保持连接…';const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
+ try{const uploadId=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');const path=location.pathname.replace(/\/$/,'')+'/photo';const r=await fetch(path,{method:'POST',headers:{'Content-Type':'image/jpeg','X-Upload-Id':uploadId},body:data,credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal});
+  if(r.status===201&&(await r.json()).saved===true){statusText.textContent='Pad 已收到并保存。可以再选一张。';}
+  else if([403,404,410].includes(r.status)){statusText.textContent='接收已结束或链接无效。请在 Pad 上重新扫码。';}
+  else if([413,415,422].includes(r.status)){statusText.textContent='照片不符合接收要求，请选较小的 JPEG 重试。';}
+  else if([429,507].includes(r.status)){statusText.textContent='接收额度或存储空间不足，请查看 Pad。';}
+  else{statusText.textContent='没有收到保存确认，请先在 Pad 上核对，不会自动重传。';}
+ }catch{statusText.textContent='连接中断或返回异常，照片可能已保存。请先在 Pad 上核对，不会自动重传。';}
+ finally{clearTimeout(timer);reset();pick.value='';pick.disabled=false;sending=false;}
+};
+</script></body></html>

@@ -1,0 +1,284 @@
+diff --git a/main/CMakeLists.txt b/main/CMakeLists.txt
+index bf5a5f5..fa87d04 100644
+--- a/main/CMakeLists.txt
++++ b/main/CMakeLists.txt
+@@ -143,6 +143,7 @@ set(SOURCES "audio/audio_codec.cc"
+             "display/screen/settings_screen/settings_power_tab.cc"
+             "display/screen/settings_screen/settings_conversation_tab.cc"
+             "display/screen/settings_screen/settings_storage_tab.cc"
++            "display/screen/settings_screen/settings_card_share.cc"
+             "display/screen/settings_screen/settings_bluetooth_tab.cc"
+             "display/screen/settings_screen/settings_test/settings_test_tab.cc"
+             "display/screen/settings_screen/settings_test/settings_test_auto_screen.cc"
+@@ -405,6 +406,7 @@ set_source_files_properties(
+ # zlib：reader/ZipReader 解压 EPUB；EbookDocument 分块 inflate .ebook
+ # esp-ml307 / esp-wifi-connect：本地 vendored 组件（components/），不再走 Component Manager
+ # esp_tinyusb：设置页模拟 U 盘（MSC）；仅 S3 拉取，链接 usb PHY
++target_link_libraries(${COMPONENT_LIB} PRIVATE idf::pad_share idf::esp_wifi idf::esp_netif)
+ target_link_libraries(${COMPONENT_LIB} PRIVATE idf::fatfs idf::sdmmc idf::esp_driver_sdmmc idf::espressif__zlib idf::esp_partition idf::espcoredump idf::esp-ml307 idf::esp-wifi-connect idf::espressif__freetype)
+ if(TARGET idf::espressif__esp_tinyusb)
+     target_link_libraries(${COMPONENT_LIB} PRIVATE idf::espressif__esp_tinyusb idf::usb)
+diff --git a/main/display/screen/settings_screen/settings_card_share.cc b/main/display/screen/settings_screen/settings_card_share.cc
+new file mode 100644
+index 0000000..a08371c
+--- /dev/null
++++ b/main/display/screen/settings_screen/settings_card_share.cc
+@@ -0,0 +1,176 @@
++#include "settings_card_share.h"
++#include "SdCardManager.hpp"
++#include "usb_virtual_disk.h"
++#include "settings_common.h"
++#include "pad_share.h"
++#include "esp_netif.h"
++#include "esp_wifi.h"
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++
++namespace {
++constexpr char kCard[] = "/sdcard/metalio/e-ink/project/current.html";
++lv_obj_t *panel, *message, *button_label, *qr, *receipt, *start_button;
++lv_timer_t *watch;
++bool serving, receiving;
++char project[PAD_SHARE_PROJECT_SIZE];
++unsigned shown_count;
++
++bool SdReady() {
++    auto& sd = SdCardManager::GetInstance();
++    auto& usb = UsbVirtualDisk::GetInstance();
++    return !usb.IsBusy() && !usb.IsSdExportedToHost() && sd.IsMounted() && sd.GetCard();
++}
++bool SameProject() {
++    char current[PAD_SHARE_PROJECT_SIZE]{};
++    return SdReady() && pad_share_current_project(current) == ESP_OK && !std::strcmp(current, project);
++}
++lv_obj_t* Label() {
++    auto* label = lv_label_create(panel);
++    lv_obj_set_width(label, lv_pct(95));
++    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
++    return label;
++}
++
++bool Station(esp_netif_ip_info_t& addr) {
++    wifi_mode_t mode;
++    wifi_ap_record_t ap;
++    auto* net = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
++    return esp_wifi_get_mode(&mode) == ESP_OK && mode == WIFI_MODE_STA &&
++           esp_wifi_sta_get_ap_info(&ap) == ESP_OK && net && esp_netif_is_netif_up(net) &&
++           esp_netif_get_ip_info(net, &addr) == ESP_OK && addr.ip.addr;
++}
++
++// Work only on an explicitly exported card; never traverse the SD or serve a filename.
++const char* Start(char* url, size_t capacity) {
++    if (!SdReady()) return "请插入 SD 卡，并关闭模拟 U 盘。";
++    esp_netif_ip_info_t before{}, after{};
++    if (!Station(before)) return "请先在设置中连接局域网 Wi-Fi，再重新打开。";
++    pad_share_config_t config{};
++    char path[PAD_SHARE_PATH_SIZE]{};
++    if (receiving) {
++        if (!SameProject()) return "当前项目已改变或 SD 卡已移除，请关闭后重新打开。";
++        if (pad_share_upload_start(&config, project, path, sizeof(path)) != ESP_OK)
++            return "接收未启动。请检查项目标识、SD 卡、Wi-Fi 和可用内存。";
++    } else {
++        FILE* file = std::fopen(kCard, "rb");
++        if (!file) return "找不到或无法打开当前项目卡：\n/sdcard/metalio/e-ink/project/current.html";
++        long n = -1;
++        if (std::fseek(file, 0, SEEK_END) == 0) n = std::ftell(file);
++        if (n <= 0 || n > static_cast<long>(PAD_SHARE_MAX_HTML) || std::fseek(file, 0, SEEK_SET)) {
++            std::fclose(file);
++            return "项目卡不可读、为空或超过 64 KiB。";
++        }
++        auto* bytes = std::malloc(n);
++        bool ok = bytes && std::fread(bytes, 1, n, file) == static_cast<size_t>(n) &&
++                  std::fgetc(file) == EOF && !std::ferror(file);
++        std::fclose(file);
++        if (!ok) { std::free(bytes); return "项目卡读取失败。请检查 SD 卡和可用内存。"; }
++        pad_share_snapshot_t snapshot{};
++        snapshot.html = bytes;
++        snapshot.html_size = n;
++        auto err = pad_share_start(&config, &snapshot, path, sizeof(path));
++        std::free(bytes);
++        if (err != ESP_OK) return "分享未启动。请检查项目卡内容、Wi-Fi 和可用内存。";
++    }
++    if (!Station(after) || after.ip.addr != before.ip.addr) {
++        pad_share_stop();
++        return "Wi-Fi 地址已变更，请重新分享。";
++    }
++    std::snprintf(url, capacity, "http://" IPSTR ":%u%s", IP2STR(&after.ip), PAD_SHARE_DEFAULT_PORT, path);
++    return nullptr;
++}
++void Deleted(lv_event_t*) {
++    if (watch) lv_timer_delete(watch);
++    watch = nullptr;
++    if (serving) pad_share_stop();
++    serving = false;
++    panel = message = button_label = qr = receipt = start_button = nullptr;
++}
++void Poll(lv_timer_t*) {
++    if (!serving) return;
++    if (!pad_share_active() || (receiving && !SameProject()) ||
++        lv_screen_active() != lv_obj_get_screen(panel)) {
++        pad_share_stop();
++        serving = false;
++        if (qr) lv_obj_add_flag(qr, LV_OBJ_FLAG_HIDDEN);
++        lv_label_set_text(message, "已结束：到期、网络、SD 卡或当前项目发生变化。旧链接不可用。");
++        lv_label_set_text(button_label, "关闭");
++        lv_timer_pause(watch);
++    } else if (receiving) {
++        unsigned n = pad_share_upload_count();
++        if (shown_count != n) {
++            shown_count = n;
++            lv_label_set_text_fmt(receipt, "本次已收：%u 张", n);
++        }
++    }
++}
++void Serve(lv_event_t*) {
++    if (serving) return;
++    if (start_button) lv_obj_add_flag(start_button, LV_OBJ_FLAG_HIDDEN);
++    char url[128]{};
++    const char* err = Start(url, sizeof(url));
++    serving = err == nullptr;
++    bool qr_ok = false;
++#if LV_USE_QRCODE
++    if (serving && (qr = lv_qrcode_create(panel))) {
++        lv_qrcode_set_size(qr, 184);
++        lv_qrcode_set_dark_color(qr, lv_color_black());
++        lv_qrcode_set_light_color(qr, lv_color_white());
++        lv_qrcode_set_quiet_zone(qr, true);
++        qr_ok = lv_qrcode_update(qr, url, std::strlen(url)) == LV_RESULT_OK;
++        if (!qr_ok) lv_obj_add_flag(qr, LV_OBJ_FLAG_HIDDEN);
++    }
++#endif
++    message = Label();
++    if (!serving) { lv_label_set_text(message, err); return; }
++    if (receiving) {
++        receipt = Label();
++        shown_count = 0;
++        lv_label_set_text(receipt, "本次已收：0 张");
++    }
++    lv_label_set_text(button_label, receiving ? "停止接收并关闭" : "停止分享并关闭");
++    lv_label_set_text_fmt(message, "%s\n%s\n5 分钟有效。仅向同一 Wi-Fi 的同学展示。",
++                          qr_ok ? "请扫码，或在浏览器输入：" : "二维码不可用，请在浏览器输入：", url);
++    watch = lv_timer_create(Poll, 1000, nullptr);
++    if (!watch) {
++        pad_share_stop();
++        serving = false;
++        if (qr) lv_obj_add_flag(qr, LV_OBJ_FLAG_HIDDEN);
++        lv_label_set_text(message, "内存不足，服务已停止。");
++        lv_label_set_text(button_label, "关闭");
++    }
++}
++void Open(lv_event_t* event, bool upload) {
++    if (panel) return;
++    receiving = upload;
++    panel = lv_obj_create(lv_obj_get_screen(static_cast<lv_obj_t*>(lv_event_get_target(event))));
++    lv_obj_set_size(panel, lv_pct(100), lv_pct(100));
++    lv_obj_center(panel);
++    lv_obj_set_style_bg_color(panel, lv_color_white(), 0);
++    lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
++    lv_obj_set_style_text_font(panel, fontpack_lv_font_ui(), 0);
++    lv_obj_set_style_text_color(panel, lv_color_black(), 0);
++    lv_obj_set_flex_flow(panel, LV_FLEX_FLOW_COLUMN);
++    lv_obj_set_flex_align(panel, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
++    lv_obj_add_event_cb(panel, Deleted, LV_EVENT_DELETE, nullptr);
++    auto* button = SettingsCreateSelectableOption(panel, "关闭", [](lv_event_t*) { SettingsCardShare_Close(); }, 0);
++    button_label = lv_obj_get_child(button, 0);
++    if (!receiving) { Serve(nullptr); return; }
++    auto* summary = Label();
++    if (!SdReady()) { lv_label_set_text(summary, "请插入 SD 卡，并关闭模拟 U 盘。"); return; }
++    if (pad_share_current_project(project) != ESP_OK) {
++        lv_label_set_text(summary, "未绑定当前项目。请在 SD 卡 metalio/e-ink/project/current.id 写入项目标识后重新打开。");
++        return;
++    }
++    lv_label_set_text_fmt(summary, "当前项目：%s\n照片位置：SD 卡 metalio/e-ink/project/%s/photos", project, project);
++    start_button = SettingsCreateSelectableOption(panel, "开始接收照片", Serve, 0);
++}
++} // namespace
++
++void SettingsCardShare_Close() {
++    if (panel) lv_obj_delete(panel);
++}
++void SettingsCardShare_Open(lv_event_t* event) { Open(event, false); }
++void SettingsPhotoUpload_Open(lv_event_t* event) { Open(event, true); }
+diff --git a/main/display/screen/settings_screen/settings_card_share.h b/main/display/screen/settings_screen/settings_card_share.h
+new file mode 100644
+index 0000000..6bf191a
+--- /dev/null
++++ b/main/display/screen/settings_screen/settings_card_share.h
+@@ -0,0 +1,6 @@
++#pragma once
++#include "lvgl.h"
++
++void SettingsCardShare_Open(lv_event_t* event);
++void SettingsPhotoUpload_Open(lv_event_t* event);
++void SettingsCardShare_Close();
+diff --git a/main/display/screen/settings_screen/settings_screen.cc b/main/display/screen/settings_screen/settings_screen.cc
+index c8fe079..ed29817 100644
+--- a/main/display/screen/settings_screen/settings_screen.cc
++++ b/main/display/screen/settings_screen/settings_screen.cc
+@@ -17,6 +17,9 @@
+ #include "settings_network_tab.h"
+ #include "settings_power_tab.h"
+ #include "settings_storage_tab.h"
++#ifdef ESP_PLATFORM
++#include "settings_card_share.h"
++#endif
+ #include "settings_test_tab.h"
+ #include "settings_theme_tab.h"
+ #include "vk_key_handler.h"
+@@ -195,6 +198,9 @@ static void DeactivateActiveTabLiveWork() {
+         return;
+     }
+     const SettingsTab id = kTabs[s_ui.active_tab].id;
++#ifdef ESP_PLATFORM
++    if (id == SettingsTab::kStorage) SettingsCardShare_Close();
++#endif
+     if (id == SettingsTab::kBluetooth) {
+         SettingsBluetoothTab_OnDeactivated();
+     }
+diff --git a/main/display/screen/settings_screen/settings_storage_tab.cc b/main/display/screen/settings_screen/settings_storage_tab.cc
+index 762358e..4c758a2 100644
+--- a/main/display/screen/settings_screen/settings_storage_tab.cc
++++ b/main/display/screen/settings_screen/settings_storage_tab.cc
+@@ -1,4 +1,7 @@
+ #include "settings_storage_tab.h"
++#ifdef ESP_PLATFORM
++#include "settings_card_share.h"
++#endif
+ 
+ #include "SdCardManager.hpp"
+ #include "fontpack_lvgl.h"
+@@ -148,6 +151,9 @@ static void OnUsbButtonClicked(lv_event_t* /*e*/) {
+ 
+ 
+ void SettingsStorageTab_Reset() {
++#ifdef ESP_PLATFORM
++    SettingsCardShare_Close();
++#endif
+     auto& vd = UsbVirtualDisk::GetInstance();
+     vd.DisableIfActive();
+     vd.SetUiNotify(nullptr);
+@@ -180,6 +186,10 @@ void SettingsStorageTab_Build(lv_obj_t* page) {
+     lv_obj_set_style_text_color(s_ui.capacity_lbl, lv_color_black(), 0);
+     lv_obj_clear_flag(s_ui.capacity_lbl, LV_OBJ_FLAG_CLICKABLE);
+ 
++#ifdef ESP_PLATFORM
++    SettingsCreateSelectableOption(page, "分享当前项目卡", SettingsCardShare_Open, 0);
++    SettingsCreateSelectableOption(page, "从手机加照片", SettingsPhotoUpload_Open, 0);
++#endif
+     s_ui.usb_btn = SettingsCreateSelectableOption(page, Lang::Strings::SETTINGS_STORAGE_USB_ON, OnUsbButtonClicked, 0);
+     s_ui.usb_btn_lbl = lv_obj_get_child(s_ui.usb_btn, 0);
+ 
+diff --git a/sdkconfig b/sdkconfig
+index 0c628f3..038f838 100644
+--- a/sdkconfig
++++ b/sdkconfig
+@@ -3146,7 +3146,7 @@ CONFIG_LV_USE_LODEPNG=y
+ # CONFIG_LV_USE_GIF is not set
+ # CONFIG_LV_BIN_DECODER_RAM_LOAD is not set
+ # CONFIG_LV_USE_RLE is not set
+-# CONFIG_LV_USE_QRCODE is not set
++CONFIG_LV_USE_QRCODE=y
+ # CONFIG_LV_USE_BARCODE is not set
+ # CONFIG_LV_USE_FREETYPE is not set
+ # CONFIG_LV_USE_TINY_TTF is not set

@@ -23,6 +23,16 @@ Loom 新增的是 **Agent 自用的工具插件**；不是把 ESP-Claw 的 UI �
 
 上游参考：[Agent 循环](https://github.com/espressif/esp-claw/blob/50072775cfa20d7ce25a9b27591d9d7c8b9dbab5/components/claw_modules/claw_core/src/claw_core_agent_loop.c)、[Lua 能力注册](https://github.com/espressif/esp-claw/blob/50072775cfa20d7ce25a9b27591d9d7c8b9dbab5/components/claw_capabilities/cap_lua/src/cap_lua.c)、[Lua 执行器](https://github.com/espressif/esp-claw/blob/50072775cfa20d7ce25a9b27591d9d7c8b9dbab5/components/claw_capabilities/cap_lua/src/cap_lua_runtime.c)。
 
+## 在 iPad 查看当前项目卡（普通版固件补丁）
+
+在同一个允许设备互访的 Wi-Fi 上，Pad 可主动分享 SD 卡中指定的静态 HTML 项目卡。iPad 扫码后用 Safari 浏览 5 分钟只读快照；不开放存储目录、Agent 工具或编辑权限。此版不会同步翻页或自动刷新。见[接入与实机验收](../pad-share/metalio/README.md)和[示例项目卡](../pad-share/examples/current.html)。主机浏览器测试命令：`node dsh-service/pad-share/browser/verify.mjs`（桌面 Chrome、平板视口；不等同实物 Safari）。组件已用 ESP-IDF 6.0.1 独立链接到 ESP32-S3 验证工程，不是 Metalio 整机镜像。
+
+## 从手机给当前项目加照片（普通版固件补丁）
+
+「设置 → 存储 → 从手机加照片」是独立的五分钟局域网接收入口，与只读分享互斥。Pad 先展示项目标识，由人确认后才开始监听；手机扫码选一张，预览后点击上传。手机将照片缩成最长边 1600 像素以内的 JPEG，Pad 校验后按项目写入 SD 卡；一次最多 8 张，每张最多 1 MiB。HTTP 地址只用于可信、允许终端互访的 Wi-Fi，不是云相册。停止、项目切换或网络失效后，旧码不能用。不会自动把照片显示在共享卡、发送给模型或上传给队友。
+
+[安装与项目目录约定](../pad-share/metalio/README.md#手机--当前项目收照片和找回照片)。手机上传的浏览器/存储回归测试：`node dsh-service/pad-share/browser/verify-upload.mjs`。目前支持把图片存入当前项目，不包含 Pad 相册缩略图或一键视觉分析。
+
 ## 从原型继承什么
 
 原来的共享农场 PWA 使用设备会话＋身份声明＋声纹挑战；保留它，不把它当作新设备的默认入口。个人终端复用公平队列、单案租约、转写后确认、服务端筛查。为机器人创建独立队列，记录绑定孩子与 `projectId`，不是借用一个虚拟地块。设备配对只证明哪台设备有权访问，不证明实际说话者是谁：借用、遗失、退组时须能锁定和撤销绑定。
