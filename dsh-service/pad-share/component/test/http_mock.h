@@ -59,7 +59,16 @@ static int httpd_resp_set_hdr(httpd_req_t *r,const char *k,const char *v) { if (
 static int httpd_resp_set_type(httpd_req_t *r,const char *v) { (void)r;(void)v;return ESP_OK; }
 static int httpd_resp_set_status(httpd_req_t *r,const char *v) { r->status=v;return ESP_OK; }
 static int httpd_resp_send(httpd_req_t *r,const char *v,int n) { (void)n;r->reply=v;return r->fail_response?ESP_FAIL:ESP_OK; }
-static int httpd_resp_send_chunk(httpd_req_t *r,const char *v,size_t n) { (void)r;(void)v;(void)n;return ESP_OK; }
+static char chunks[16384];
+static size_t chunk_len;
+static void (*after_chunk)(void);
+static int httpd_resp_send_chunk(httpd_req_t *r,const char *v,size_t n) {
+    if (n+chunk_len>=sizeof(chunks)) return ESP_FAIL;
+    if (v) { memcpy(chunks+chunk_len,v,n); chunk_len+=n; }
+    chunks[chunk_len]=0;
+    if (n && after_chunk) after_chunk();
+    return r->fail_response?ESP_FAIL:ESP_OK;
+}
 static const char *hdr(httpd_req_t *r,const char *k) {
     if (!strcmp(k,"Host")) return r->host;
     if (!strcmp(k,"Origin")) return r->origin;

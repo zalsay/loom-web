@@ -11,7 +11,7 @@ import tempfile
 PIN = 'd12f481f4a42420634bb56a928f3959a977367d4'
 HERE = Path(__file__).resolve().parent
 FILES = ('CMakeLists.txt', 'include/pad_share.h', 'pad_share.c', 'snapshot.c', 'snapshot.h',
-         'upload.c', 'upload.h', 'phone_form.h')
+         'upload.c', 'upload.h', 'phone_form.h', 'library.c', 'library.h')
 
 
 def main():
@@ -50,7 +50,7 @@ def main():
             shutil.copyfile(src / name, out)
         git('apply', patch)
         staged.rename(dest)
-    print('Installed: 设置 → 存储 → 分享当前项目卡 / 从手机加照片')
+    print('Installed: 设置 → 存储 → 分享本项目卡片列表 / 分享当前项目卡 / 从手机加照片')
 
 
 if __name__ == '__main__':

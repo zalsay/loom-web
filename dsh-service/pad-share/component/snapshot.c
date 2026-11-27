@@ -1,5 +1,6 @@
 #include "snapshot.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #define MAX_PAGE (128u * 1024u)
@@ -81,8 +82,14 @@ static bool project(writer_t *w, const char *s, size_t n) {
     }
     return true;
 }
-static bool render(writer_t *w, const pad_share_snapshot_t *s) {
+static bool render(writer_t *w, const pad_share_snapshot_t *s, unsigned list_page) {
     if (!LIT(w,"<!doctype html><html><head><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><title>Card</title></head><body>")) return false;
+    if (list_page) {
+        char href[16]="./";
+        if (list_page>1) snprintf(href,sizeof(href),"p%u",list_page);
+        if (!LIT(w,"<nav><a href='") || !put(w,href,strlen(href)) ||
+            !LIT(w,"'>返回卡片列表</a></nav>")) return false;
+    }
     if (s->html) {
         if (!project(w,s->html,s->html_size)) return false;
     } else {
@@ -96,7 +103,7 @@ static bool render(writer_t *w, const pad_share_snapshot_t *s) {
 void share_clear(share_view_t *v) {
     free(v->page); free(v->image); memset(v,0,sizeof(*v));
 }
-esp_err_t share_build(share_view_t *v, const pad_share_snapshot_t *s, const uint8_t random[16]) {
+static esp_err_t build(share_view_t *v, const pad_share_snapshot_t *s, const uint8_t random[16], unsigned list_page) {
     if (!s || !v || !random) return ESP_ERR_INVALID_ARG;
     memset(v,0,sizeof(*v));
     if (s->html || s->html_size) {
@@ -109,11 +116,11 @@ esp_err_t share_build(share_view_t *v, const pad_share_snapshot_t *s, const uint
         else return ESP_ERR_INVALID_ARG;
     }
     writer_t w={.cap=MAX_PAGE};
-    if (!render(&w,s)) return ESP_ERR_INVALID_SIZE;
+    if (!render(&w,s,list_page)) return ESP_ERR_INVALID_SIZE;
     v->page=malloc(w.len+1);
     if (!v->page) return ESP_ERR_NO_MEM;
     v->page_size=w.len; w=(writer_t){.buf=v->page,.cap=v->page_size};
-    if (!render(&w,s) || w.len!=v->page_size) { share_clear(v); return ESP_ERR_INVALID_SIZE; }
+    if (!render(&w,s,list_page) || w.len!=v->page_size) { share_clear(v); return ESP_ERR_INVALID_SIZE; }
     v->page[w.len]='\0';
     if (v->mime) {
         v->image=malloc(s->image_size);
@@ -125,6 +132,13 @@ esp_err_t share_build(share_view_t *v, const pad_share_snapshot_t *s, const uint
     for (size_t i=0;i<16;i++) { v->card[3+2*i]=hex[random[i]>>4]; v->card[4+2*i]=hex[random[i]&15]; }
     memcpy(v->asset,v->card,35); strcpy(v->asset+35,"/image"); strcpy(v->card+35,"/card");
     return ESP_OK;
+}
+esp_err_t share_build(share_view_t *v,const pad_share_snapshot_t *s,const uint8_t random[16]) {
+    return build(v,s,random,0);
+}
+esp_err_t share_library_html(share_view_t *v,const void *html,size_t size,unsigned list_page) {
+    if (!list_page) return ESP_ERR_INVALID_ARG;
+    return build(v,&(pad_share_snapshot_t){.html=html,.html_size=size},(const uint8_t[16]){0},list_page);
 }
 enum share_resource share_lookup(const share_view_t *v, bool active, int64_t now, const char *uri) {
     if (!v || !v->page || !active || now>=v->deadline_us || !uri) return SHARE_NONE;

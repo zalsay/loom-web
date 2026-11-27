@@ -57,16 +57,21 @@ export class FarmQueue {
     this.#maxBatchSize = maxBatchSize;
   }
 
-  enqueue({ childId, plotId, requestId, text, prediction = '' }) {
+  enqueue({ childId, plotId, projectId, requestId, text, prediction = '' }) {
     const normalizedChildId = requiredString(childId, 'childId', 128);
-    const normalizedPlotId = requiredString(plotId, 'plotId', 128);
+    if (plotId !== undefined && projectId !== undefined) {
+      throw queueError('invalid_input', 'use a plot or a project, not both');
+    }
+    const scope = projectId === undefined ? 'plotId' : 'projectId';
+    const ownerScope = requiredString(scope === 'plotId' ? plotId : projectId, scope, 128);
     const normalizedRequestId = requiredString(requestId, 'requestId', 128);
     const normalizedText = requiredString(text, 'text', 2_000);
     const normalizedPrediction = String(prediction ?? '')
       .trim()
       .slice(0, 1_000);
 
-    const existingId = this.#requestIds.get(normalizedRequestId);
+    const requestKey = JSON.stringify([normalizedChildId, scope, ownerScope, normalizedRequestId]);
+    const existingId = this.#requestIds.get(requestKey);
     if (existingId) {
       const existing = this.#cases.get(existingId);
       if (existing && existing.text !== normalizedText) {
@@ -86,7 +91,7 @@ export class FarmQueue {
     const record = {
       caseId: this.#randomId(),
       childId: normalizedChildId,
-      plotId: normalizedPlotId,
+      [scope]: ownerScope,
       requestId: normalizedRequestId,
       text: normalizedText,
       prediction: normalizedPrediction,
@@ -102,7 +107,7 @@ export class FarmQueue {
     };
 
     this.#cases.set(record.caseId, record);
-    this.#requestIds.set(normalizedRequestId, record.caseId);
+    this.#requestIds.set(requestKey, record.caseId);
     return clone(record);
   }
 
@@ -166,7 +171,7 @@ export class FarmQueue {
     if (record.status !== 'processing') {
       throw queueError('case_not_processing', 'case is not processing');
     }
-    if (record.leaseId !== leaseId) {
+    if (record.leaseId !== leaseId || record.leaseUntil <= now) {
       throw queueError('stale_lease', 'lease does not match the current case owner');
     }
     if (outcome === 'answered' && answer === null) {

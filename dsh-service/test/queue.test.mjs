@@ -45,6 +45,35 @@ test('FarmQueue enforces request idempotency and per-child open limits', () => {
   );
 });
 
+test('retries are local to their child, project and domain', () => {
+  const queue = new FarmQueue();
+  const request = { childId: 'a', projectId: 'robot', requestId: '1', text: 'test' };
+  const original = queue.enqueue(request);
+  assert.deepEqual(queue.enqueue(request), original);
+  assert.notEqual(queue.enqueue({ ...request, childId: 'b' }).caseId, original.caseId);
+  assert.notEqual(queue.enqueue({ ...request, projectId: 'arm' }).caseId, original.caseId);
+  assert.notEqual(
+    queue.enqueue({ ...request, projectId: undefined, plotId: 'robot' }).caseId,
+    original.caseId,
+  );
+  assert.throws(() => queue.enqueue({ ...request, plotId: 'plot' }), { code: 'invalid_input' });
+  assert.throws(() => queue.enqueue({ ...request, text: 'different' }), {
+    code: 'request_conflict',
+  });
+});
+
+test('an expired lease cannot publish even before the next claim', () => {
+  let now = 0;
+  const queue = new FarmQueue({ now: () => now, leaseMs: 5 });
+  queue.enqueue({ childId: 'a', projectId: 'robot', requestId: '1', text: 'test' });
+  const [job] = queue.claim('teacher');
+  now = 5;
+  assert.throws(() => queue.complete(job.caseId, { leaseId: job.leaseId, answer: 'old' }), {
+    code: 'stale_lease',
+  });
+  assert.notEqual(queue.claim('teacher')[0].leaseId, job.leaseId);
+});
+
 test('FarmQueue claims one question per child and releases expired leases', () => {
   let now = 1_000;
   const queue = new FarmQueue({

@@ -46,6 +46,11 @@ esp_err_t pad_share_start(const pad_share_config_t *cfg, const pad_share_snapsho
 esp_err_t pad_share_current_project(char id[PAD_SHARE_PROJECT_SIZE]);
 esp_err_t pad_share_upload_start(const pad_share_config_t *cfg, const char *project_id,
                                  char *path, size_t path_size);
+/* Authorize only the current project's direct HTML cards. The unbound global
+ * current.html remains separate, via pad_share_start. No client paths. */
+#define PAD_SHARE_LIBRARY_LIMIT 128u
+esp_err_t pad_share_library_start(const pad_share_config_t *cfg, const char *project_id,
+                                  char *path, size_t path_size);
 unsigned pad_share_upload_count(void);
 esp_err_t pad_share_stop(void);
 bool pad_share_active(void);

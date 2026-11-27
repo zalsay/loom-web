@@ -1,4 +1,8 @@
-# Pad：把 `duck_look` 作为工具返回给模型
+# Pad：首期手柄与后续 Agent 工具的边界
+
+首期使用固定的触控手柄，由孩子点按直接发送网关请求，不注册模型工具，也不启动自动巡视。手柄布局、状态和验收见[首期手柄规格](../README.md#手柄首页与操作约定)。下文记录的是已有的 Agent 适配原型，保留供后续实验，不是首期 UI 的实现或依赖。
+
+## 后续实验：把 `duck_look` 作为工具返回给模型
 
 这是宿主适配代码，不是按钮界面，也不是放到 Pad 文件系统就会自动注册的插件。把 [函数描述](./duck_look.json) 注册到**受信任的** Pad 原生工具注册表/模型宿主，将 `duck_look` 分发给 [trusted_host.lua](./trusted_host.lua)。模型只有 `direction: left | slight_left | center | slight_right | right` 一项输入，没有供其选择的 URL、凭据、设备 ID、角度或持续时间。Lua 端再次校验，不依赖模型遵守 schema。
 

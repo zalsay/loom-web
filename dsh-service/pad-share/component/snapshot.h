@@ -12,6 +12,7 @@ typedef struct {
 
 enum share_resource { SHARE_NONE, SHARE_PAGE, SHARE_IMAGE };
 esp_err_t share_build(share_view_t *out, const pad_share_snapshot_t *in, const uint8_t random[16]);
+esp_err_t share_library_html(share_view_t *out,const void *html,size_t size,unsigned list_page);
 void share_clear(share_view_t *v);
 enum share_resource share_lookup(const share_view_t *v, bool active, int64_t now_us, const char *uri);
 #define SHARE_CSP "default-src 'none'; script-src 'none'; style-src 'none'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox allow-same-origin"

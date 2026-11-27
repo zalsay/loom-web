@@ -1,0 +1,12 @@
+{
+  "name": "duck_action",
+  "description": "向已授权的现场 FlashDuck 提议一个动作。accepted 仅表示网关受理，replied 仅表示 DuckClaw Agent 返回文本，不代表电机已执行。stop 是请求回中，不是急停。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": { "type": "string", "enum": ["look_left", "look_right", "walk_step", "stop"] }
+    },
+    "required": ["action"],
+    "additionalProperties": false
+  }
+}

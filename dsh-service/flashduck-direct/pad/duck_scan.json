@@ -1,0 +1,8 @@
+{
+  "type": "function",
+  "function": {
+    "name": "duck_scan",
+    "description": "在明确请求一次巡视且现场允许时，小幅向左看、小幅向右看，再回中。仅输出颈部轨迹，不拍照、不定位、不行走。取消只阻止后续步骤，不是急停。不确定时勿重试。",
+    "parameters": { "type": "object", "properties": {}, "additionalProperties": false }
+  }
+}

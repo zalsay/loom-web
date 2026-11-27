@@ -1,5 +1,6 @@
 #include "snapshot.h"
 #include "upload.h"
+#include "library.h"
 #include "phone_form.h"
 #include <stdio.h>
 #include <pthread.h>
@@ -21,7 +22,9 @@ static share_view_t view;
 static atomic_bool revoked = ATOMIC_VAR_INIT(true);
 static esp_netif_t *sta;
 static uint32_t sta_ipv4;
-static bool uploading;
+enum mode { SINGLE, UPLOAD, LIBRARY };
+static enum mode mode;
+static library_t library;
 static upload_paths_t upload;
 static char project[PAD_SHARE_PROJECT_SIZE], authority[32], origin[40];
 static atomic_uint received;
@@ -81,7 +84,7 @@ static esp_err_t headers(httpd_req_t *r, const char *csp) {
         return ESP_FAIL;
     return ESP_OK;
 }
-static bool upload_live(void) {
+static bool project_live(void) {
     if (!live()) return false;
     if (!upload_bound(UP_PROJECT_ROOT,project)) { atomic_store(&revoked,true); return false; }
     return live();
@@ -108,7 +111,7 @@ static bool request_live(void *ctx) { return live() && esp_timer_get_time()<((re
 static esp_err_t serve_upload(httpd_req_t *r) {
     enum up_route route=upload_lookup(&upload,live(),r->method==HTTP_GET,r->method==HTTP_POST,r->uri);
     if (headers(r,route==UP_FORM?UP_CSP:SHARE_HTML_CSP)!=ESP_OK) return ESP_FAIL;
-    if (route==UP_NONE || !header_is(r,"Host",authority) || !upload_live())
+    if (route==UP_NONE || !header_is(r,"Host",authority) || !project_live())
         return upload_reply(r,"404 Not Found","Not found",false);
     if (route==UP_FORM) {
         if (r->content_len || !header_absent(r,"Transfer-Encoding")) return upload_reply(r,"400 Bad Request","Unexpected body",false);
@@ -144,8 +147,32 @@ static esp_err_t serve_upload(httpd_req_t *r) {
     default: return upload_reply(r,"400 Bad Request","Incomplete upload",false);
     }
 }
+static esp_err_t serve_library(httpd_req_t *r) {
+    if (headers(r,SHARE_HTML_CSP)!=ESP_OK) return ESP_FAIL;
+    if (r->method!=HTTP_GET || r->content_len || !header_absent(r,"Transfer-Encoding") ||
+        !header_is(r,"Host",authority) || !project_live())
+        return upload_reply(r,"404 Not Found","Not found",false);
+    share_view_t page={0};
+    esp_err_t err=library_page(&library,r->uri,&page);
+    if (!project_live()) { share_clear(&page); return upload_reply(r,"404 Not Found","Not found",false); }
+    if (err!=ESP_OK) {
+        if (err==ESP_ERR_NOT_FOUND) return upload_reply(r,"404 Not Found","Not found",false);
+        if (err==ESP_ERR_INVALID_SIZE) return upload_reply(r,"422 Unprocessable Content","Card is empty or exceeds size limit",false);
+        return upload_reply(r,"503 Service Unavailable","Cannot read card",false);
+    }
+    err=httpd_resp_set_type(r,"text/html; charset=utf-8");
+    size_t offset=0;
+    while (err==ESP_OK && offset<page.page_size) {
+        size_t n=page.page_size-offset; if (n>2048) n=2048;
+        err=project_live()?httpd_resp_send_chunk(r,page.page+offset,n):ESP_FAIL;
+        offset+=n;
+    }
+    if (err==ESP_OK) err=httpd_resp_send_chunk(r,NULL,0);
+    share_clear(&page); return err;
+}
 static esp_err_t serve(httpd_req_t *r) {
-    if (uploading) return serve_upload(r);
+    if (mode==UPLOAD) return serve_upload(r);
+    if (mode==LIBRARY) return serve_library(r);
     enum share_resource resource=r->method==HTTP_GET ? share_lookup(&view,live(),esp_timer_get_time(),r->uri) : SHARE_NONE;
     if (headers(r,resource==SHARE_PAGE && view.image ? SHARE_CSP : SHARE_HTML_CSP)!=ESP_OK) return ESP_FAIL;
     if (resource==SHARE_NONE) {
@@ -170,9 +197,9 @@ static esp_err_t stop_locked(void) {
         if (err!=ESP_OK) return err; /* fail closed; preserve memory pending a retry */
         server=NULL;
     }
-    share_clear(&view);
+    share_clear(&view); library_clear(&library);
     memset(&upload,0,sizeof(upload)); memset(&history,0,sizeof(history));
-    project[0]=0; uploading=false; atomic_store(&received,0);
+    project[0]=0; mode=SINGLE; atomic_store(&received,0);
     sta=NULL; sta_ipv4=0;
     for (size_t i=0;i<sizeof(events)/sizeof(events[0]);i++) if (events[i].instance) {
         esp_err_t err=esp_event_handler_instance_unregister(events[i].base,events[i].id,events[i].instance);
@@ -188,10 +215,10 @@ esp_err_t pad_share_stop(void) {
 }
 bool pad_share_active(void) {
     if (pthread_mutex_lock(&lifecycle)!=0) return false;
-    bool ok=server && (uploading?upload_live():live()); pthread_mutex_unlock(&lifecycle); return ok;
+    bool ok=server && (mode!=SINGLE?project_live():live()); pthread_mutex_unlock(&lifecycle); return ok;
 }
 static esp_err_t start(const pad_share_config_t *cfg,const pad_share_snapshot_t *snap,
-                       const char *id,bool writer,char *path,size_t path_size) {
+                       const char *id,enum mode requested,char *path,size_t path_size) {
     if (path && path_size) path[0]=0;
     if (pthread_mutex_lock(&lifecycle)!=0) return ESP_FAIL;
     esp_err_t err=stop_locked();
@@ -200,7 +227,7 @@ static esp_err_t start(const pad_share_config_t *cfg,const pad_share_snapshot_t 
     uint16_t port=cfg && cfg->port ? cfg->port : PAD_SHARE_DEFAULT_PORT;
     uint16_t ctrl=cfg && cfg->ctrl_port ? cfg->ctrl_port : PAD_SHARE_DEFAULT_CTRL_PORT;
     uint32_t ttl=cfg && cfg->ttl_seconds ? cfg->ttl_seconds : PAD_SHARE_DEFAULT_TTL;
-    if ((writer ? !id : !snap) || !path || path_size<PAD_SHARE_PATH_SIZE || ttl>86400 || ctrl==http.ctrl_port || ctrl==port) {
+    if ((requested!=SINGLE ? !id : !snap) || !path || path_size<PAD_SHARE_PATH_SIZE || ttl>86400 || ctrl==http.ctrl_port || ctrl==port) {
         err=ESP_ERR_INVALID_ARG; goto done;
     }
     sta=esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
@@ -223,9 +250,15 @@ static esp_err_t start(const pad_share_config_t *cfg,const pad_share_snapshot_t 
     sta_ipv4=ip.ip.addr;
     if (!network_ready()) { err=ESP_ERR_INVALID_STATE; goto cleanup; }
     uint8_t random[16]; esp_fill_random(random,sizeof(random)); /* Wi-Fi RF entropy active */
-    if (writer) {
-        if (!upload_prepare(UP_PROJECT_ROOT,id)) { err=ESP_ERR_INVALID_STATE; goto cleanup; }
-        strcpy(project,id); upload_paths(&upload,random); uploading=true;
+    if (requested!=SINGLE) {
+        if (requested==LIBRARY) {
+            err=library_open(&library,UP_PROJECT_ROOT,id,random);
+            if (err!=ESP_OK) goto cleanup;
+        } else {
+            if (!upload_prepare(UP_PROJECT_ROOT,id)) { err=ESP_ERR_INVALID_STATE; goto cleanup; }
+            upload_paths(&upload,random);
+        }
+        strcpy(project,id); mode=requested;
         char addr[16]; snprintf(addr,sizeof(addr),IPSTR,IP2STR(&ip.ip));
         if (port==80) snprintf(authority,sizeof(authority),"%s",addr);
         else snprintf(authority,sizeof(authority),"%s:%u",addr,(unsigned)port);
@@ -245,8 +278,8 @@ static esp_err_t start(const pad_share_config_t *cfg,const pad_share_snapshot_t 
     const httpd_uri_t route={.uri="/*",.method=HTTP_ANY,.handler=serve};
     err=httpd_register_uri_handler(server,&route);
     if (err!=ESP_OK) goto cleanup;
-    if (!live()) { err=ESP_ERR_INVALID_STATE; goto cleanup; }
-    strcpy(path,writer?upload.page:view.card); goto done;
+    if (!(requested!=SINGLE?project_live():live())) { err=ESP_ERR_INVALID_STATE; goto cleanup; }
+    strcpy(path,mode==UPLOAD?upload.page:mode==LIBRARY?library.path:view.card); goto done;
 cleanup: {
         esp_err_t stopped=stop_locked();
         if (stopped!=ESP_OK) err=stopped;
@@ -255,8 +288,11 @@ done:
     pthread_mutex_unlock(&lifecycle); return err;
 }
 esp_err_t pad_share_start(const pad_share_config_t *cfg,const pad_share_snapshot_t *snap,char *path,size_t path_size) {
-    return start(cfg,snap,NULL,false,path,path_size);
+    return start(cfg,snap,NULL,SINGLE,path,path_size);
 }
 esp_err_t pad_share_upload_start(const pad_share_config_t *cfg,const char *id,char *path,size_t path_size) {
-    return start(cfg,NULL,id,true,path,path_size);
+    return start(cfg,NULL,id,UPLOAD,path,path_size);
+}
+esp_err_t pad_share_library_start(const pad_share_config_t *cfg,const char *id,char *path,size_t path_size) {
+    return start(cfg,NULL,id,LIBRARY,path,path_size);
 }

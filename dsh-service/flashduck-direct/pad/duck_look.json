@@ -1,0 +1,18 @@
+{
+  "type": "function",
+  "function": {
+    "name": "duck_look",
+    "description": "请求绑定的桌面鸭在五档绝对颈位中定位：向左、小幅向左、回中、小幅向右或向右（非累加）。仅在用户要求时调用。accepted 表示网关已受理，command_finished 表示鸭端控制指令已结束；两者都不是实际姿态反馈。unknown 或工具错误时不要再调用来重试。simulation 表示模拟而非真鸭。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["left", "slight_left", "center", "slight_right", "right"]
+        }
+      },
+      "required": ["direction"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -23,5 +23,5 @@ for shim in esp_event esp_http_server esp_netif esp_random esp_timer esp_wifi lw
 done
 "${CC:-cc}" -std=c11 -D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE -Wall -Wextra -Werror -Wno-overlength-strings ${CFLAGS:-} \
     -I"$scratch" -I"$here/stubs" -I"$here/../include" -I"$here/.." -pthread \
-    "$here/../snapshot.c" "$here/../upload.c" "$here/test_http.c" -o "$bin"
+    "$here/../snapshot.c" "$here/../upload.c" "$here/../library.c" "$here/test_http.c" -o "$bin"
 (cd "$scratch/sd" && "$bin")

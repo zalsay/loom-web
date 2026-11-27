@@ -20,10 +20,10 @@ index bf5a5f5..fa87d04 100644
      target_link_libraries(${COMPONENT_LIB} PRIVATE idf::espressif__esp_tinyusb idf::usb)
 diff --git a/main/display/screen/settings_screen/settings_card_share.cc b/main/display/screen/settings_screen/settings_card_share.cc
 new file mode 100644
-index 0000000..a08371c
+index 0000000..c11bdf1
 --- /dev/null
 +++ b/main/display/screen/settings_screen/settings_card_share.cc
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,193 @@
 +#include "settings_card_share.h"
 +#include "SdCardManager.hpp"
 +#include "usb_virtual_disk.h"
@@ -39,7 +39,9 @@ index 0000000..a08371c
 +constexpr char kCard[] = "/sdcard/metalio/e-ink/project/current.html";
 +lv_obj_t *panel, *message, *button_label, *qr, *receipt, *start_button;
 +lv_timer_t *watch;
-+bool serving, receiving;
++enum class Mode { Card, Library, Upload };
++Mode mode;
++bool serving;
 +char project[PAD_SHARE_PROJECT_SIZE];
 +unsigned shown_count;
 +
@@ -75,8 +77,13 @@ index 0000000..a08371c
 +    if (!Station(before)) return "请先在设置中连接局域网 Wi-Fi，再重新打开。";
 +    pad_share_config_t config{};
 +    char path[PAD_SHARE_PATH_SIZE]{};
-+    if (receiving) {
-+        if (!SameProject()) return "当前项目已改变或 SD 卡已移除，请关闭后重新打开。";
++    if (mode != Mode::Card && !SameProject())
++        return "当前项目已改变或 SD 卡已移除，请关闭后重新打开。";
++    if (mode == Mode::Library) {
++        auto err = pad_share_library_start(&config, project, path, sizeof(path));
++        if (err == ESP_ERR_INVALID_SIZE) return "归档卡数量或大小超过限制，未分享。请检查本项目的 cards 目录。";
++        if (err != ESP_OK) return "列表未分享。请检查当前项目、SD 卡、Wi-Fi 和可用内存。";
++    } else if (mode == Mode::Upload) {
 +        if (pad_share_upload_start(&config, project, path, sizeof(path)) != ESP_OK)
 +            return "接收未启动。请检查项目标识、SD 卡、Wi-Fi 和可用内存。";
 +    } else {
@@ -100,6 +107,10 @@ index 0000000..a08371c
 +        std::free(bytes);
 +        if (err != ESP_OK) return "分享未启动。请检查项目卡内容、Wi-Fi 和可用内存。";
 +    }
++    if (mode != Mode::Card && !SameProject()) {
++        pad_share_stop();
++        return "当前项目已改变或 SD 卡已移除，旧链接不可用。";
++    }
 +    if (!Station(after) || after.ip.addr != before.ip.addr) {
 +        pad_share_stop();
 +        return "Wi-Fi 地址已变更，请重新分享。";
@@ -116,7 +127,7 @@ index 0000000..a08371c
 +}
 +void Poll(lv_timer_t*) {
 +    if (!serving) return;
-+    if (!pad_share_active() || (receiving && !SameProject()) ||
++    if (!pad_share_active() || (mode != Mode::Card && !SameProject()) ||
 +        lv_screen_active() != lv_obj_get_screen(panel)) {
 +        pad_share_stop();
 +        serving = false;
@@ -124,7 +135,7 @@ index 0000000..a08371c
 +        lv_label_set_text(message, "已结束：到期、网络、SD 卡或当前项目发生变化。旧链接不可用。");
 +        lv_label_set_text(button_label, "关闭");
 +        lv_timer_pause(watch);
-+    } else if (receiving) {
++    } else if (mode == Mode::Upload) {
 +        unsigned n = pad_share_upload_count();
 +        if (shown_count != n) {
 +            shown_count = n;
@@ -151,12 +162,12 @@ index 0000000..a08371c
 +#endif
 +    message = Label();
 +    if (!serving) { lv_label_set_text(message, err); return; }
-+    if (receiving) {
++    if (mode == Mode::Upload) {
 +        receipt = Label();
 +        shown_count = 0;
 +        lv_label_set_text(receipt, "本次已收：0 张");
 +    }
-+    lv_label_set_text(button_label, receiving ? "停止接收并关闭" : "停止分享并关闭");
++    lv_label_set_text(button_label, mode == Mode::Upload ? "停止接收并关闭" : "停止分享并关闭");
 +    lv_label_set_text_fmt(message, "%s\n%s\n5 分钟有效。仅向同一 Wi-Fi 的同学展示。",
 +                          qr_ok ? "请扫码，或在浏览器输入：" : "二维码不可用，请在浏览器输入：", url);
 +    watch = lv_timer_create(Poll, 1000, nullptr);
@@ -168,9 +179,9 @@ index 0000000..a08371c
 +        lv_label_set_text(button_label, "关闭");
 +    }
 +}
-+void Open(lv_event_t* event, bool upload) {
++void Open(lv_event_t* event, Mode selected) {
 +    if (panel) return;
-+    receiving = upload;
++    mode = selected;
 +    panel = lv_obj_create(lv_obj_get_screen(static_cast<lv_obj_t*>(lv_event_get_target(event))));
 +    lv_obj_set_size(panel, lv_pct(100), lv_pct(100));
 +    lv_obj_center(panel);
@@ -183,11 +194,16 @@ index 0000000..a08371c
 +    lv_obj_add_event_cb(panel, Deleted, LV_EVENT_DELETE, nullptr);
 +    auto* button = SettingsCreateSelectableOption(panel, "关闭", [](lv_event_t*) { SettingsCardShare_Close(); }, 0);
 +    button_label = lv_obj_get_child(button, 0);
-+    if (!receiving) { Serve(nullptr); return; }
++    if (mode == Mode::Card) { Serve(nullptr); return; }
 +    auto* summary = Label();
 +    if (!SdReady()) { lv_label_set_text(summary, "请插入 SD 卡，并关闭模拟 U 盘。"); return; }
 +    if (pad_share_current_project(project) != ESP_OK) {
 +        lv_label_set_text(summary, "未绑定当前项目。请在 SD 卡 metalio/e-ink/project/current.id 写入项目标识后重新打开。");
++        return;
++    }
++    if (mode == Mode::Library) {
++        lv_label_set_text_fmt(summary, "分享本项目卡片列表\n项目：%s\n同一 Wi-Fi 的同学可浏览本项目 cards 目录中的卡片，不能上传照片。", project);
++        start_button = SettingsCreateSelectableOption(panel, "生成只读二维码", Serve, 0);
 +        return;
 +    }
 +    lv_label_set_text_fmt(summary, "当前项目：%s\n照片位置：SD 卡 metalio/e-ink/project/%s/photos", project, project);
@@ -198,18 +214,20 @@ index 0000000..a08371c
 +void SettingsCardShare_Close() {
 +    if (panel) lv_obj_delete(panel);
 +}
-+void SettingsCardShare_Open(lv_event_t* event) { Open(event, false); }
-+void SettingsPhotoUpload_Open(lv_event_t* event) { Open(event, true); }
++void SettingsCardShare_Open(lv_event_t* event) { Open(event, Mode::Card); }
++void SettingsCardLibrary_Open(lv_event_t* event) { Open(event, Mode::Library); }
++void SettingsPhotoUpload_Open(lv_event_t* event) { Open(event, Mode::Upload); }
 diff --git a/main/display/screen/settings_screen/settings_card_share.h b/main/display/screen/settings_screen/settings_card_share.h
 new file mode 100644
-index 0000000..6bf191a
+index 0000000..c8f5c21
 --- /dev/null
 +++ b/main/display/screen/settings_screen/settings_card_share.h
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,7 @@
 +#pragma once
 +#include "lvgl.h"
 +
 +void SettingsCardShare_Open(lv_event_t* event);
++void SettingsCardLibrary_Open(lv_event_t* event);
 +void SettingsPhotoUpload_Open(lv_event_t* event);
 +void SettingsCardShare_Close();
 diff --git a/main/display/screen/settings_screen/settings_screen.cc b/main/display/screen/settings_screen/settings_screen.cc
@@ -237,7 +255,7 @@ index c8fe079..ed29817 100644
          SettingsBluetoothTab_OnDeactivated();
      }
 diff --git a/main/display/screen/settings_screen/settings_storage_tab.cc b/main/display/screen/settings_screen/settings_storage_tab.cc
-index 762358e..4c758a2 100644
+index 762358e..b704970 100644
 --- a/main/display/screen/settings_screen/settings_storage_tab.cc
 +++ b/main/display/screen/settings_screen/settings_storage_tab.cc
 @@ -1,4 +1,7 @@
@@ -258,11 +276,12 @@ index 762358e..4c758a2 100644
      auto& vd = UsbVirtualDisk::GetInstance();
      vd.DisableIfActive();
      vd.SetUiNotify(nullptr);
-@@ -180,6 +186,10 @@ void SettingsStorageTab_Build(lv_obj_t* page) {
+@@ -180,6 +186,11 @@ void SettingsStorageTab_Build(lv_obj_t* page) {
      lv_obj_set_style_text_color(s_ui.capacity_lbl, lv_color_black(), 0);
      lv_obj_clear_flag(s_ui.capacity_lbl, LV_OBJ_FLAG_CLICKABLE);
  
 +#ifdef ESP_PLATFORM
++    SettingsCreateSelectableOption(page, "分享本项目卡片列表", SettingsCardLibrary_Open, 0);
 +    SettingsCreateSelectableOption(page, "分享当前项目卡", SettingsCardShare_Open, 0);
 +    SettingsCreateSelectableOption(page, "从手机加照片", SettingsPhotoUpload_Open, 0);
 +#endif
